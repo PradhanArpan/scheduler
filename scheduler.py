@@ -3,23 +3,6 @@ from copy import deepcopy
 
 class TimetableScheduler:
     def __init__(self, config, teachers, rooms, batches, courses, sub_batches=None):
-        """
-        config: {
-            "days": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
-            "periods": [
-                {"id": "p1", "name": "Period 1", "time": "09:00 - 10:00", "is_break": False},
-                {"id": "p2", "name": "Period 2", "time": "10:00 - 11:00", "is_break": False},
-                {"id": "p3", "name": "Period 3", "time": "11:00 - 12:00", "is_break": False},
-                {"id": "p4", "name": "Period 4", "time": "12:00 - 01:00", "is_break": False},
-                {"id": "lunch", "name": "Lunch Break", "time": "01:00 - 02:00", "is_break": True},
-                {"id": "p5", "name": "Period 5", "time": "02:00 - 03:00", "is_break": False},
-                {"id": "p6", "name": "Period 6", "time": "03:00 - 04:00", "is_break": False}
-            ],
-            "day_working_matrix": {
-                # day_index -> set of active period_indices
-            }
-        }
-        """
         self.config = config
         self.days = config.get("days", ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"])
         self.num_days = len(self.days)
@@ -37,16 +20,13 @@ class TimetableScheduler:
                     self.periods.append({"id": "lunch", "name": "Lunch Break", "time": "01:00 - 02:00", "is_break": True})
 
         self.periods_count = len(self.periods)
-        
-        # Active teaching slot indices (excluding breaks)
         self.teaching_period_indices = [i for i, p in enumerate(self.periods) if not p.get("is_break", False)]
         
-        # Day inactive slots (e.g. Saturday afternoon)
+        # Inactive slots (e.g. Saturday afternoon)
         self.inactive_slots = set()
         saturday_idx = 5 if self.num_days >= 6 else -1
         sat_max = config.get("saturday_max_period", 4)
         if saturday_idx >= 0 and sat_max is not None:
-            # find the index in periods for the sat_max teaching period
             teaching_seen = 0
             for idx, p in enumerate(self.periods):
                 if not p.get("is_break"):
@@ -57,14 +37,27 @@ class TimetableScheduler:
                     if teaching_seen >= sat_max:
                         self.inactive_slots.add((saturday_idx, idx))
 
-        # Explicit custom inactive matrix from config if set
         if "day_working_matrix" in config:
-            # format: {"0": [True, True, ...]}
             for d_str, slot_flags in config["day_working_matrix"].items():
                 d = int(d_str)
                 for p_idx, is_active in enumerate(slot_flags):
                     if not is_active:
                         self.inactive_slots.add((d, p_idx))
+
+        # Advanced constraints
+        adv = config.get("advanced_constraints", {})
+        self.faculty_max_hours_per_day = adv.get("faculty_max_hours_per_day", 4)
+        self.faculty_no_consecutive_theory = adv.get("faculty_no_consecutive_theory", False)
+        
+        # Meeting slots: (day, period)
+        self.meeting_slots = set()
+        for m in adv.get("department_meetings", []):
+            self.meeting_slots.add((m.get("day"), m.get("period")))
+            
+        # Batch-specific blocked slots: (batch_id, day, period)
+        self.batch_blocked = set()
+        for b_b in adv.get("batch_blocked_slots", []):
+            self.batch_blocked.add((b_b.get("batch_id"), b_b.get("day"), b_b.get("period")))
 
         self.teachers = {t["id"]: t for t in teachers}
         self.rooms = {r["id"]: r for r in rooms}
@@ -72,7 +65,7 @@ class TimetableScheduler:
         self.sub_batches = {sb["id"]: sb for sb in (sub_batches or [])}
         self.courses = courses
 
-    def generate(self, max_attempts=100):
+    def generate(self, max_attempts=150):
         activities = []
         for c in self.courses:
             periods_needed = c.get("weekly_periods", 3)
@@ -115,6 +108,7 @@ class TimetableScheduler:
 
         for attempt in range(max_attempts):
             teacher_schedule = {} # teacher_id -> set of (d, p)
+            teacher_day_load = {} # (teacher_id, d) -> count
             batch_schedule = {}   # batch_id -> set of (d, p)
             sub_batch_schedule = {} # sub_batch_id -> set of (d, p)
             room_schedule = {}    # room_id -> set of (d, p)
@@ -128,7 +122,7 @@ class TimetableScheduler:
 
             success = self._backtrack(
                 current_activities, 0,
-                teacher_schedule, batch_schedule, sub_batch_schedule,
+                teacher_schedule, teacher_day_load, batch_schedule, sub_batch_schedule,
                 room_schedule, batch_day_courses, assigned_schedule
             )
             
@@ -143,11 +137,11 @@ class TimetableScheduler:
         return {
             "success": False,
             "attempts": max_attempts,
-            "message": "Could not find a 100% conflict-free schedule with current constraints.",
+            "message": "Could not find a 100% conflict-free schedule with current constraints. Try relaxing some rules or room restrictions.",
             "schedule": []
         }
 
-    def _backtrack(self, activities, index, teacher_sched, batch_sched, sub_batch_sched, room_sched, batch_day_courses, result):
+    def _backtrack(self, activities, index, teacher_sched, teacher_day_load, batch_sched, sub_batch_sched, room_sched, batch_day_courses, result):
         if index >= len(activities):
             return True
 
@@ -159,6 +153,7 @@ class TimetableScheduler:
         preferred_room_id = act.get("preferred_room_id")
         room_type = act.get("room_type", "Lecture")
         course_id = act["course_id"]
+        is_lab = act.get("is_lab", False)
         
         suitable_rooms = [
             r for r in self.rooms.values()
@@ -172,19 +167,41 @@ class TimetableScheduler:
 
         candidate_slots = []
         for d in range(self.num_days):
-            # Iterate through teaching periods
+            # Check faculty daily max hours constraint
+            if teacher_id and self.faculty_max_hours_per_day:
+                if teacher_day_load.get((teacher_id, d), 0) + block_size > self.faculty_max_hours_per_day:
+                    continue
+
             for i in range(len(self.teaching_period_indices) - block_size + 1):
                 block_periods = self.teaching_period_indices[i : i + block_size]
                 
-                # Check consecutive: ensure no breaks fall inside the block!
+                # Check consecutive: no break in between
                 if block_size > 1:
                     is_consecutive = (block_periods[-1] - block_periods[0]) == (block_size - 1)
                     if not is_consecutive:
-                        continue # contains a break in between!
+                        continue
 
-                # Check if any slot in block is inactive on this day (e.g. Sat afternoon)
+                # Inactive / Closed slots
                 if any((d, p) in self.inactive_slots for p in block_periods):
                     continue
+
+                # Department Meeting constraint (no classes)
+                if any((d, p) in self.meeting_slots for p in block_periods):
+                    continue
+
+                # Batch-specific blocked slots
+                if any((batch_id, d, p) in self.batch_blocked for p in block_periods):
+                    continue
+
+                # Faculty no-consecutive-theory constraint
+                if teacher_id and not is_lab and self.faculty_no_consecutive_theory:
+                    # check if period immediately before or after has theory
+                    first_p = block_periods[0]
+                    last_p = block_periods[-1]
+                    if (d, first_p - 1) in teacher_sched.get(teacher_id, set()):
+                        continue
+                    if (d, last_p + 1) in teacher_sched.get(teacher_id, set()):
+                        continue
 
                 for room in suitable_rooms:
                     candidate_slots.append((d, block_periods, room))
@@ -234,8 +251,8 @@ class TimetableScheduler:
             for curr_p in block_periods:
                 if teacher_id:
                     teacher_sched.setdefault(teacher_id, set()).add((d, curr_p))
+                    teacher_day_load[(teacher_id, d)] = teacher_day_load.get((teacher_id, d), 0) + 1
                 
-                # If sub-batch assigned, mark sub-batch and optionally batch
                 if sub_batch_id:
                     sub_batch_sched.setdefault(sub_batch_id, set()).add((d, curr_p))
                 else:
@@ -276,13 +293,14 @@ class TimetableScheduler:
 
             batch_day_courses[(batch_id, d, course_id)] = batch_day_courses.get((batch_id, d, course_id), 0) + block_size
 
-            if self._backtrack(activities, index + 1, teacher_sched, batch_sched, sub_batch_sched, room_sched, batch_day_courses, result):
+            if self._backtrack(activities, index + 1, teacher_sched, teacher_day_load, batch_sched, sub_batch_sched, room_sched, batch_day_courses, result):
                 return True
 
             # Rollback
             for curr_p in block_periods:
                 if teacher_id:
                     teacher_sched[teacher_id].remove((d, curr_p))
+                    teacher_day_load[(teacher_id, d)] -= 1
                 if sub_batch_id:
                     sub_batch_sched[sub_batch_id].remove((d, curr_p))
                 else:

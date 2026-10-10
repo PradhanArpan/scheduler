@@ -36,25 +36,46 @@
             Civil Engineering Timetable Portal
             <span class="text-xs bg-indigo-500/50 text-indigo-100 font-semibold px-2 py-0.5 rounded-full uppercase tracking-wider">Department Scheduler</span>
           </h1>
-          <p class="text-xs text-indigo-200">Batches & Sub-Batches &bull; Dynamic Periods & Breaks &bull; Conflict-Free</p>
+          <p class="text-xs text-indigo-200">Batches & Sub-Batches &bull; Dynamic Periods & Breaks &bull; Multi-Year Planning</p>
         </div>
       </div>
 
-      <!-- Quick Action Controls -->
-      <div class="flex items-center gap-2.5">
-        <button @click="saveStateToServer" class="px-3.5 py-1.5 bg-indigo-700 hover:bg-indigo-600 text-indigo-100 rounded-lg text-xs font-semibold shadow transition flex items-center gap-1.5">
-          <span>💾</span> Save All
+      <!-- Academic Year & Semester Switcher in Navbar -->
+      <div class="flex flex-wrap items-center gap-2">
+        <!-- Academic Year Dropdown -->
+        <div class="flex items-center gap-1.5 bg-indigo-950/80 px-2.5 py-1 rounded-lg border border-indigo-700/60 text-xs">
+          <span class="text-indigo-300 font-medium">AY:</span>
+          <select v-model="data.config.academic_year" @change="saveStateToServer" class="bg-transparent text-white font-bold focus:outline-none cursor-pointer">
+            <option v-for="yr in (data.config.available_academic_years || ['2024-2025', '2025-2026', '2026-2027', '2027-2028', '2028-2029'])" :key="yr" :value="yr" class="bg-slate-900 text-white">
+              {{ yr }}
+            </option>
+          </select>
+          <button @click="promptAddAcademicYear" title="Add New Academic Year" class="text-indigo-300 hover:text-white font-bold ml-1">+</button>
+        </div>
+
+        <!-- Semester Dropdown -->
+        <div class="flex items-center gap-1.5 bg-indigo-950/80 px-2.5 py-1 rounded-lg border border-indigo-700/60 text-xs">
+          <span class="text-indigo-300 font-medium">Term:</span>
+          <select v-model="data.config.semester" @change="saveStateToServer" class="bg-transparent text-white font-bold focus:outline-none cursor-pointer">
+            <option value="Even Semester" class="bg-slate-900 text-white">Even Semester</option>
+            <option value="Odd Semester" class="bg-slate-900 text-white">Odd Semester</option>
+          </select>
+        </div>
+
+        <!-- Action Buttons -->
+        <button @click="saveStateToServer" class="px-3 py-1 bg-indigo-700 hover:bg-indigo-600 text-indigo-100 rounded-lg text-xs font-semibold shadow transition flex items-center gap-1">
+          <span>💾</span> Save
         </button>
-        <button @click="generateTimetable" :disabled="generating" class="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold shadow-md transition flex items-center gap-1.5">
+        <button @click="generateTimetable" :disabled="generating" class="px-3.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold shadow transition flex items-center gap-1">
           <span v-if="generating" class="animate-spin inline-block">⏳</span>
           <span v-else>🚀</span>
           {{ generating ? 'Solving...' : 'Auto-Generate' }}
         </button>
-        <button @click="triggerPrint" class="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-100 rounded-lg text-xs font-medium border border-slate-700 transition flex items-center gap-1.5 shadow-sm">
-          <span>🖨️</span> Print / PDF
+        <button @click="triggerPrint" class="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-100 rounded-lg text-xs font-medium border border-slate-700 transition">
+          🖨️ Print
         </button>
-        <a href="/api/export/csv" class="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-100 rounded-lg text-xs font-medium border border-slate-700 transition flex items-center gap-1.5 shadow-sm">
-          <span>📥</span> CSV
+        <a href="/api/export/csv" class="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-100 rounded-lg text-xs font-medium border border-slate-700 transition">
+          📥 CSV
         </a>
       </div>
     </div>
@@ -148,8 +169,9 @@
                 <span class="text-xs bg-indigo-600/70 text-indigo-100 px-2 py-0.5 rounded font-normal">{{ data.config.semester || 'Even Semester' }} ({{ data.config.academic_year || '2026-2027' }})</span>
               </h3>
             </div>
-            <div class="text-xs text-slate-400 font-mono">
-              Saturday till 1:00 PM &bull; Lunch 1:00 - 2:00 PM
+            <!-- Clean Header without hardcoded hours -->
+            <div class="text-xs text-slate-300 font-medium">
+              Academic Year: <span class="font-bold text-white">{{ data.config.academic_year }}</span> &bull; <span class="text-indigo-200">{{ data.config.semester }}</span>
             </div>
           </div>
 
@@ -229,7 +251,7 @@
     </section>
 
     <!-- ========================================================================= -->
-    <!-- TAB 2: BATCHES & SUB-BATCHES (FET HIERARCHY) -->
+    <!-- TAB 2: BATCHES & SUB-BATCHES -->
     <!-- ========================================================================= -->
     <section v-if="currentTab === 'batches'" class="space-y-6">
       <div class="flex flex-wrap items-center justify-between gap-4">
@@ -244,7 +266,7 @@
         </div>
       </div>
 
-      <!-- Cycles & Batches Accordion / Cards -->
+      <!-- Cycles & Batches Cards -->
       <div class="space-y-6">
         <div v-for="cycle in data.cycles" :key="cycle.id" class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
           <div class="bg-slate-100 px-5 py-3 border-b border-slate-200 flex items-center justify-between">
@@ -270,7 +292,7 @@
               <!-- Sub-batches pills -->
               <div class="space-y-1.5 border-t border-slate-200/70 pt-2">
                 <div class="flex items-center justify-between text-[11px] font-semibold text-slate-600">
-                  <span>Sub-Batches (Labs / Divisions):</span>
+                  <span>Sub-Batches (Labs):</span>
                   <button @click="openAddSubBatchModal(b)" class="text-indigo-600 hover:text-indigo-800 font-bold">+ Add</button>
                 </div>
 
@@ -292,17 +314,36 @@
     </section>
 
     <!-- ========================================================================= -->
-    <!-- TAB 3: SUBJECTS CATALOG (UNMAPPED) -->
+    <!-- TAB 3: SUBJECTS CATALOG (ODD / EVEN SWITCHABLE) -->
     <!-- ========================================================================= -->
     <section v-if="currentTab === 'courses'" class="space-y-6">
       <div class="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h2 class="text-lg font-bold text-slate-900">Subject / Course Catalog (2026–2027 Even Sem)</h2>
-          <p class="text-xs text-slate-500">Unmapped for now. You can assign faculty leads, batch targets, and weekly hours when you're ready.</p>
+          <h2 class="text-lg font-bold text-slate-900">
+            Subject & Course Catalog
+            <span class="text-xs bg-indigo-100 text-indigo-800 font-bold px-2 py-0.5 rounded ml-2">{{ data.config.academic_year }}</span>
+          </h2>
+          <p class="text-xs text-slate-500">Catalog of all subjects across semesters. You can toggle between Odd & Even semesters and edit weekly hours anytime.</p>
         </div>
-        <button @click="openAddCourseModal" class="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold shadow transition">
-          + Add New Course
-        </button>
+
+        <div class="flex flex-wrap items-center gap-2">
+          <!-- Odd / Even Semester Tabs -->
+          <div class="inline-flex rounded-lg bg-slate-200 p-1 text-xs">
+            <button @click="semesterFilter = 'Even'" :class="semesterFilter === 'Even' ? 'bg-white shadow text-indigo-700 font-bold' : 'text-slate-600'" class="px-3 py-1 rounded-md transition">
+              Even Semester
+            </button>
+            <button @click="semesterFilter = 'Odd'" :class="semesterFilter === 'Odd' ? 'bg-white shadow text-indigo-700 font-bold' : 'text-slate-600'" class="px-3 py-1 rounded-md transition">
+              Odd Semester
+            </button>
+            <button @click="semesterFilter = 'ALL'" :class="semesterFilter === 'ALL' ? 'bg-white shadow text-indigo-700 font-bold' : 'text-slate-600'" class="px-3 py-1 rounded-md transition">
+              All Subjects ({{ data.unmapped_subjects.length }})
+            </button>
+          </div>
+
+          <button @click="openAddCourseModal" class="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold shadow transition">
+            + Add New Subject
+          </button>
+        </div>
       </div>
 
       <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
@@ -310,31 +351,48 @@
           <table class="w-full text-left text-xs border-collapse">
             <thead>
               <tr class="bg-slate-100 text-slate-700 font-bold border-b border-slate-200">
+                <th class="p-3">Semester</th>
                 <th class="p-3">Course Code</th>
                 <th class="p-3">Course Title</th>
                 <th class="p-3">Target Batch</th>
                 <th class="p-3">Assigned Faculty</th>
-                <th class="p-3">Weekly Hours</th>
+                <th class="p-3">Weekly Hours (Editable)</th>
                 <th class="p-3">Session Type</th>
-                <th class="p-3">Preferred Venue</th>
+                <th class="p-3">Preferred Room</th>
                 <th class="p-3 text-right">Actions</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-100">
-              <tr v-for="c in data.unmapped_subjects" :key="c.id" class="hover:bg-slate-50/70">
+              <tr v-for="c in filteredSubjects" :key="c.id" class="hover:bg-slate-50/70">
+                <td class="p-3">
+                  <span :class="c.semester_type === 'Even' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'" class="px-2 py-0.5 rounded font-bold text-[10px]">
+                    {{ c.semester_type || 'General' }}
+                  </span>
+                </td>
                 <td class="p-3 font-mono font-bold text-indigo-700">{{ c.code }}</td>
                 <td class="p-3 font-semibold text-slate-900">{{ c.name }}</td>
                 <td class="p-3 text-slate-700">{{ getBatchName(c.batch_id) }}</td>
+                
+                <!-- Faculty Assignment Dropdown -->
                 <td class="p-3">
-                  <!-- Faculty Mapping Dropdown right in the row -->
-                  <select v-model="c.teacher_id" class="text-xs bg-slate-50 border border-slate-300 rounded px-2 py-1 focus:ring-1 focus:ring-indigo-500 font-medium">
+                  <select v-model="c.teacher_id" @change="saveStateToServer" class="text-xs bg-slate-50 border border-slate-300 rounded px-2 py-1 focus:ring-1 focus:ring-indigo-500 font-medium">
                     <option value="">-- Unassigned (TBD) --</option>
                     <option v-for="f in data.faculty" :key="f.id" :value="f.id">
                       {{ f.name }} ({{ f.code }})
                     </option>
                   </select>
                 </td>
-                <td class="p-3 font-bold text-slate-700">{{ c.weekly_periods }} hrs/wk</td>
+
+                <!-- Editable Weekly Hours with Stepper -->
+                <td class="p-3">
+                  <div class="flex items-center gap-1.5">
+                    <button @click="decrementWeeklyHours(c)" class="w-5 h-5 bg-slate-100 hover:bg-slate-200 rounded font-bold text-slate-700 flex items-center justify-center">-</button>
+                    <input v-model.number="c.weekly_periods" @change="saveStateToServer" type="number" min="1" max="15" class="w-12 text-center text-xs font-bold border rounded py-0.5 bg-slate-50">
+                    <button @click="incrementWeeklyHours(c)" class="w-5 h-5 bg-slate-100 hover:bg-slate-200 rounded font-bold text-slate-700 flex items-center justify-center">+</button>
+                    <span class="text-slate-500 text-[11px]">hrs/wk</span>
+                  </div>
+                </td>
+
                 <td class="p-3">
                   <span v-if="c.is_lab" class="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded font-semibold text-[10px]">
                     Lab ({{ c.block_size }} hrs block)
@@ -345,7 +403,8 @@
                 </td>
                 <td class="p-3 text-slate-600 font-mono">{{ getRoomName(c.preferred_room_id) || 'Any Classroom' }}</td>
                 <td class="p-3 text-right space-x-2">
-                  <button @click="deleteSubject(c.id)" class="text-rose-600 hover:text-rose-800 font-medium">Delete</button>
+                  <button @click="editSubject(c)" class="text-indigo-600 hover:text-indigo-800 font-semibold">Edit</button>
+                  <button @click="deleteSubject(c.id)" class="text-rose-600 hover:text-rose-800 font-semibold">Delete</button>
                 </td>
               </tr>
             </tbody>
@@ -355,13 +414,13 @@
     </section>
 
     <!-- ========================================================================= -->
-    <!-- TAB 4: FACULTY MEMBERS (ALPHABETICAL) -->
+    <!-- TAB 4: FACULTY MEMBERS -->
     <!-- ========================================================================= -->
     <section v-if="currentTab === 'teachers'" class="space-y-6">
       <div class="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h2 class="text-lg font-bold text-slate-900">Civil Engineering Faculty Directory</h2>
-          <p class="text-xs text-slate-500">Sorted alphabetically by name with official designations and individual availability matrix.</p>
+          <h2 class="text-lg font-bold text-slate-900">Civil Engineering Faculty Directory (Alphabetical)</h2>
+          <p class="text-xs text-slate-500">15 faculty members sorted alphabetically with designations and unavailable slot matrix.</p>
         </div>
         <button @click="openAddTeacherModal" class="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold shadow transition">
           + Add Faculty
@@ -415,13 +474,13 @@
     </section>
 
     <!-- ========================================================================= -->
-    <!-- TAB 6: ACADEMIC & TIMING SETTINGS (FET STYLE) -->
+    <!-- TAB 6: ACADEMIC & TIMING SETTINGS (ADVANCED CONSTRAINTS) -->
     <!-- ========================================================================= -->
     <section v-if="currentTab === 'settings'" class="space-y-8">
       
-      <!-- General Metadata -->
+      <!-- Institutional Metadata -->
       <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
-        <h2 class="text-sm font-bold uppercase tracking-wider text-slate-800 border-b pb-2">Institutional Metadata</h2>
+        <h2 class="text-sm font-bold uppercase tracking-wider text-slate-800 border-b pb-2">Institutional Setup</h2>
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div>
             <label class="block text-xs font-bold text-slate-700 mb-1">Timetable Title</label>
@@ -434,6 +493,89 @@
           <div>
             <label class="block text-xs font-bold text-slate-700 mb-1">Semester</label>
             <input v-model="data.config.semester" type="text" class="w-full text-xs border rounded-lg p-2 bg-slate-50 focus:bg-white">
+          </div>
+        </div>
+      </div>
+
+      <!-- Advanced Scheduling Constraints Section -->
+      <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-5">
+        <div class="border-b pb-2">
+          <h2 class="text-sm font-bold uppercase tracking-wider text-slate-800">Advanced Scheduling Rules & Constraints</h2>
+          <p class="text-xs text-slate-500">Configure faculty load limits, consecutive teaching rules, meeting hours, and class-specific blocked times.</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <!-- Faculty Workload Limits -->
+          <div class="p-4 rounded-xl border border-slate-200 bg-slate-50/70 space-y-3">
+            <h3 class="text-xs font-bold text-slate-800 uppercase tracking-wide flex items-center gap-2">
+              <span>👨‍🏫</span> Faculty Workload Rules
+            </h3>
+            
+            <div class="space-y-3 text-xs">
+              <div>
+                <label class="block font-semibold text-slate-700 mb-1">Max Teaching Hours per Day (Faculty)</label>
+                <div class="flex items-center gap-2">
+                  <input v-model.number="data.config.advanced_constraints.faculty_max_hours_per_day" type="number" min="1" max="8" class="w-20 border rounded p-1.5 font-bold bg-white text-center">
+                  <span class="text-slate-500">hours/day maximum load</span>
+                </div>
+              </div>
+
+              <div class="pt-2 border-t border-slate-200">
+                <label class="flex items-center gap-2 cursor-pointer font-semibold text-slate-700">
+                  <input type="checkbox" v-model="data.config.advanced_constraints.faculty_no_consecutive_theory" class="rounded text-indigo-600">
+                  <span>Prevent 2 Consecutive Theory Hours (for same faculty)</span>
+                </label>
+                <p class="text-[11px] text-slate-400 ml-6">Ensures a gap period between theory classes for professors.</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Department Common Meeting Hour -->
+          <div class="p-4 rounded-xl border border-slate-200 bg-slate-50/70 space-y-3">
+            <div class="flex items-center justify-between">
+              <h3 class="text-xs font-bold text-slate-800 uppercase tracking-wide flex items-center gap-2">
+                <span>🤝</span> Department Meeting Hours
+              </h3>
+              <button @click="openAddMeetingModal" class="text-xs text-indigo-600 hover:text-indigo-800 font-bold">+ Add Meeting Slot</button>
+            </div>
+
+            <div class="space-y-1.5 text-xs">
+              <div v-for="(m, idx) in (data.config.advanced_constraints.department_meetings || [])" :key="m.id || idx"
+                   class="p-2 rounded bg-white border border-slate-200 flex items-center justify-between shadow-xs">
+                <div>
+                  <span class="font-bold text-indigo-900">{{ m.label || 'Meeting' }}</span>
+                  <span class="text-slate-500 ml-2 font-mono">({{ getDayName(m.day) }} - Period {{ m.period + 1 }})</span>
+                </div>
+                <button @click="removeMeetingSlot(idx)" class="text-rose-600 hover:text-rose-800 font-bold">✕</button>
+              </div>
+              <div v-if="(!data.config.advanced_constraints.department_meetings || data.config.advanced_constraints.department_meetings.length === 0)" class="text-slate-400 italic text-[11px]">
+                No common meeting hours configured.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Class / Batch Blocked Hours -->
+        <div class="p-4 rounded-xl border border-slate-200 bg-slate-50/70 space-y-3">
+          <div class="flex items-center justify-between">
+            <div>
+              <h3 class="text-xs font-bold text-slate-800 uppercase tracking-wide flex items-center gap-2">
+                <span>🔒</span> Class-Specific Reserved / Blocked Hours
+              </h3>
+              <p class="text-[11px] text-slate-500">Reserve hours for specific batches (e.g. 4BTCI Friday Mentoring, 6BTCI Library hour).</p>
+            </div>
+            <button @click="openAddBatchBlockedModal" class="text-xs text-indigo-600 hover:text-indigo-800 font-bold">+ Add Reserved Slot</button>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 text-xs">
+            <div v-for="(bb, idx) in (data.config.advanced_constraints.batch_blocked_slots || [])" :key="bb.id || idx"
+                 class="p-2.5 rounded bg-white border border-slate-200 flex items-center justify-between shadow-xs">
+              <div>
+                <div class="font-bold text-slate-800">{{ getBatchName(bb.batch_id) }}</div>
+                <div class="text-[11px] text-slate-500">{{ bb.label || 'Reserved' }} &bull; {{ getDayName(bb.day) }} P{{ bb.period + 1 }}</div>
+              </div>
+              <button @click="removeBatchBlockedSlot(idx)" class="text-rose-600 hover:text-rose-800 font-bold ml-2">✕</button>
+            </div>
           </div>
         </div>
       </div>
@@ -476,11 +618,11 @@
         </div>
       </div>
 
-      <!-- Day Working Matrix (e.g. Saturday afternoon closed) -->
+      <!-- Day Working Matrix -->
       <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
         <div class="border-b pb-2">
           <h2 class="text-sm font-bold uppercase tracking-wider text-slate-800">Day Working Matrix</h2>
-          <p class="text-xs text-slate-500">Toggle whether a specific slot is Working or Closed/Off (e.g., Saturday runs till 1:00 PM, afternoon is Closed).</p>
+          <p class="text-xs text-slate-500">Toggle whether a specific slot is Working or Closed/Off.</p>
         </div>
 
         <div class="overflow-x-auto border rounded-xl">
@@ -522,6 +664,136 @@
     </section>
 
   </main>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL: ADD / EDIT SUBJECT -->
+  <!-- ========================================================================= -->
+  <div v-if="subjectModal.open" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-xl shadow-2xl border border-slate-200 max-w-md w-full p-5 space-y-4">
+      <h3 class="font-bold text-sm text-slate-900">{{ subjectModal.isEdit ? 'Edit Subject' : 'Add Subject' }}</h3>
+      
+      <div class="space-y-3 text-xs">
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Course Code</label>
+            <input v-model="subjectModal.form.code" placeholder="e.g. CE431" class="w-full border rounded-lg p-2 bg-slate-50">
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Semester Cycle</label>
+            <select v-model="subjectModal.form.semester_type" class="w-full border rounded-lg p-2 bg-slate-50">
+              <option value="Even">Even Semester</option>
+              <option value="Odd">Odd Semester</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Course Title</label>
+          <input v-model="subjectModal.form.name" placeholder="e.g. Structural Analysis" class="w-full border rounded-lg p-2 bg-slate-50">
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Target Class / Batch</label>
+          <select v-model="subjectModal.form.batch_id" class="w-full border rounded-lg p-2 bg-slate-50">
+            <option v-for="b in data.batches" :key="b.id" :value="b.id">{{ b.name }}</option>
+          </select>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Weekly Hours</label>
+            <input v-model.number="subjectModal.form.weekly_periods" type="number" min="1" max="15" class="w-full border rounded-lg p-2 bg-slate-50">
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Block Size (e.g. 2 for lab)</label>
+            <input v-model.number="subjectModal.form.block_size" type="number" min="1" max="4" class="w-full border rounded-lg p-2 bg-slate-50">
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2 pt-1">
+          <input type="checkbox" id="modal_is_lab" v-model="subjectModal.form.is_lab" class="rounded text-indigo-600">
+          <label for="modal_is_lab" class="font-bold text-slate-700">Is Practical / Laboratory Session?</label>
+        </div>
+      </div>
+
+      <div class="flex justify-end gap-2 pt-2 border-t">
+        <button @click="subjectModal.open = false" class="px-3 py-1.5 border rounded-lg text-xs font-semibold text-slate-600">Cancel</button>
+        <button @click="saveSubjectModal" class="px-4 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-bold">Save Subject</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL: ADD MEETING HOUR -->
+  <!-- ========================================================================= -->
+  <div v-if="meetingModal.open" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-xl shadow-2xl border border-slate-200 max-w-sm w-full p-5 space-y-4">
+      <h3 class="font-bold text-sm text-slate-900">Add Common Meeting / Event Hour</h3>
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Meeting Name / Label</label>
+          <input v-model="meetingModal.label" placeholder="e.g. Department Faculty Meeting" class="w-full border rounded-lg p-2 bg-slate-50">
+        </div>
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Day</label>
+          <select v-model.number="meetingModal.day" class="w-full border rounded-lg p-2 bg-slate-50">
+            <option v-for="(day, dIdx) in data.config.days" :key="dIdx" :value="dIdx">{{ day }}</option>
+          </select>
+        </div>
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Period</label>
+          <select v-model.number="meetingModal.period" class="w-full border rounded-lg p-2 bg-slate-50">
+            <option v-for="(p, pIdx) in data.config.periods" :key="p.id" :value="pIdx">
+              {{ p.name }} ({{ p.time }})
+            </option>
+          </select>
+        </div>
+      </div>
+      <div class="flex justify-end gap-2 pt-2 border-t">
+        <button @click="meetingModal.open = false" class="px-3 py-1.5 border rounded-lg text-xs font-semibold text-slate-600">Cancel</button>
+        <button @click="saveMeetingSlot" class="px-4 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-bold">Add</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL: ADD BATCH BLOCKED SLOT -->
+  <!-- ========================================================================= -->
+  <div v-if="batchBlockedModal.open" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-xl shadow-2xl border border-slate-200 max-w-sm w-full p-5 space-y-4">
+      <h3 class="font-bold text-sm text-slate-900">Reserve / Block Class Slot</h3>
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Target Batch / Class</label>
+          <select v-model="batchBlockedModal.batch_id" class="w-full border rounded-lg p-2 bg-slate-50">
+            <option v-for="b in data.batches" :key="b.id" :value="b.id">{{ b.name }}</option>
+          </select>
+        </div>
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Activity Label</label>
+          <input v-model="batchBlockedModal.label" placeholder="e.g. Mentoring / HED / Library" class="w-full border rounded-lg p-2 bg-slate-50">
+        </div>
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Day</label>
+          <select v-model.number="batchBlockedModal.day" class="w-full border rounded-lg p-2 bg-slate-50">
+            <option v-for="(day, dIdx) in data.config.days" :key="dIdx" :value="dIdx">{{ day }}</option>
+          </select>
+        </div>
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Period</label>
+          <select v-model.number="batchBlockedModal.period" class="w-full border rounded-lg p-2 bg-slate-50">
+            <option v-for="(p, pIdx) in data.config.periods" :key="p.id" :value="pIdx">
+              {{ p.name }} ({{ p.time }})
+            </option>
+          </select>
+        </div>
+      </div>
+      <div class="flex justify-end gap-2 pt-2 border-t">
+        <button @click="batchBlockedModal.open = false" class="px-3 py-1.5 border rounded-lg text-xs font-semibold text-slate-600">Cancel</button>
+        <button @click="saveBatchBlockedSlot" class="px-4 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-bold">Add</button>
+      </div>
+    </div>
+  </div>
 
   <!-- ========================================================================= -->
   <!-- MODAL: ADD / EDIT BATCH -->
@@ -616,12 +888,13 @@ const { createApp, ref, computed, onMounted } = Vue;
 
 createApp({
   setup() {
-    const currentTab = ref('batches');
+    const currentTab = ref('courses');
     const generating = ref(false);
     const viewMode = ref('batch');
     const selectedBatchId = ref('ALL');
     const selectedTeacherId = ref('ALL');
     const selectedRoomId = ref('ALL');
+    const semesterFilter = ref('Even'); // Default Even semester view
 
     const toast = ref({ message: '', type: 'info' });
     const showToast = (msg, type = 'info') => {
@@ -630,8 +903,8 @@ createApp({
     };
 
     const tabs = ref([
+      { id: 'courses', name: 'Subject Catalog (Odd / Even)', icon: '📚' },
       { id: 'batches', name: 'Batches & Sub-Batches', icon: '👥' },
-      { id: 'courses', name: 'Subjects Catalog (Unmapped)', icon: '📚' },
       { id: 'teachers', name: 'Faculty Members (Alphabetical)', icon: '👨‍🏫' },
       { id: 'rooms', name: 'Rooms & Labs', icon: '🏛️' },
       { id: 'settings', name: 'Academic & Timing Settings', icon: '⚙️' },
@@ -643,17 +916,16 @@ createApp({
         title: 'Department of Civil Engineering - Master Timetable',
         academic_year: '2026-2027',
         semester: 'Even Semester',
+        available_academic_years: ['2024-2025', '2025-2026', '2026-2027', '2027-2028', '2028-2029'],
         days: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
-        periods: [
-          { id: 'p1', name: 'Period 1', time: '09:00 - 10:00', is_break: false },
-          { id: 'p2', name: 'Period 2', time: '10:00 - 11:00', is_break: false },
-          { id: 'p3', name: 'Period 3', time: '11:00 - 12:00', is_break: false },
-          { id: 'p4', name: 'Period 4', time: '12:00 - 01:00', is_break: false },
-          { id: 'lunch', name: 'Lunch Break', time: '01:00 - 02:00', is_break: true, break_name: 'LUNCH BREAK' },
-          { id: 'p5', name: 'Period 5', time: '02:00 - 03:00', is_break: false },
-          { id: 'p6', name: 'Period 6', time: '03:00 - 04:00', is_break: false }
-        ],
-        day_working_matrix: {}
+        periods: [],
+        day_working_matrix: {},
+        advanced_constraints: {
+          faculty_max_hours_per_day: 4,
+          faculty_no_consecutive_theory: false,
+          department_meetings: [],
+          batch_blocked_slots: []
+        }
       },
       cycles: [],
       batches: [],
@@ -661,7 +933,6 @@ createApp({
       faculty: [],
       rooms: [],
       unmapped_subjects: [],
-      courses: [],
       fixed_ce234p_schedule: [],
       timetable: []
     });
@@ -671,6 +942,14 @@ createApp({
         const res = await fetch('/api/state');
         if (res.ok) {
           const json = await res.json();
+          if (!json.config.advanced_constraints) {
+            json.config.advanced_constraints = {
+              faculty_max_hours_per_day: 4,
+              faculty_no_consecutive_theory: false,
+              department_meetings: [],
+              batch_blocked_slots: []
+            };
+          }
           if (!json.timetable || json.timetable.length === 0) {
             json.timetable = json.fixed_ce234p_schedule || [];
           }
@@ -694,15 +973,141 @@ createApp({
       }
     };
 
-    // Cycle & Batch helpers
+    const promptAddAcademicYear = () => {
+      const yr = prompt("Enter new Academic Year (e.g. 2029-2030):");
+      if (yr) {
+        if (!data.value.config.available_academic_years) data.value.config.available_academic_years = [];
+        if (!data.value.config.available_academic_years.includes(yr)) {
+          data.value.config.available_academic_years.push(yr);
+        }
+        data.value.config.academic_year = yr;
+        saveStateToServer();
+      }
+    };
+
+    // Filtered subjects based on Semester tab
+    const filteredSubjects = computed(() => {
+      const subs = data.value.unmapped_subjects || [];
+      if (semesterFilter.value === 'ALL') return subs;
+      return subs.filter(s => (s.semester_type || 'Even') === semesterFilter.value);
+    });
+
+    const incrementWeeklyHours = c => {
+      c.weekly_periods = (c.weekly_periods || 0) + 1;
+      saveStateToServer();
+    };
+
+    const decrementWeeklyHours = c => {
+      if ((c.weekly_periods || 0) > 1) {
+        c.weekly_periods -= 1;
+        saveStateToServer();
+      }
+    };
+
+    // Subject Add / Edit Modal
+    const subjectModal = ref({ open: false, isEdit: false, form: {} });
+    const openAddCourseModal = () => {
+      subjectModal.value = {
+        open: true,
+        isEdit: false,
+        form: {
+          id: 's_' + Date.now(),
+          code: '',
+          name: '',
+          semester_type: semesterFilter.value === 'Odd' ? 'Odd' : 'Even',
+          batch_id: data.value.batches[0]?.id || '',
+          weekly_periods: 4,
+          block_size: 1,
+          is_lab: false,
+          room_type: 'Lecture',
+          teacher_id: ''
+        }
+      };
+    };
+
+    const editSubject = c => {
+      subjectModal.value = { open: true, isEdit: true, form: { ...c } };
+    };
+
+    const saveSubjectModal = () => {
+      if (!subjectModal.value.form.code || !subjectModal.value.form.name) return;
+      if (subjectModal.value.isEdit) {
+        const idx = data.value.unmapped_subjects.findIndex(x => x.id === subjectModal.value.form.id);
+        if (idx >= 0) data.value.unmapped_subjects[idx] = { ...subjectModal.value.form };
+      } else {
+        data.value.unmapped_subjects.push({ ...subjectModal.value.form });
+      }
+      saveStateToServer();
+      subjectModal.value.open = false;
+    };
+
+    const deleteSubject = id => {
+      if (confirm("Delete this subject?")) {
+        data.value.unmapped_subjects = data.value.unmapped_subjects.filter(s => s.id !== id);
+        saveStateToServer();
+      }
+    };
+
+    // Advanced Constraints: Meeting slots & Batch Blocked
+    const meetingModal = ref({ open: false, label: '', day: 1, period: 3 });
+    const openAddMeetingModal = () => {
+      meetingModal.value = { open: true, label: 'Department Faculty Meeting', day: 1, period: 3 };
+    };
+    const saveMeetingSlot = () => {
+      if (!data.value.config.advanced_constraints.department_meetings) {
+        data.value.config.advanced_constraints.department_meetings = [];
+      }
+      data.value.config.advanced_constraints.department_meetings.push({
+        id: 'm_' + Date.now(),
+        label: meetingModal.value.label,
+        day: meetingModal.value.day,
+        period: meetingModal.value.period
+      });
+      saveStateToServer();
+      meetingModal.value.open = false;
+    };
+    const removeMeetingSlot = idx => {
+      data.value.config.advanced_constraints.department_meetings.splice(idx, 1);
+      saveStateToServer();
+    };
+
+    const batchBlockedModal = ref({ open: false, batch_id: '', label: '', day: 4, period: 4 });
+    const openAddBatchBlockedModal = () => {
+      batchBlockedModal.value = {
+        open: true,
+        batch_id: data.value.batches[0]?.id || '',
+        label: 'Mentoring / Activity',
+        day: 4,
+        period: 4
+      };
+    };
+    const saveBatchBlockedSlot = () => {
+      if (!data.value.config.advanced_constraints.batch_blocked_slots) {
+        data.value.config.advanced_constraints.batch_blocked_slots = [];
+      }
+      data.value.config.advanced_constraints.batch_blocked_slots.push({
+        id: 'bb_' + Date.now(),
+        batch_id: batchBlockedModal.value.batch_id,
+        label: batchBlockedModal.value.label,
+        day: batchBlockedModal.value.day,
+        period: batchBlockedModal.value.period
+      });
+      saveStateToServer();
+      batchBlockedModal.value.open = false;
+    };
+    const removeBatchBlockedSlot = idx => {
+      data.value.config.advanced_constraints.batch_blocked_slots.splice(idx, 1);
+      saveStateToServer();
+    };
+
+    // Helper functions
     const getBatchesForCycle = cId => (data.value.batches || []).filter(b => b.cycle_id === cId);
     const getSubBatchesForBatch = bId => (data.value.sub_batches || []).filter(sb => sb.batch_id === bId);
     const getBatchName = bId => (data.value.batches.find(b => b.id === bId) || {}).name || bId;
     const getRoomName = rId => (data.value.rooms.find(r => r.id === rId) || {}).name || rId;
+    const getDayName = dIdx => (data.value.config.days || [])[dIdx] || `Day ${dIdx + 1}`;
 
-    // Working Matrix helpers
     const isSlotClosed = (dIdx, pIdx) => {
-      // Saturday after Period 4 (after 1:00 PM) is closed by default
       if (dIdx === 5 && pIdx >= 4) return true;
       const matrix = data.value.config.day_working_matrix;
       if (matrix && matrix[dIdx] && matrix[dIdx][pIdx] === false) return true;
@@ -718,7 +1123,6 @@ createApp({
       saveStateToServer();
     };
 
-    // Periods management
     const addPeriod = (isBreak = false) => {
       const pNum = data.value.config.periods.length + 1;
       data.value.config.periods.push({
@@ -736,18 +1140,12 @@ createApp({
       saveStateToServer();
     };
 
-    // Batch Modal
+    // Batch & Sub-Batch Modals
     const batchModal = ref({ open: false, isEdit: false, form: { id: '', name: '', cycle_id: '' } });
     const openAddBatchModal = () => {
-      batchModal.value = {
-        open: true,
-        isEdit: false,
-        form: { id: 'b_' + Date.now(), name: '', cycle_id: data.value.cycles[0]?.id || '' }
-      };
+      batchModal.value = { open: true, isEdit: false, form: { id: 'b_' + Date.now(), name: '', cycle_id: data.value.cycles[0]?.id || '' } };
     };
-    const editBatch = b => {
-      batchModal.value = { open: true, isEdit: true, form: { ...b } };
-    };
+    const editBatch = b => { batchModal.value = { open: true, isEdit: true, form: { ...b } }; };
     const saveBatch = () => {
       if (!batchModal.value.form.name) return;
       if (batchModal.value.isEdit) {
@@ -767,11 +1165,8 @@ createApp({
       }
     };
 
-    // Sub-batch Modal
     const subBatchModal = ref({ open: false, batch: {}, name: '' });
-    const openAddSubBatchModal = b => {
-      subBatchModal.value = { open: true, batch: b, name: '' };
-    };
+    const openAddSubBatchModal = b => { subBatchModal.value = { open: true, batch: b, name: '' }; };
     const saveSubBatch = () => {
       if (!subBatchModal.value.name) return;
       data.value.sub_batches.push({
@@ -837,6 +1232,33 @@ createApp({
       });
     };
 
+    const generateTimetable = async () => {
+      generating.value = true;
+      try {
+        // Send mapped subjects from unmapped_subjects that have a teacher assigned
+        const coursesToSchedule = (data.value.unmapped_subjects || []).filter(s => s.teacher_id && s.teacher_id !== '');
+        data.value.courses = coursesToSchedule;
+
+        const res = await fetch('/api/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data.value)
+        });
+        const json = await res.json();
+        if (json.success) {
+          data.value.timetable = json.schedule;
+          showToast(`Timetable solved and generated successfully in ${json.attempts} iterations!`, 'success');
+          currentTab.value = 'timetable';
+        } else {
+          showToast(json.message || 'Could not satisfy all constraints.', 'error');
+        }
+      } catch (err) {
+        showToast('Generation failed: ' + err.message, 'error');
+      } finally {
+        generating.value = false;
+      }
+    };
+
     const triggerPrint = () => { window.print(); };
 
     onMounted(() => {
@@ -853,16 +1275,35 @@ createApp({
       selectedBatchId,
       selectedTeacherId,
       selectedRoomId,
+      semesterFilter,
+      filteredSubjects,
+      incrementWeeklyHours,
+      decrementWeeklyHours,
+      promptAddAcademicYear,
       activeGridTargets,
       getCellEntries,
       getBatchesForCycle,
       getSubBatchesForBatch,
       getBatchName,
       getRoomName,
+      getDayName,
       isSlotClosed,
       toggleSlotActive,
       addPeriod,
       removePeriod,
+      subjectModal,
+      openAddCourseModal,
+      editSubject,
+      saveSubjectModal,
+      deleteSubject,
+      meetingModal,
+      openAddMeetingModal,
+      saveMeetingSlot,
+      removeMeetingSlot,
+      batchBlockedModal,
+      openAddBatchBlockedModal,
+      saveBatchBlockedSlot,
+      removeBatchBlockedSlot,
       batchModal,
       openAddBatchModal,
       editBatch,
@@ -876,6 +1317,7 @@ createApp({
       openUnavailabilityModal,
       isTeacherSlotUnavailable,
       toggleTeacherSlot,
+      generateTimetable,
       saveStateToServer,
       triggerPrint
     };

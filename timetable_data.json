@@ -3,6 +3,7 @@
     "title": "Department of Civil Engineering - Master Timetable",
     "academic_year": "2026-2027",
     "semester": "Even Semester",
+    "available_academic_years": ["2024-2025", "2025-2026", "2026-2027", "2027-2028", "2028-2029"],
     "days": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
     "periods": [
       {"id": "p1", "name": "Period 1", "time": "09:00 - 10:00", "is_break": false, "break_name": ""},
@@ -21,12 +22,22 @@
       "4": [true, true, true, true, false, true, true],
       "5": [true, true, true, true, false, false, false]
     },
-    "saturday_max_period": 4
+    "saturday_max_period": 4,
+    "advanced_constraints": {
+      "faculty_max_hours_per_day": 4,
+      "faculty_no_consecutive_theory": false,
+      "department_meetings": [
+        {"id": "m_1", "day": 1, "day_name": "Tuesday", "period": 3, "label": "Department Faculty Meeting"}
+      ],
+      "batch_blocked_slots": [
+        {"id": "bb_1", "batch_id": "b_4btci", "day": 4, "day_name": "Friday", "period": 4, "label": "Class Mentoring"}
+      ]
+    }
   },
   "cycles": [
     {"id": "cycle_phy", "name": "1st Year B.Tech - Physics Cycle (Sections A - H)", "code": "PHY-CYCLE"},
     {"id": "cycle_che", "name": "1st Year B.Tech - Chemistry Cycle (Sections I - N)", "code": "CHE-CYCLE"},
-    {"id": "cycle_civil", "name": "Civil Engineering Department (Core)", "code": "CIVIL-CORE"},
+    {"id": "cycle_civil", "name": "Civil Engineering Department (Core B.Tech)", "code": "CIVIL-CORE"},
     {"id": "cycle_arch", "name": "Architecture (B.Arch)", "code": "BARC"},
     {"id": "cycle_allied", "name": "Allied & Inter-Department (AI / DS / AIML)", "code": "ALLIED-EVS"}
   ],
@@ -45,15 +56,21 @@
     {"id": "b_che_l", "name": "1BTCHE L", "cycle_id": "cycle_che"},
     {"id": "b_che_m", "name": "1BTCHE M", "cycle_id": "cycle_che"},
     {"id": "b_che_n", "name": "1BTCHE N", "cycle_id": "cycle_che"},
-    {"id": "b_4btci", "name": "4BTCI (4th Sem Civil)", "cycle_id": "cycle_civil"},
-    {"id": "b_6btci", "name": "6BTCI (6th Sem Civil)", "cycle_id": "cycle_civil"},
-    {"id": "b_8btci", "name": "8BTCI (8th Sem Civil)", "cycle_id": "cycle_civil"},
+
+    {"id": "b_3btci", "name": "3BTCI (3rd Sem Civil - Odd)", "cycle_id": "cycle_civil"},
+    {"id": "b_4btci", "name": "4BTCI (4th Sem Civil - Even)", "cycle_id": "cycle_civil"},
+    {"id": "b_5btci", "name": "5BTCI (5th Sem Civil - Odd)", "cycle_id": "cycle_civil"},
+    {"id": "b_6btci", "name": "6BTCI (6th Sem Civil - Even)", "cycle_id": "cycle_civil"},
+    {"id": "b_7btci", "name": "7BTCI (7th Sem Civil - Odd)", "cycle_id": "cycle_civil"},
+    {"id": "b_8btci", "name": "8BTCI (8th Sem Civil - Even)", "cycle_id": "cycle_civil"},
+
     {"id": "b_1barc_a", "name": "1BARC - A", "cycle_id": "cycle_arch"},
     {"id": "b_1barc_b", "name": "1BARC - B", "cycle_id": "cycle_arch"},
     {"id": "b_2barc_a", "name": "2BARC - A", "cycle_id": "cycle_arch"},
     {"id": "b_2barc_b", "name": "2BARC - B", "cycle_id": "cycle_arch"},
     {"id": "b_3barc_a", "name": "3BARC - A", "cycle_id": "cycle_arch"},
     {"id": "b_3barc_b", "name": "3BARC - B", "cycle_id": "cycle_arch"},
+
     {"id": "b_evs_ai", "name": "3BTAI (Artificial Intelligence)", "cycle_id": "cycle_allied"},
     {"id": "b_evs_aiml_a", "name": "3BTCS AIML (Sec A)", "cycle_id": "cycle_allied"},
     {"id": "b_evs_aiml_bc", "name": "3BTCS AIML (Sec B & C)", "cycle_id": "cycle_allied"},
@@ -76,6 +93,7 @@
     {"id": "sb_g2", "batch_id": "b_phy_g", "name": "Batch G2"},
     {"id": "sb_h1", "batch_id": "b_phy_h", "name": "Batch H1"},
     {"id": "sb_h2", "batch_id": "b_phy_h", "name": "Batch H2"},
+
     {"id": "sb_i1", "batch_id": "b_che_i", "name": "Batch I1"},
     {"id": "sb_i2", "batch_id": "b_che_i", "name": "Batch I2"},
     {"id": "sb_j1", "batch_id": "b_che_j", "name": "Batch J1"},
@@ -117,36 +135,77 @@
     {"id": "r_mt_lab", "name": "Materials / Concrete Testing Lab", "type": "Lab", "capacity": 30}
   ],
   "unmapped_subjects": [
-    {"id": "s_ce431", "code": "CE431", "name": "Structural Analysis I", "batch_id": "b_4btci", "weekly_periods": 4, "is_lab": false, "block_size": 1, "room_type": "Lecture", "teacher_id": ""},
-    {"id": "s_ce432p_th", "code": "CE432P", "name": "Hydraulics Engineering (Theory)", "batch_id": "b_4btci", "weekly_periods": 4, "is_lab": false, "block_size": 1, "room_type": "Lecture", "teacher_id": ""},
-    {"id": "s_ce432p_lab", "code": "CE432P-LAB", "name": "Hydraulics Engineering Lab", "batch_id": "b_4btci", "weekly_periods": 2, "is_lab": true, "block_size": 2, "room_type": "Lab", "teacher_id": ""},
-    {"id": "s_ce433p_th", "code": "CE433P", "name": "Geotechnical Engineering I (Theory)", "batch_id": "b_4btci", "weekly_periods": 3, "is_lab": false, "block_size": 1, "room_type": "Lecture", "teacher_id": ""},
-    {"id": "s_ce433p_lab", "code": "CE433P-LAB", "name": "Geotechnical Engineering I Lab", "batch_id": "b_4btci", "weekly_periods": 2, "is_lab": true, "block_size": 2, "room_type": "Lab", "teacher_id": ""},
-    {"id": "s_ce434", "code": "CE434", "name": "Transportation Engineering", "batch_id": "b_4btci", "weekly_periods": 4, "is_lab": false, "block_size": 1, "room_type": "Lecture", "teacher_id": ""},
-    {"id": "s_ce451", "code": "CE451", "name": "CADD Lab", "batch_id": "b_4btci", "weekly_periods": 4, "is_lab": true, "block_size": 2, "room_type": "Lab", "teacher_id": ""},
-    {"id": "s_hs423", "code": "HS423", "name": "Professional Ethics", "batch_id": "b_4btci", "weekly_periods": 2, "is_lab": false, "block_size": 1, "room_type": "Lecture", "teacher_id": ""},
-    {"id": "s_btoe461", "code": "BTOE461", "name": "L & T Track 1/3", "batch_id": "b_4btci", "weekly_periods": 2, "is_lab": false, "block_size": 1, "room_type": "Lecture", "teacher_id": ""},
-    {"id": "s_oec472", "code": "OEC472", "name": "Ability Enhancement Course", "batch_id": "b_4btci", "weekly_periods": 2, "is_lab": false, "block_size": 1, "room_type": "Lecture", "teacher_id": ""},
-    {"id": "s_ce631", "code": "CE631", "name": "Quantity Surveying and Cost Estimation", "batch_id": "b_6btci", "weekly_periods": 4, "is_lab": false, "block_size": 1, "room_type": "Lecture", "teacher_id": ""},
-    {"id": "s_ce632", "code": "CE632", "name": "Design of Steel Structures", "batch_id": "b_6btci", "weekly_periods": 4, "is_lab": false, "block_size": 1, "room_type": "Lecture", "teacher_id": ""},
-    {"id": "s_ce633", "code": "CE633", "name": "Hydrology and Water Resources Engineering", "batch_id": "b_6btci", "weekly_periods": 4, "is_lab": false, "block_size": 1, "room_type": "Lecture", "teacher_id": ""},
-    {"id": "s_ce634", "code": "CE634", "name": "Disaster Preparedness and Planning", "batch_id": "b_6btci", "weekly_periods": 2, "is_lab": false, "block_size": 1, "room_type": "Lecture", "teacher_id": ""},
-    {"id": "s_ce651", "code": "CE651", "name": "Extensive Surveying Camp", "batch_id": "b_6btci", "weekly_periods": 2, "is_lab": true, "block_size": 2, "room_type": "Lab", "teacher_id": ""},
-    {"id": "s_ce652", "code": "CE652", "name": "Field Practice", "batch_id": "b_6btci", "weekly_periods": 2, "is_lab": true, "block_size": 2, "room_type": "Lab", "teacher_id": ""},
-    {"id": "s_ce681", "code": "CE681", "name": "Service Learning", "batch_id": "b_6btci", "weekly_periods": 2, "is_lab": true, "block_size": 2, "room_type": "Lab", "teacher_id": ""},
-    {"id": "s_ce671", "code": "CE671", "name": "Ability Enhancement Course", "batch_id": "b_6btci", "weekly_periods": 2, "is_lab": false, "block_size": 1, "room_type": "Lecture", "teacher_id": ""},
-    {"id": "s_cc_tue", "code": "CC-TUE", "name": "Certificate Course (Tuesday)", "batch_id": "b_6btci", "weekly_periods": 2, "is_lab": true, "block_size": 2, "room_type": "Lab", "teacher_id": ""},
-    {"id": "s_cc_fri", "code": "CC-FRI", "name": "Certificate Course (Friday)", "batch_id": "b_6btci", "weekly_periods": 2, "is_lab": true, "block_size": 2, "room_type": "Lab", "teacher_id": ""},
-    {"id": "s_arc232_a", "code": "ARC232-A", "name": "Logic of Structures - II (Sec A)", "batch_id": "b_1barc_a", "weekly_periods": 3, "is_lab": false, "block_size": 1, "room_type": "Lecture", "teacher_id": ""},
-    {"id": "s_arc232_b", "code": "ARC232-B", "name": "Logic of Structures - II (Sec B)", "batch_id": "b_1barc_b", "weekly_periods": 3, "is_lab": false, "block_size": 1, "room_type": "Lecture", "teacher_id": ""},
-    {"id": "s_arc432_a", "code": "ARC432-A", "name": "Logic of Structures - IV (Sec A)", "batch_id": "b_2barc_a", "weekly_periods": 3, "is_lab": false, "block_size": 1, "room_type": "Lecture", "teacher_id": ""},
-    {"id": "s_arc432_b", "code": "ARC432-B", "name": "Logic of Structures - IV (Sec B)", "batch_id": "b_2barc_b", "weekly_periods": 3, "is_lab": false, "block_size": 1, "room_type": "Lecture", "teacher_id": ""},
-    {"id": "s_arc631_a", "code": "ARC631-A", "name": "Specification & Estimation (Sec A)", "batch_id": "b_3barc_a", "weekly_periods": 3, "is_lab": false, "block_size": 1, "room_type": "Lecture", "teacher_id": ""},
-    {"id": "s_arc631_b", "code": "ARC631-B", "name": "Specification & Estimation (Sec B)", "batch_id": "b_3barc_b", "weekly_periods": 3, "is_lab": false, "block_size": 1, "room_type": "Lecture", "teacher_id": ""},
-    {"id": "s_evs_ai", "code": "EVS321-AI", "name": "Environmental Science (3BTAI)", "batch_id": "b_evs_ai", "weekly_periods": 2, "is_lab": false, "block_size": 1, "room_type": "Lecture", "teacher_id": ""},
-    {"id": "s_evs_aiml_a", "code": "EVS321-AIML-A", "name": "Environmental Science (AIML A)", "batch_id": "b_evs_aiml_a", "weekly_periods": 2, "is_lab": false, "block_size": 1, "room_type": "Lecture", "teacher_id": ""},
-    {"id": "s_evs_aiml_bc", "code": "EVS321-AIML-BC", "name": "Environmental Science (AIML B & C)", "batch_id": "b_evs_aiml_bc", "weekly_periods": 2, "is_lab": false, "block_size": 1, "room_type": "Lecture", "teacher_id": ""},
-    {"id": "s_evs_ds", "code": "EVS321-DS", "name": "Environmental Science (DS)", "batch_id": "b_evs_ds", "weekly_periods": 2, "is_lab": false, "block_size": 1, "room_type": "Lecture", "teacher_id": ""}
+    # EVEN SEMESTER COURSES
+    {"id": "s_ce431", "code": "CE431", "name": "Structural Analysis I", "semester_type": "Even", "batch_id": "b_4btci", "weekly_periods": 4, "is_lab": false, "block_size": 1, "room_type": "Lecture", "teacher_id": ""},
+    {"id": "s_ce432p_th", "code": "CE432P", "name": "Hydraulics Engineering (Theory)", "semester_type": "Even", "batch_id": "b_4btci", "weekly_periods": 4, "is_lab": false, "block_size": 1, "room_type": "Lecture", "teacher_id": ""},
+    {"id": "s_ce432p_lab", "code": "CE432P-LAB", "name": "Hydraulics Engineering Lab", "semester_type": "Even", "batch_id": "b_4btci", "weekly_periods": 2, "is_lab": true, "block_size": 2, "room_type": "Lab", "teacher_id": ""},
+    {"id": "s_ce433p_th", "code": "CE433P", "name": "Geotechnical Engineering I (Theory)", "semester_type": "Even", "batch_id": "b_4btci", "weekly_periods": 3, "is_lab": false, "block_size": 1, "room_type": "Lecture", "teacher_id": ""},
+    {"id": "s_ce433p_lab", "code": "CE433P-LAB", "name": "Geotechnical Engineering I Lab", "semester_type": "Even", "batch_id": "b_4btci", "weekly_periods": 2, "is_lab": true, "block_size": 2, "room_type": "Lab", "teacher_id": ""},
+    {"id": "s_ce434", "code": "CE434", "name": "Transportation Engineering", "semester_type": "Even", "batch_id": "b_4btci", "weekly_periods": 4, "is_lab": false, "block_size": 1, "room_type": "Lecture", "teacher_id": ""},
+    {"id": "s_ce451", "code": "CE451", "name": "CADD Lab", "semester_type": "Even", "batch_id": "b_4btci", "weekly_periods": 4, "is_lab": true, "block_size": 2, "room_type": "Lab", "teacher_id": ""},
+    {"id": "s_hs423", "code": "HS423", "name": "Professional Ethics", "semester_type": "Even", "batch_id": "b_4btci", "weekly_periods": 2, "is_lab": false, "block_size": 1, "room_type": "Lecture", "teacher_id": ""},
+    {"id": "s_btoe461", "code": "BTOE461", "name": "L & T Track 1/3", "semester_type": "Even", "batch_id": "b_4btci", "weekly_periods": 2, "is_lab": false, "block_size": 1, "room_type": "Lecture", "teacher_id": ""},
+    {"id": "s_oec472", "code": "OEC472", "name": "Ability Enhancement Course", "semester_type": "Even", "batch_id": "b_4btci", "weekly_periods": 2, "is_lab": false, "block_size": 1, "room_type": "Lecture", "teacher_id": ""},
+
+    {"id": "s_ce631", "code": "CE631", "name": "Quantity Surveying and Cost Estimation", "semester_type": "Even", "batch_id": "b_6btci", "weekly_periods": 4, "is_lab": false, "block_size": 1, "room_type": "Lecture", "teacher_id": ""},
+    {"id": "s_ce632", "code": "CE632", "name": "Design of Steel Structures", "semester_type": "Even", "batch_id": "b_6btci", "weekly_periods": 4, "is_lab": false, "block_size": 1, "room_type": "Lecture", "teacher_id": ""},
+    {"id": "s_ce633", "code": "CE633", "name": "Hydrology and Water Resources Engineering", "semester_type": "Even", "batch_id": "b_6btci", "weekly_periods": 4, "is_lab": false, "block_size": 1, "room_type": "Lecture", "teacher_id": ""},
+    {"id": "s_ce634", "code": "CE634", "name": "Disaster Preparedness and Planning", "semester_type": "Even", "batch_id": "b_6btci", "weekly_periods": 2, "is_lab": false, "block_size": 1, "room_type": "Lecture", "teacher_id": ""},
+    {"id": "s_ce651", "code": "CE651", "name": "Extensive Surveying Camp", "semester_type": "Even", "batch_id": "b_6btci", "weekly_periods": 2, "is_lab": true, "block_size": 2, "room_type": "Lab", "teacher_id": ""},
+    {"id": "s_ce652", "code": "CE652", "name": "Field Practice", "semester_type": "Even", "batch_id": "b_6btci", "weekly_periods": 2, "is_lab": true, "block_size": 2, "room_type": "Lab", "teacher_id": ""},
+    {"id": "s_ce681", "code": "CE681", "name": "Service Learning", "semester_type": "Even", "batch_id": "b_6btci", "weekly_periods": 2, "is_lab": true, "block_size": 2, "room_type": "Lab", "teacher_id": ""},
+    {"id": "s_ce671", "code": "CE671", "name": "Ability Enhancement Course", "semester_type": "Even", "batch_id": "b_6btci", "weekly_periods": 2, "is_lab": false, "block_size": 1, "room_type": "Lecture", "teacher_id": ""},
+    {"id": "s_cc_tue", "code": "CC-TUE", "name": "Certificate Course (Tuesday)", "semester_type": "Even", "batch_id": "b_6btci", "weekly_periods": 2, "is_lab": true, "block_size": 2, "room_type": "Lab", "teacher_id": ""},
+    {"id": "s_cc_fri", "code": "CC-FRI", "name": "Certificate Course (Friday)", "semester_type": "Even", "batch_id": "b_6btci", "weekly_periods": 2, "is_lab": true, "block_size": 2, "room_type": "Lab", "teacher_id": ""},
+
+    {"id": "s_arc232_a", "code": "ARC232-A", "name": "Logic of Structures - II (Sec A)", "semester_type": "Even", "batch_id": "b_1barc_a", "weekly_periods": 3, "is_lab": false, "block_size": 1, "room_type": "Lecture", "teacher_id": ""},
+    {"id": "s_arc232_b", "code": "ARC232-B", "name": "Logic of Structures - II (Sec B)", "semester_type": "Even", "batch_id": "b_1barc_b", "weekly_periods": 3, "is_lab": false, "block_size": 1, "room_type": "Lecture", "teacher_id": ""},
+    {"id": "s_arc432_a", "code": "ARC432-A", "name": "Logic of Structures - IV (Sec A)", "semester_type": "Even", "batch_id": "b_2barc_a", "weekly_periods": 3, "is_lab": false, "block_size": 1, "room_type": "Lecture", "teacher_id": ""},
+    {"id": "s_arc432_b", "code": "ARC432-B", "name": "Logic of Structures - IV (Sec B)", "semester_type": "Even", "batch_id": "b_2barc_b", "weekly_periods": 3, "is_lab": false, "block_size": 1, "room_type": "Lecture", "teacher_id": ""},
+    {"id": "s_arc631_a", "code": "ARC631-A", "name": "Specification & Estimation (Sec A)", "semester_type": "Even", "batch_id": "b_3barc_a", "weekly_periods": 3, "is_lab": false, "block_size": 1, "room_type": "Lecture", "teacher_id": ""},
+    {"id": "s_arc631_b", "code": "ARC631-B", "name": "Specification & Estimation (Sec B)", "semester_type": "Even", "batch_id": "b_3barc_b", "weekly_periods": 3, "is_lab": false, "block_size": 1, "room_type": "Lecture", "teacher_id": ""},
+
+    {"id": "s_evs_ai", "code": "EVS321-AI", "name": "Environmental Science (3BTAI)", "semester_type": "Even", "batch_id": "b_evs_ai", "weekly_periods": 2, "is_lab": false, "block_size": 1, "room_type": "Lecture", "teacher_id": ""},
+    {"id": "s_evs_aiml_a", "code": "EVS321-AIML-A", "name": "Environmental Science (AIML A)", "semester_type": "Even", "batch_id": "b_evs_aiml_a", "weekly_periods": 2, "is_lab": false, "block_size": 1, "room_type": "Lecture", "teacher_id": ""},
+    {"id": "s_evs_aiml_bc", "code": "EVS321-AIML-BC", "name": "Environmental Science (AIML B & C)", "semester_type": "Even", "batch_id": "b_evs_aiml_bc", "weekly_periods": 2, "is_lab": false, "block_size": 1, "room_type": "Lecture", "teacher_id": ""},
+    {"id": "s_evs_ds", "code": "EVS321-DS", "name": "Environmental Science (DS)", "semester_type": "Even", "batch_id": "b_evs_ds", "weekly_periods": 2, "is_lab": false, "block_size": 1, "room_type": "Lecture", "teacher_id": ""},
+
+    # ODD SEMESTER COURSES
+    {"id": "s_ma331", "code": "MA331", "name": "Mathematics-III", "semester_type": "Odd", "batch_id": "b_3btci", "weekly_periods": 3, "is_lab": false, "block_size": 1, "room_type": "Lecture", "teacher_id": ""},
+    {"id": "s_ce331p_th", "code": "CE331P", "name": "Introduction to Solid Mechanics (Theory)", "semester_type": "Odd", "batch_id": "b_3btci", "weekly_periods": 4, "is_lab": false, "block_size": 1, "room_type": "Lecture", "teacher_id": ""},
+    {"id": "s_ce331p_lab", "code": "CE331P-LAB", "name": "Solid Mechanics Lab", "semester_type": "Odd", "batch_id": "b_3btci", "weekly_periods": 2, "is_lab": true, "block_size": 2, "room_type": "Lab", "teacher_id": ""},
+    {"id": "s_ce332", "code": "CE332", "name": "Introduction to Fluid Mechanics", "semester_type": "Odd", "batch_id": "b_3btci", "weekly_periods": 4, "is_lab": false, "block_size": 1, "room_type": "Lecture", "teacher_id": ""},
+    {"id": "s_ce333p_th", "code": "CE333P", "name": "Surveying and Geomatics (Theory)", "semester_type": "Odd", "batch_id": "b_3btci", "weekly_periods": 2, "is_lab": false, "block_size": 1, "room_type": "Lecture", "teacher_id": ""},
+    {"id": "s_ce333p_lab", "code": "CE333P-LAB", "name": "Surveying and Geomatics Lab", "semester_type": "Odd", "batch_id": "b_3btci", "weekly_periods": 2, "is_lab": true, "block_size": 2, "room_type": "Lab", "teacher_id": ""},
+    {"id": "s_ce334p_th", "code": "CE334P", "name": "Concrete Technology (Theory)", "semester_type": "Odd", "batch_id": "b_3btci", "weekly_periods": 2, "is_lab": false, "block_size": 1, "room_type": "Lecture", "teacher_id": ""},
+    {"id": "s_ce334p_lab", "code": "CE334P-LAB", "name": "Concrete Technology Lab", "semester_type": "Odd", "batch_id": "b_3btci", "weekly_periods": 2, "is_lab": true, "block_size": 2, "room_type": "Lab", "teacher_id": ""},
+    {"id": "s_ce335", "code": "CE335", "name": "Building Materials and Construction", "semester_type": "Odd", "batch_id": "b_3btci", "weekly_periods": 2, "is_lab": false, "block_size": 1, "room_type": "Lecture", "teacher_id": ""},
+    {"id": "s_ce3_ind", "code": "CE3-IND", "name": "Civil Industry Course (3rd Sem)", "semester_type": "Odd", "batch_id": "b_3btci", "weekly_periods": 3, "is_lab": false, "block_size": 1, "room_type": "Lecture", "teacher_id": ""},
+
+    {"id": "s_ce531", "code": "CE531", "name": "Analysis of Structures II", "semester_type": "Odd", "batch_id": "b_5btci", "weekly_periods": 4, "is_lab": false, "block_size": 1, "room_type": "Lecture", "teacher_id": ""},
+    {"id": "s_ce532", "code": "CE532", "name": "Design of Reinforced Concrete Structures", "semester_type": "Odd", "batch_id": "b_5btci", "weekly_periods": 4, "is_lab": false, "block_size": 1, "room_type": "Lecture", "teacher_id": ""},
+    {"id": "s_ce533p_th", "code": "CE533P", "name": "Environmental Engineering (Theory)", "semester_type": "Odd", "batch_id": "b_5btci", "weekly_periods": 3, "is_lab": false, "block_size": 1, "room_type": "Lecture", "teacher_id": ""},
+    {"id": "s_ce533p_lab", "code": "CE533P-LAB", "name": "Environmental Engineering Lab", "semester_type": "Odd", "batch_id": "b_5btci", "weekly_periods": 2, "is_lab": true, "block_size": 2, "room_type": "Lab", "teacher_id": ""},
+    {"id": "s_ce534", "code": "CE534", "name": "Geotechnical Engineering II", "semester_type": "Odd", "batch_id": "b_5btci", "weekly_periods": 4, "is_lab": false, "block_size": 1, "room_type": "Lecture", "teacher_id": ""},
+    {"id": "s_ce535", "code": "CE535", "name": "Introduction to Python and MATLAB", "semester_type": "Odd", "batch_id": "b_5btci", "weekly_periods": 3, "is_lab": false, "block_size": 1, "room_type": "Lecture", "teacher_id": ""},
+    {"id": "s_ce551", "code": "CE551", "name": "Transportation Engineering Lab", "semester_type": "Odd", "batch_id": "b_5btci", "weekly_periods": 2, "is_lab": true, "block_size": 2, "room_type": "Lab", "teacher_id": ""},
+    {"id": "s_hs523", "code": "HS523", "name": "Construction Project Management", "semester_type": "Odd", "batch_id": "b_5btci", "weekly_periods": 3, "is_lab": false, "block_size": 1, "room_type": "Lecture", "teacher_id": ""},
+
+    {"id": "s_ce741e01p_th", "code": "CE741E01P", "name": "Computer-Aided Structural Design (Theory)", "semester_type": "Odd", "batch_id": "b_7btci", "weekly_periods": 2, "is_lab": false, "block_size": 1, "room_type": "Lecture", "teacher_id": ""},
+    {"id": "s_ce741e01p_lab", "code": "CE741E01P-LAB", "name": "Computer-Aided Structural Design Lab", "semester_type": "Odd", "batch_id": "b_7btci", "weekly_periods": 2, "is_lab": true, "block_size": 2, "room_type": "Lab", "teacher_id": ""},
+    {"id": "s_ce742e03", "code": "CE742E03", "name": "Building Information Modelling (BIM)", "semester_type": "Odd", "batch_id": "b_7btci", "weekly_periods": 3, "is_lab": false, "block_size": 1, "room_type": "Lecture", "teacher_id": ""},
+    {"id": "s_ce743e01", "code": "CE743E01", "name": "Prestressed Concrete", "semester_type": "Odd", "batch_id": "b_7btci", "weekly_periods": 3, "is_lab": false, "block_size": 1, "room_type": "Lecture", "teacher_id": ""},
+    {"id": "s_ce743e03", "code": "CE743E03", "name": "Urban Transport Planning", "semester_type": "Odd", "batch_id": "b_7btci", "weekly_periods": 3, "is_lab": false, "block_size": 1, "room_type": "Lecture", "teacher_id": ""},
+    {"id": "s_ce744e01", "code": "CE744E01", "name": "AI and ML for Structural Engineering", "semester_type": "Odd", "batch_id": "b_7btci", "weekly_periods": 3, "is_lab": false, "block_size": 1, "room_type": "Lecture", "teacher_id": ""},
+    {"id": "s_ce744e03", "code": "CE744E03", "name": "Machine Learning for Construction Management", "semester_type": "Odd", "batch_id": "b_7btci", "weekly_periods": 3, "is_lab": false, "block_size": 1, "room_type": "Lecture", "teacher_id": ""},
+    {"id": "s_hs723", "code": "HS723", "name": "Innovation and Entrepreneurship", "semester_type": "Odd", "batch_id": "b_7btci", "weekly_periods": 2, "is_lab": false, "block_size": 1, "room_type": "Lecture", "teacher_id": ""},
+
+    {"id": "s_arc132_a", "code": "ARC132-A", "name": "Logic of Structures I (Sec A)", "semester_type": "Odd", "batch_id": "b_1barc_a", "weekly_periods": 3, "is_lab": false, "block_size": 1, "room_type": "Lecture", "teacher_id": ""},
+    {"id": "s_arc132_b", "code": "ARC132-B", "name": "Logic of Structures I (Sec B)", "semester_type": "Odd", "batch_id": "b_1barc_b", "weekly_periods": 3, "is_lab": false, "block_size": 1, "room_type": "Lecture", "teacher_id": ""},
+    {"id": "s_arc332_a", "code": "ARC332-A", "name": "Logic of Structures III (Sec A)", "semester_type": "Odd", "batch_id": "b_2barc_a", "weekly_periods": 3, "is_lab": false, "block_size": 1, "room_type": "Lecture", "teacher_id": ""},
+    {"id": "s_arc332_b", "code": "ARC332-B", "name": "Logic of Structures III (Sec B)", "semester_type": "Odd", "batch_id": "b_2barc_b", "weekly_periods": 3, "is_lab": false, "block_size": 1, "room_type": "Lecture", "teacher_id": ""},
+    {"id": "s_arc554_a", "code": "ARC554-A", "name": "Logic of Structures V (Sec A)", "semester_type": "Odd", "batch_id": "b_3barc_a", "weekly_periods": 3, "is_lab": false, "block_size": 1, "room_type": "Lecture", "teacher_id": ""},
+    {"id": "s_arc554_b", "code": "ARC554-B", "name": "Logic of Structures V (Sec B)", "semester_type": "Odd", "batch_id": "b_3barc_b", "weekly_periods": 3, "is_lab": false, "block_size": 1, "room_type": "Lecture", "teacher_id": ""}
   ],
   "fixed_ce234p_schedule": [
     {"day": 1, "day_name": "Tuesday", "period": 1, "period_time": "10:00 - 11:00", "batch_name": "1BTPHY A", "course_code": "CE 234P", "course_name": "Basics of Civil & Mech", "is_lab": false},
