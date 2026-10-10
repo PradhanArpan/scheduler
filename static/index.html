@@ -632,27 +632,31 @@ createApp({
 
     const tabs = ref([
       { id: 'timetable', name: 'Master Timetable', icon: '📅' },
-      { id: 'courses', name: 'Batches & Courses', icon: '📚' },
-      { id: 'teachers', name: 'Faculty Members', icon: '👨‍🏫' },
+      { id: 'courses', name: 'Subjects Catalog (Unmapped)', icon: '📚' },
+      { id: 'teachers', name: 'Faculty Members (Alphabetical)', icon: '👨‍🏫' },
       { id: 'rooms', name: 'Rooms & Labs', icon: '🏛️' },
       { id: 'settings', name: 'Timetable Settings', icon: '⚙️' }
     ]);
 
     const data = ref({
       config: {
-        title: 'Engineering Department Master Timetable',
+        title: 'Department of Civil Engineering - Master Timetable',
         academic_year: '2026-2027',
-        semester: 'Odd Semester',
-        days: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+        semester: 'Even Semester',
+        days: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
         periods_per_day: 6,
-        recess_after_period: 3,
-        period_times: ["09:00 - 10:00", "10:00 - 11:00", "11:00 - 12:00", "01:00 - 02:00", "02:00 - 03:00", "03:00 - 04:00"]
+        recess_after_period: 4,
+        period_times: ["09:00 - 10:00", "10:00 - 11:00", "11:00 - 12:00", "12:00 - 01:00", "02:00 - 03:00", "03:00 - 04:00"],
+        saturday_max_period: 4
       },
       departments: [],
       batches: [],
+      faculty: [],
       teachers: [],
       rooms: [],
+      unmapped_subjects: [],
       courses: [],
+      fixed_ce234p_schedule: [],
       timetable: []
     });
 
@@ -660,7 +664,14 @@ createApp({
       try {
         const res = await fetch('/api/state');
         if (res.ok) {
-          data.value = await res.json();
+          const json = await res.json();
+          // Normalize faculty list to teachers for the UI
+          json.teachers = json.faculty || json.teachers || [];
+          // Pre-populate timetable with fixed CE234P if empty
+          if (!json.timetable || json.timetable.length === 0) {
+            json.timetable = json.fixed_ce234p_schedule || [];
+          }
+          data.value = json;
         }
       } catch (err) {
         console.error("Fetch error:", err);
