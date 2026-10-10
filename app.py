@@ -38,12 +38,36 @@ def update_state():
     save_data(new_data)
     return jsonify({"success": True, "message": "State saved successfully."})
 
+@app.route('/api/precheck', methods=['POST'])
+def precheck():
+    data = load_data()
+    req_body = request.get_json(silent=True) or {}
+    sem_type = req_body.get("semester", data.get("config", {}).get("semester", "Even Semester"))
+    
+    config = data.get("config", {})
+    teachers = data.get("faculty", [])
+    rooms = data.get("rooms", [])
+    batches = data.get("batches", [])
+    sub_batches = data.get("sub_batches", [])
+    
+    all_subjects = data.get("unmapped_subjects", [])
+    if "Even" in sem_type:
+        active_courses = [s for s in all_subjects if (s.get("semester_type") == "Even" or not s.get("semester_type"))]
+    elif "Odd" in sem_type:
+        active_courses = [s for s in all_subjects if s.get("semester_type") == "Odd"]
+    else:
+        active_courses = all_subjects
+
+    scheduler = TimetableScheduler(config, teachers, rooms, batches, active_courses, sub_batches=sub_batches)
+    report = scheduler.pre_check_feasibility()
+    return jsonify(report)
+
 @app.route('/api/generate', methods=['POST'])
 def generate():
     data = load_data()
-    req_body = request.get_json(silent=True)
-    if req_body and "courses" in req_body:
-        data.update(req_body)
+    req_body = request.get_json(silent=True) or {}
+    if "unmapped_subjects" in req_body:
+        data["unmapped_subjects"] = req_body["unmapped_subjects"]
         save_data(data)
 
     config = data.get("config", {})
@@ -51,14 +75,23 @@ def generate():
     rooms = data.get("rooms", [])
     batches = data.get("batches", [])
     sub_batches = data.get("sub_batches", [])
-    courses = data.get("courses", [])
+    
+    sem_type = req_body.get("semester", config.get("semester", "Even Semester"))
+    all_subjects = data.get("unmapped_subjects", [])
+    if "Even" in sem_type:
+        active_courses = [s for s in all_subjects if (s.get("semester_type") == "Even" or not s.get("semester_type"))]
+    elif "Odd" in sem_type:
+        active_courses = [s for s in all_subjects if s.get("semester_type") == "Odd"]
+    else:
+        active_courses = all_subjects
 
-    scheduler = TimetableScheduler(config, teachers, rooms, batches, courses, sub_batches=sub_batches)
-    result = scheduler.generate(max_attempts=150)
+    scheduler = TimetableScheduler(config, teachers, rooms, batches, active_courses, sub_batches=sub_batches)
+    result = scheduler.generate(max_attempts=200)
 
     if result["success"]:
         # Prepend the fixed Basics of Civil Engineering slots
-        combined = list(data.get("fixed_ce234p_schedule", [])) + result["schedule"]
+        fixed_slots = list(data.get("fixed_ce234p_schedule", []))
+        combined = fixed_slots + result["schedule"]
         data["timetable"] = combined
         save_data(data)
         result["schedule"] = combined
@@ -81,16 +114,20 @@ def update_slot():
 
     # Validation checks
     conflicts = []
+    entry_teachers = set(entry.get("teacher_ids") or ([entry["teacher_id"]] if entry.get("teacher_id") else []))
+
     for other in tt:
         if other.get("id") == entry_id:
             continue
         if other.get("day") == target_day and other.get("period") == target_period:
-            if other.get("teacher_id") and other.get("teacher_id") == entry.get("teacher_id"):
-                conflicts.append(f"Faculty conflict: {entry.get('teacher_name')} already teaching.")
+            other_teachers = set(other.get("teacher_ids") or ([other["teacher_id"]] if other.get("teacher_id") else []))
+            common_t = entry_teachers.intersection(other_teachers)
+            if common_t:
+                conflicts.append(f"Faculty conflict: Teacher(s) already engaged in {other.get('course_name')}.")
             if other.get("batch_id") == entry.get("batch_id"):
-                conflicts.append(f"Batch conflict: {entry.get('batch_name')} already has a class.")
+                conflicts.append(f"Batch conflict: {entry.get('batch_name')} already has {other.get('course_name')}.")
             if target_room_id and other.get("room_id") == target_room_id:
-                conflicts.append(f"Room collision: {other.get('room_name')} is occupied.")
+                conflicts.append(f"Room collision: {other.get('room_name')} is already occupied.")
 
     entry["day"] = target_day
     days_list = data["config"].get("days", [])
