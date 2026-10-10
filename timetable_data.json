@@ -4,20 +4,100 @@
     "academic_year": "2026-2027",
     "semester": "Even Semester",
     "days": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
-    "periods_per_day": 6,
-    "recess_after_period": 4,
-    "period_times": [
-      "09:00 - 10:00",
-      "10:00 - 11:00",
-      "11:00 - 12:00",
-      "12:00 - 01:00",
-      "02:00 - 03:00",
-      "03:00 - 04:00"
+    "periods": [
+      {"id": "p1", "name": "Period 1", "time": "09:00 - 10:00", "is_break": false, "break_name": ""},
+      {"id": "p2", "name": "Period 2", "time": "10:00 - 11:00", "is_break": false, "break_name": ""},
+      {"id": "p3", "name": "Period 3", "time": "11:00 - 12:00", "is_break": false, "break_name": ""},
+      {"id": "p4", "name": "Period 4", "time": "12:00 - 01:00", "is_break": false, "break_name": ""},
+      {"id": "lunch", "name": "Lunch Break", "time": "01:00 - 02:00", "is_break": true, "break_name": "LUNCH BREAK"},
+      {"id": "p5", "name": "Period 5", "time": "02:00 - 03:00", "is_break": false, "break_name": ""},
+      {"id": "p6", "name": "Period 6", "time": "03:00 - 04:00", "is_break": false, "break_name": ""}
     ],
+    "day_working_matrix": {
+      "0": [true, true, true, true, false, true, true],
+      "1": [true, true, true, true, false, true, true],
+      "2": [true, true, true, true, false, true, true],
+      "3": [true, true, true, true, false, true, true],
+      "4": [true, true, true, true, false, true, true],
+      "5": [true, true, true, true, false, false, false]
+    },
     "saturday_max_period": 4
   },
-  "departments": [
-    {"id": "dept_civil", "name": "Civil Engineering"}
+  "cycles": [
+    {"id": "cycle_phy", "name": "1st Year B.Tech - Physics Cycle (Sections A - H)", "code": "PHY-CYCLE"},
+    {"id": "cycle_che", "name": "1st Year B.Tech - Chemistry Cycle (Sections I - N)", "code": "CHE-CYCLE"},
+    {"id": "cycle_civil", "name": "Civil Engineering Department (Core)", "code": "CIVIL-CORE"},
+    {"id": "cycle_arch", "name": "Architecture (B.Arch - Structural)", "code": "BARC"},
+    {"id": "cycle_allied", "name": "Allied & Inter-Department (AI / DS / AIML)", "code": "ALLIED-EVS"}
+  ],
+  "batches": [
+    # PHY Cycle (Sections A to H)
+    {"id": "b_phy_a", "name": "1BTPHY A", "cycle_id": "cycle_phy"},
+    {"id": "b_phy_b", "name": "1BTPHY B", "cycle_id": "cycle_phy"},
+    {"id": "b_phy_c", "name": "1BTPHY C", "cycle_id": "cycle_phy"},
+    {"id": "b_phy_d", "name": "1BTPHY D", "cycle_id": "cycle_phy"},
+    {"id": "b_phy_e", "name": "1BTPHY E", "cycle_id": "cycle_phy"},
+    {"id": "b_phy_f", "name": "1BTPHY F", "cycle_id": "cycle_phy"},
+    {"id": "b_phy_g", "name": "1BTPHY G", "cycle_id": "cycle_phy"},
+    {"id": "b_phy_h", "name": "1BTPHY H", "cycle_id": "cycle_phy"},
+
+    # CHE Cycle (Sections I to N)
+    {"id": "b_che_i", "name": "1BTCHE I", "cycle_id": "cycle_che"},
+    {"id": "b_che_j", "name": "1BTCHE J", "cycle_id": "cycle_che"},
+    {"id": "b_che_k", "name": "1BTCHE K", "cycle_id": "cycle_che"},
+    {"id": "b_che_l", "name": "1BTCHE L", "cycle_id": "cycle_che"},
+    {"id": "b_che_m", "name": "1BTCHE M", "cycle_id": "cycle_che"},
+    {"id": "b_che_n", "name": "1BTCHE N", "cycle_id": "cycle_che"},
+
+    # Civil Core
+    {"id": "b_4btci", "name": "4BTCI (4th Sem Civil)", "cycle_id": "cycle_civil"},
+    {"id": "b_6btci", "name": "6BTCI (6th Sem Civil)", "cycle_id": "cycle_civil"},
+    {"id": "b_8btci", "name": "8BTCI (8th Sem Civil)", "cycle_id": "cycle_civil"},
+
+    # Architecture
+    {"id": "b_1barc_a", "name": "1BARC - A", "cycle_id": "cycle_arch"},
+    {"id": "b_1barc_b", "name": "1BARC - B", "cycle_id": "cycle_arch"},
+    {"id": "b_2barc_a", "name": "2BARC - A", "cycle_id": "cycle_arch"},
+    {"id": "b_2barc_b", "name": "2BARC - B", "cycle_id": "cycle_arch"},
+    {"id": "b_3barc_a", "name": "3BARC - A", "cycle_id": "cycle_arch"},
+    {"id": "b_3barc_b", "name": "3BARC - B", "cycle_id": "cycle_arch"},
+
+    # Allied EVS
+    {"id": "b_evs_ai", "name": "3BTAI (Artificial Intelligence)", "cycle_id": "cycle_allied"},
+    {"id": "b_evs_aiml_a", "name": "3BTCS AIML (Sec A)", "cycle_id": "cycle_allied"},
+    {"id": "b_evs_aiml_bc", "name": "3BTCS AIML (Sec B & C)", "cycle_id": "cycle_allied"},
+    {"id": "b_evs_ds", "name": "3BTCS DS (Data Science)", "cycle_id": "cycle_allied"}
+  ],
+  "sub_batches": [
+    {"id": "sb_a1", "batch_id": "b_phy_a", "name": "Batch A1"},
+    {"id": "sb_a2", "batch_id": "b_phy_a", "name": "Batch A2"},
+    {"id": "sb_b1", "batch_id": "b_phy_b", "name": "Batch B1"},
+    {"id": "sb_b2", "batch_id": "b_phy_b", "name": "Batch B2"},
+    {"id": "sb_c1", "batch_id": "b_phy_c", "name": "Batch C1"},
+    {"id": "sb_c2", "batch_id": "b_phy_c", "name": "Batch C2"},
+    {"id": "sb_d1", "batch_id": "b_phy_d", "name": "Batch D1"},
+    {"id": "sb_d2", "batch_id": "b_phy_d", "name": "Batch D2"},
+    {"id": "sb_e1", "batch_id": "b_phy_e", "name": "Batch E1"},
+    {"id": "sb_e2", "batch_id": "b_phy_e", "name": "Batch E2"},
+    {"id": "sb_f1", "batch_id": "b_phy_f", "name": "Batch F1"},
+    {"id": "sb_f2", "batch_id": "b_phy_f", "name": "Batch F2"},
+    {"id": "sb_g1", "batch_id": "b_phy_g", "name": "Batch G1"},
+    {"id": "sb_g2", "batch_id": "b_phy_g", "name": "Batch G2"},
+    {"id": "sb_h1", "batch_id": "b_phy_h", "name": "Batch H1"},
+    {"id": "sb_h2", "batch_id": "b_phy_h", "name": "Batch H2"},
+
+    {"id": "sb_i1", "batch_id": "b_che_i", "name": "Batch I1"},
+    {"id": "sb_i2", "batch_id": "b_che_i", "name": "Batch I2"},
+    {"id": "sb_j1", "batch_id": "b_che_j", "name": "Batch J1"},
+    {"id": "sb_j2", "batch_id": "b_che_j", "name": "Batch J2"},
+    {"id": "sb_k1", "batch_id": "b_che_k", "name": "Batch K1"},
+    {"id": "sb_k2", "batch_id": "b_che_k", "name": "Batch K2"},
+    {"id": "sb_l1", "batch_id": "b_che_l", "name": "Batch L1"},
+    {"id": "sb_l2", "batch_id": "b_che_l", "name": "Batch L2"},
+    {"id": "sb_m1", "batch_id": "b_che_m", "name": "Batch M1"},
+    {"id": "sb_m2", "batch_id": "b_che_m", "name": "Batch M2"},
+    {"id": "sb_n1", "batch_id": "b_che_n", "name": "Batch N1"},
+    {"id": "sb_n2", "batch_id": "b_che_n", "name": "Batch N2"}
   ],
   "faculty": [
     {"id": "f_1", "name": "Prof. Adarsh S V", "code": "AS", "designation": "Assistant Professor", "email": "adarsh.sv@christuniversity.in", "unavailable_slots": []},
@@ -35,25 +115,6 @@
     {"id": "f_13", "name": "Dr. Tom Damion", "code": "TD", "designation": "Assistant Professor", "email": "tom.damion@christuniversity.in", "unavailable_slots": []},
     {"id": "f_14", "name": "Dr. Uppaluri Sirisha", "code": "US", "designation": "Associate Professor", "email": "sirisha.uppaluri@christuniversity.in", "unavailable_slots": []},
     {"id": "f_15", "name": "Prof. Yogeshraj Urs C", "code": "YU", "designation": "Assistant Professor", "email": "yogeshraj.urs@christuniversity.in", "unavailable_slots": []}
-  ],
-  "batches": [
-    {"id": "b_4btci", "name": "4BTCI (4th Sem Civil)", "department_id": "dept_civil"},
-    {"id": "b_6btci", "name": "6BTCI (6th Sem Civil)", "department_id": "dept_civil"},
-    {"id": "b_8btci", "name": "8BTCI (8th Sem Civil)", "department_id": "dept_civil"},
-    {"id": "b_1barc_a", "name": "1BARC - A (Architecture)", "department_id": "dept_arch"},
-    {"id": "b_1barc_b", "name": "1BARC - B (Architecture)", "department_id": "dept_arch"},
-    {"id": "b_2barc_a", "name": "2BARC - A (Architecture)", "department_id": "dept_arch"},
-    {"id": "b_2barc_b", "name": "2BARC - B (Architecture)", "department_id": "dept_arch"},
-    {"id": "b_3barc_a", "name": "3BARC - A (Architecture)", "department_id": "dept_arch"},
-    {"id": "b_3barc_b", "name": "3BARC - B (Architecture)", "department_id": "dept_arch"},
-    {"id": "b_phy_a", "name": "1BTPHY A (1st Year)", "department_id": "dept_basic"},
-    {"id": "b_phy_b", "name": "1BTPHY B (1st Year)", "department_id": "dept_basic"},
-    {"id": "b_phy_c", "name": "1BTPHY C (1st Year)", "department_id": "dept_basic"},
-    {"id": "b_phy_d", "name": "1BTPHY D (1st Year)", "department_id": "dept_basic"},
-    {"id": "b_phy_e", "name": "1BTPHY E (1st Year)", "department_id": "dept_basic"},
-    {"id": "b_phy_f", "name": "1BTPHY F (1st Year)", "department_id": "dept_basic"},
-    {"id": "b_phy_g", "name": "1BTPHY G (1st Year)", "department_id": "dept_basic"},
-    {"id": "b_phy_h", "name": "1BTPHY H (1st Year)", "department_id": "dept_basic"}
   ],
   "rooms": [
     {"id": "r_lh1", "name": "Civil Lecture Hall 1", "type": "Lecture", "capacity": 60},
