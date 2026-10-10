@@ -68,7 +68,7 @@
           <span>💾</span> Save
         </button>
 
-        <!-- FET-Style Pre-Check Diagnostic Button -->
+        <!-- Constraint Pre-Check Diagnostic Button -->
         <button @click="runPreCheck" :disabled="analyzing" class="px-3 py-1 bg-amber-600 hover:bg-amber-500 text-white rounded-lg text-xs font-semibold shadow transition flex items-center gap-1">
           <span v-if="analyzing" class="animate-spin inline-block">🔍</span>
           <span v-else>📊</span>
@@ -805,7 +805,7 @@
   </div>
 
   <!-- ========================================================================= -->
-  <!-- MODAL: FET-STYLE DIAGNOSTIC & FEASIBILITY REPORT -->
+  <!-- MODAL: CONSTRAINT DIAGNOSTIC & FEASIBILITY REPORT -->
   <!-- ========================================================================= -->
   <div v-if="diagnosticModal.open" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
     <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-2xl w-full p-6 space-y-5">
@@ -815,7 +815,7 @@
             {{ diagnosticModal.feasible ? '✓' : '⚠️' }}
           </div>
           <div>
-            <h3 class="font-bold text-base text-slate-900">FET-Style Constraint & Feasibility Report</h3>
+            <h3 class="font-bold text-base text-slate-900">Constraint & Feasibility Diagnostic Report</h3>
             <p class="text-xs text-slate-500">Mathematical pre-check and bottleneck inspection.</p>
           </div>
         </div>
@@ -1365,7 +1365,7 @@ createApp({
       }
     };
 
-    // FET-Style Diagnostics Modal
+    // Constraint Diagnostics Modal
     const diagnosticModal = ref({ open: false, feasible: true, score: 100, status: '', errors: [], warnings: [] });
     const runPreCheck = async () => {
       analyzing.value = true;

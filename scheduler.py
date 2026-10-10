@@ -70,7 +70,7 @@ class TimetableScheduler:
 
     def pre_check_feasibility(self):
         """
-        FET-style pre-flight validation: Checks capacity, over-allocation,
+        Pre-flight validation: Checks capacity, over-allocation,
         and hard impossibilities before running solver.
         """
         errors = []
@@ -453,7 +453,7 @@ class TimetableScheduler:
         return False
 
     def _evaluate_quality(self, schedule):
-        """Calculates FET-style quality metric & soft warnings."""
+        """Calculates schedule quality metric & soft warnings."""
         warnings = []
         score = 100.0
 
