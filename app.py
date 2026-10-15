@@ -7,21 +7,117 @@ from scheduler import TimetableScheduler
 app = Flask(__name__, static_folder='static', static_url_path='')
 CORS(app)
 
-DATA_FILE = os.path.join(os.path.dirname(__file__), 'timetable_data.json')
+import shutil
+
+IS_VERCEL = os.environ.get("VERCEL") == "1"
+BASE_DATA_FILE = os.path.join(os.path.dirname(__file__), 'timetable_data.json')
+
+if IS_VERCEL:
+    DATA_FILE = os.path.join('/tmp', 'timetable_data.json')
+else:
+    DATA_FILE = BASE_DATA_FILE
 
 def load_data():
-    if not os.path.exists(DATA_FILE):
-        return {}
+    target = DATA_FILE
+    if IS_VERCEL and not os.path.exists(target):
+        if os.path.exists(BASE_DATA_FILE):
+            try:
+                shutil.copyfile(BASE_DATA_FILE, target)
+            except Exception as e:
+                print("Could not copy base data to /tmp:", e)
+                target = BASE_DATA_FILE
+    if not os.path.exists(target):
+        if os.path.exists(BASE_DATA_FILE):
+            target = BASE_DATA_FILE
+        else:
+            return {}
     try:
-        with open(DATA_FILE, 'r', encoding='utf-8') as f:
+        with open(target, 'r', encoding='utf-8') as f:
             return json.load(f)
     except Exception as e:
         print("Error loading data file:", e)
         return {}
 
 def save_data(data):
-    with open(DATA_FILE, 'w', encoding='utf-8') as f:
-        json.dump(data, f, indent=2)
+    try:
+        with open(DATA_FILE, 'w', encoding='utf-8') as f:
+            json.dump(data, f, indent=2)
+    except Exception as e:
+        print("Warning: unable to write to DATA_FILE:", e)
+
+def sync_fixed_schedule_teachers(data, sem_type=None):
+    if not data:
+        return
+    if sem_type is None:
+        sem_type = data.get("config", {}).get("semester", "Even Semester")
+    
+    sem_key = "Odd" if "Odd" in str(sem_type) else "Even"
+    teachers_by_id = {t["id"]: t for t in data.get("faculty", [])}
+    rooms_by_id = {r["id"]: r for r in data.get("rooms", [])}
+    
+    # Map (batch_id, course_code) -> subject for active semester
+    subject_lookup = {}
+    for s in data.get("unmapped_subjects", []):
+        s_sem = s.get("semester_type", "Even")
+        if s_sem == sem_key or not s.get("semester_type"):
+            subject_lookup[(s.get("batch_id"), s.get("code"))] = s
+            
+    # Update fixed_ce234p_schedule
+    fixed_schedule = data.get("fixed_ce234p_schedule", [])
+    for entry in fixed_schedule:
+        b_id = entry.get("batch_id")
+        code = entry.get("course_code")
+        matched = subject_lookup.get((b_id, code))
+        
+        if not entry.get("id"):
+            safe_code = str(code).replace(' ', '_').replace('-', '_')
+            entry["id"] = f"fixed_{b_id}_{safe_code}_d{entry.get('day')}_p{entry.get('period')}"
+            
+        if matched:
+            t_ids = matched.get("teacher_ids") or ([matched["teacher_id"]] if matched.get("teacher_id") else [])
+            t_ids = [tid for tid in t_ids if tid]
+            entry["teacher_ids"] = t_ids
+            entry["teacher_id"] = t_ids[0] if t_ids else ""
+            names = [teachers_by_id[tid]["name"] for tid in t_ids if tid in teachers_by_id]
+            codes = [teachers_by_id[tid]["code"] for tid in t_ids if tid in teachers_by_id]
+            entry["teacher_name"] = " & ".join(names) if names else "TBD"
+            entry["teacher_code"] = "/".join(codes) if codes else ""
+            entry["course_id"] = matched.get("id", "")
+            
+            # Ensure room is assigned if missing
+            if not entry.get("room_name"):
+                pref_r = matched.get("preferred_room_id")
+                if pref_r and pref_r in rooms_by_id:
+                    entry["room_id"] = pref_r
+                    entry["room_name"] = rooms_by_id[pref_r]["name"]
+                elif entry.get("is_lab"):
+                    entry["room_id"] = "r_mt_lab"
+                    entry["room_name"] = rooms_by_id.get("r_mt_lab", {}).get("name", "MT Lab / CAD Lab")
+                else:
+                    entry["room_id"] = "r_lh_101"
+                    entry["room_name"] = rooms_by_id.get("r_lh_101", {}).get("name", "Room 101")
+        else:
+            if "teacher_ids" not in entry:
+                entry["teacher_ids"] = []
+                entry["teacher_id"] = ""
+                entry["teacher_name"] = "TBD"
+                entry["teacher_code"] = ""
+                
+    # Also update timetable if it already has entries for fixed slots
+    tt = data.get("timetable", [])
+    if tt:
+        fixed_map = {(e.get("batch_id"), e.get("course_code"), e.get("day"), e.get("period")): e for e in fixed_schedule}
+        for item in tt:
+            key = (item.get("batch_id"), item.get("course_code"), item.get("day"), item.get("period"))
+            if key in fixed_map:
+                f_item = fixed_map[key]
+                item["teacher_id"] = f_item.get("teacher_id", "")
+                item["teacher_ids"] = f_item.get("teacher_ids", [])
+                item["teacher_name"] = f_item.get("teacher_name", "TBD")
+                item["teacher_code"] = f_item.get("teacher_code", "")
+                if f_item.get("room_name") and not item.get("room_name"):
+                    item["room_id"] = f_item.get("room_id")
+                    item["room_name"] = f_item.get("room_name")
 
 @app.route('/')
 def index():
@@ -30,11 +126,13 @@ def index():
 @app.route('/api/state', methods=['GET'])
 def get_state():
     data = load_data()
+    sync_fixed_schedule_teachers(data)
     return jsonify(data)
 
 @app.route('/api/state', methods=['POST'])
 def update_state():
     new_data = request.get_json(force=True)
+    sync_fixed_schedule_teachers(new_data)
     save_data(new_data)
     return jsonify({"success": True, "message": "State saved successfully."})
 
@@ -43,6 +141,7 @@ def precheck():
     data = load_data()
     req_body = request.get_json(silent=True) or {}
     sem_type = req_body.get("semester", data.get("config", {}).get("semester", "Even Semester"))
+    sync_fixed_schedule_teachers(data, sem_type)
     
     config = data.get("config", {})
     teachers = data.get("faculty", [])
@@ -58,7 +157,7 @@ def precheck():
     else:
         active_courses = all_subjects
 
-    scheduler = TimetableScheduler(config, teachers, rooms, batches, active_courses, sub_batches=sub_batches)
+    scheduler = TimetableScheduler(config, teachers, rooms, batches, active_courses, sub_batches=sub_batches, fixed_schedule=data.get("fixed_ce234p_schedule", []))
     report = scheduler.pre_check_feasibility()
     return jsonify(report)
 
@@ -68,7 +167,6 @@ def generate():
     req_body = request.get_json(silent=True) or {}
     if "unmapped_subjects" in req_body:
         data["unmapped_subjects"] = req_body["unmapped_subjects"]
-        save_data(data)
 
     config = data.get("config", {})
     teachers = data.get("faculty", [])
@@ -77,6 +175,9 @@ def generate():
     sub_batches = data.get("sub_batches", [])
     
     sem_type = req_body.get("semester", config.get("semester", "Even Semester"))
+    sync_fixed_schedule_teachers(data, sem_type)
+    save_data(data)
+    
     all_subjects = data.get("unmapped_subjects", [])
     if "Even" in sem_type:
         active_courses = [s for s in all_subjects if (s.get("semester_type") == "Even" or not s.get("semester_type"))]
@@ -85,7 +186,7 @@ def generate():
     else:
         active_courses = all_subjects
 
-    scheduler = TimetableScheduler(config, teachers, rooms, batches, active_courses, sub_batches=sub_batches)
+    scheduler = TimetableScheduler(config, teachers, rooms, batches, active_courses, sub_batches=sub_batches, fixed_schedule=data.get("fixed_ce234p_schedule", []))
     result = scheduler.generate(max_attempts=200)
 
     if result["success"]:

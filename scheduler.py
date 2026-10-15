@@ -2,8 +2,9 @@ import random
 from copy import deepcopy
 
 class TimetableScheduler:
-    def __init__(self, config, teachers, rooms, batches, courses, sub_batches=None):
+    def __init__(self, config, teachers, rooms, batches, courses, sub_batches=None, fixed_schedule=None):
         self.config = config
+        self.fixed_schedule = fixed_schedule or []
         self.days = config.get("days", ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"])
         self.num_days = len(self.days)
         
@@ -150,14 +151,28 @@ class TimetableScheduler:
                 "schedule": []
             }
 
+        # Count periods already covered by fixed_schedule
+        fixed_count_by_course = {}
+        for f in self.fixed_schedule:
+            k = (f.get("batch_id"), f.get("course_code"))
+            fixed_count_by_course[k] = fixed_count_by_course.get(k, 0) + 1
+
         activities = []
         for c in self.courses:
-            periods_needed = c.get("weekly_periods", 3)
+            total_periods = c.get("weekly_periods", 3)
+            already_fixed = fixed_count_by_course.get((c.get("batch_id"), c.get("code")), 0)
+            periods_needed = max(0, total_periods - already_fixed)
+            if periods_needed <= 0:
+                continue
+
             block_size = c.get("block_size", 1)
+            if block_size > periods_needed:
+                block_size = periods_needed
             teacher_ids = c.get("teacher_ids") or ([c["teacher_id"]] if c.get("teacher_id") else [])
+            teacher_ids = [tid for tid in teacher_ids if tid]
             
-            blocks_count = periods_needed // block_size
-            remaining_singles = periods_needed % block_size
+            blocks_count = periods_needed // block_size if block_size > 0 else 0
+            remaining_singles = periods_needed % block_size if block_size > 0 else 0
             
             for i in range(blocks_count):
                 activities.append({
@@ -201,6 +216,27 @@ class TimetableScheduler:
             sub_batch_schedule = {} # sub_batch_id -> set of (d, p)
             room_schedule = {}      # room_id -> set of (d, p)
             batch_day_courses = {}  # (batch_id, d, course_id) -> count
+
+            # Seed pre-allocated slots from fixed schedule
+            for f in self.fixed_schedule:
+                d = f.get("day")
+                p = f.get("period")
+                if d is None or p is None:
+                    continue
+                b_id = f.get("batch_id")
+                c_id = f.get("course_id") or f.get("course_code")
+                r_id = f.get("room_id")
+                t_ids = f.get("teacher_ids") or ([f["teacher_id"]] if f.get("teacher_id") else [])
+                t_ids = [tid for tid in t_ids if tid]
+
+                if b_id:
+                    batch_schedule.setdefault(b_id, set()).add((d, p))
+                    batch_day_courses[(b_id, d, c_id)] = batch_day_courses.get((b_id, d, c_id), 0) + 1
+                if r_id:
+                    room_schedule.setdefault(r_id, set()).add((d, p))
+                for tid in t_ids:
+                    teacher_schedule.setdefault(tid, set()).add((d, p))
+                    teacher_day_load[(tid, d)] = teacher_day_load.get((tid, d), 0) + 1
             
             assigned_schedule = []
             current_activities = list(activities)
@@ -215,8 +251,8 @@ class TimetableScheduler:
             )
             
             if success:
-                # Calculate quality score & soft warnings
-                quality = self._evaluate_quality(assigned_schedule)
+                # Calculate quality score & soft warnings (including fixed schedule)
+                quality = self._evaluate_quality(self.fixed_schedule + assigned_schedule)
                 return {
                     "success": True,
                     "score": quality["score"],

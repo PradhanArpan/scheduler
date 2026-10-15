@@ -383,18 +383,35 @@
           <p class="text-xs text-slate-500">Manage courses across Odd and Even semesters with multi-faculty team assignment support.</p>
         </div>
 
-        <div class="flex flex-wrap items-center gap-2">
+        <div class="flex flex-wrap items-center gap-2.5">
           <!-- Odd / Even Semester Switcher Tabs -->
           <div class="inline-flex rounded-lg bg-slate-200/80 p-1 text-xs">
-            <button @click="semesterFilter = 'Even'" :class="semesterFilter === 'Even' ? 'bg-white shadow-xs text-indigo-700 font-semibold' : 'text-slate-600 hover:text-slate-900'" class="px-3 py-1 rounded-md transition">
-              Even Semester
+            <button @click="semesterFilter = 'Even'" :class="semesterFilter === 'Even' ? 'bg-white shadow-xs text-indigo-700 font-semibold' : 'text-slate-600 hover:text-slate-900'" class="px-2.5 py-1 rounded-md transition">
+              Even Sem
             </button>
-            <button @click="semesterFilter = 'Odd'" :class="semesterFilter === 'Odd' ? 'bg-white shadow-xs text-indigo-700 font-semibold' : 'text-slate-600 hover:text-slate-900'" class="px-3 py-1 rounded-md transition">
-              Odd Semester
+            <button @click="semesterFilter = 'Odd'" :class="semesterFilter === 'Odd' ? 'bg-white shadow-xs text-indigo-700 font-semibold' : 'text-slate-600 hover:text-slate-900'" class="px-2.5 py-1 rounded-md transition">
+              Odd Sem
             </button>
-            <button @click="semesterFilter = 'ALL'" :class="semesterFilter === 'ALL' ? 'bg-white shadow-xs text-indigo-700 font-semibold' : 'text-slate-600 hover:text-slate-900'" class="px-3 py-1 rounded-md transition">
-              All Courses ({{ data.unmapped_subjects.length }})
+            <button @click="semesterFilter = 'ALL'" :class="semesterFilter === 'ALL' ? 'bg-white shadow-xs text-indigo-700 font-semibold' : 'text-slate-600 hover:text-slate-900'" class="px-2.5 py-1 rounded-md transition">
+              All Terms
             </button>
+          </div>
+
+          <!-- Academic Cycle Filter -->
+          <select v-model="cycleFilter" aria-label="Filter courses by academic cycle" class="text-xs bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 font-medium text-slate-800 focus:ring-2 focus:ring-indigo-500">
+            <option value="ALL">All Cycles (30 Batches)</option>
+            <option value="cycle_phy">1st Year Physics Cycle (A–H)</option>
+            <option value="cycle_che">1st Year Chemistry Cycle (I–N)</option>
+            <option value="cycle_civil">Civil Engineering (3rd–8th Sem)</option>
+            <option value="cycle_arch">Architecture (1st–3rd Sem)</option>
+            <option value="cycle_allied">Allied / EVS Batches</option>
+          </select>
+
+          <!-- Search Filter -->
+          <div class="relative min-w-[210px]">
+            <input v-model="catalogSearchQuery" type="text" placeholder="Search course, code, batch, faculty..." class="w-full pl-7 pr-3 py-1.5 text-xs bg-white border border-slate-300 rounded-lg text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            <svg class="w-3.5 h-3.5 text-slate-400 absolute left-2 top-2" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+            <button v-if="catalogSearchQuery" @click="catalogSearchQuery = ''" class="absolute right-2 top-1.5 text-slate-400 hover:text-slate-600 text-xs">✕</button>
           </div>
 
           <button @click="openAddCourseModal" class="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold shadow-xs transition flex items-center gap-1.5 focus-visible:ring-2 focus-visible:ring-indigo-400">
@@ -1258,10 +1275,34 @@ createApp({
       }
     };
 
+    const catalogSearchQuery = ref('');
+    const cycleFilter = ref('ALL');
+
     const filteredSubjects = computed(() => {
-      const subs = data.value.unmapped_subjects || [];
-      if (semesterFilter.value === 'ALL') return subs;
-      return subs.filter(s => (s.semester_type || 'Even') === semesterFilter.value);
+      let subs = data.value.unmapped_subjects || [];
+      if (semesterFilter.value !== 'ALL') {
+        subs = subs.filter(s => (s.semester_type || 'Even') === semesterFilter.value);
+      }
+      if (cycleFilter.value !== 'ALL') {
+        const batchMap = {};
+        (data.value.batches || []).forEach(b => { batchMap[b.id] = b.cycle_id; });
+        subs = subs.filter(s => batchMap[s.batch_id] === cycleFilter.value);
+      }
+      if (catalogSearchQuery.value && catalogSearchQuery.value.trim()) {
+        const q = catalogSearchQuery.value.toLowerCase().trim();
+        subs = subs.filter(s => {
+          const name = (s.name || '').toLowerCase();
+          const code = (s.code || '').toLowerCase();
+          const bName = getBatchName(s.batch_id).toLowerCase();
+          const tIds = s.teacher_ids || (s.teacher_id ? [s.teacher_id] : []);
+          const facultyStr = tIds.map(id => {
+            const f = (data.value.faculty || []).find(x => x.id === id);
+            return f ? (f.name + ' ' + f.code).toLowerCase() : '';
+          }).join(' ');
+          return name.includes(q) || code.includes(q) || bName.includes(q) || facultyStr.includes(q);
+        });
+      }
+      return subs;
     });
 
     const incrementWeeklyHours = c => {
@@ -1760,6 +1801,8 @@ createApp({
       selectedTeacherId,
       selectedRoomId,
       semesterFilter,
+      cycleFilter,
+      catalogSearchQuery,
       filteredSubjects,
       incrementWeeklyHours,
       decrementWeeklyHours,
