@@ -102,6 +102,21 @@ def sync_fixed_schedule_teachers(data, sem_type=None):
                 entry["teacher_id"] = ""
                 entry["teacher_name"] = "TBD"
                 entry["teacher_code"] = ""
+
+    # Also update fixed_physics_schedule if present
+    for entry in data.get("fixed_physics_schedule", []):
+        b_id = entry.get("batch_id")
+        code = entry.get("course_code")
+        matched = subject_lookup.get((b_id, code))
+        if matched:
+            t_ids = matched.get("teacher_ids") or ([matched["teacher_id"]] if matched.get("teacher_id") else [])
+            t_ids = [tid for tid in t_ids if tid]
+            entry["teacher_ids"] = t_ids
+            entry["teacher_id"] = t_ids[0] if t_ids else ""
+            names = [teachers_by_id[tid]["name"] for tid in t_ids if tid in teachers_by_id]
+            codes = [teachers_by_id[tid]["code"] for tid in t_ids if tid in teachers_by_id]
+            entry["teacher_name"] = " & ".join(names) if names else "TBD"
+            entry["teacher_code"] = "/".join(codes) if codes else ""
                 
     # Also update timetable if it already has entries for fixed slots
     tt = data.get("timetable", [])
@@ -190,8 +205,8 @@ def generate():
     result = scheduler.generate(max_attempts=200)
 
     if result["success"]:
-        # Prepend the fixed Basics of Civil Engineering slots
-        fixed_slots = list(data.get("fixed_ce234p_schedule", []))
+        # Prepend the fixed physics cycle schedule for complete 1st-year class timetables
+        fixed_slots = list(data.get("fixed_physics_schedule", data.get("fixed_ce234p_schedule", [])))
         combined = fixed_slots + result["schedule"]
         data["timetable"] = combined
         save_data(data)
