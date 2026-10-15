@@ -229,6 +229,7 @@
                 <th class="px-2.5 py-2">Target Batch</th>
                 <th class="px-2.5 py-2">Assigned Faculty (Co-Teaching)</th>
                 <th class="px-2.5 py-2">Weekly Hours</th>
+                <th class="px-2.5 py-2">Blocked Hours</th>
                 <th class="px-2.5 py-2">Format</th>
                 <th class="px-2.5 py-2">Room / Lab</th>
                 <th class="px-2.5 py-2 text-right">Actions</th>
@@ -270,6 +271,16 @@
                   </div>
                 </td>
 
+                <!-- Blocked Hours for Course -->
+                <td class="px-2.5 py-1.5">
+                  <button @click="openCourseUnavailModal(c)" 
+                          class="inline-flex items-center gap-1 px-2 py-0.5 rounded border text-[10px] transition"
+                          :class="(c.unavailable_slots||[]).length > 0 ? 'bg-rose-50 border-rose-300 text-rose-800 font-bold' : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'">
+                    <span class="w-1.5 h-1.5 rounded-full" :class="(c.unavailable_slots||[]).length > 0 ? 'bg-rose-500' : 'bg-emerald-500'"></span>
+                    Blocked ({{ (c.unavailable_slots||[]).length }})
+                  </button>
+                </td>
+
                 <td class="px-2.5 py-1.5">
                   <span v-if="c.is_lab" class="px-1.5 py-0.5 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded font-semibold text-[9px]">
                     Lab ({{ c.block_size }}h)
@@ -285,7 +296,7 @@
                 </td>
               </tr>
               <tr v-if="filteredSubjects.length === 0">
-                <td colspan="9" class="p-6 text-center text-slate-400 text-xs italic">
+                <td colspan="10" class="p-6 text-center text-slate-400 text-xs italic">
                   No courses found for {{ data.config.semester }} matching your filters.
                 </td>
               </tr>
@@ -687,15 +698,22 @@
             <button @click="viewMode = 'room'" :class="viewMode === 'room' ? 'bg-white shadow-xs text-indigo-700 font-bold' : 'text-slate-600 hover:text-slate-900 font-medium'" class="px-3 py-1 rounded-md transition">Venue / Lab</button>
           </div>
 
-          <!-- Batch Selector -->
-          <div v-if="viewMode === 'batch'" class="flex items-center gap-2">
-            <select v-model="selectedBatchId" aria-label="Filter by Batch" class="text-xs bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 font-bold text-slate-800 focus:ring-2 focus:ring-indigo-500">
-              <option value="ALL">-- View All Batches --</option>
-              <optgroup v-for="cycle in data.cycles" :key="cycle.id" :label="cycle.name">
-                <option v-for="b in getBatchesForCycle(cycle.id)" :key="b.id" :value="b.id">
-                  {{ b.name }} ({{ b.semester_type || 'Even' }} Sem)
-                </option>
-              </optgroup>
+          <!-- Cascading Batch Selector (Academic Group -> Batch) -->
+          <div v-if="viewMode === 'batch'" class="flex flex-wrap items-center gap-2">
+            <!-- Tier 1: Academic Group -->
+            <select v-model="timetableCycleFilter" aria-label="Filter by Academic Group" class="text-xs bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 font-bold text-slate-800 focus:ring-2 focus:ring-indigo-500">
+              <option value="ALL">All Academic Groups</option>
+              <option v-for="cycle in activeSemesterCycles" :key="cycle.id" :value="cycle.id">
+                {{ cycle.name }}
+              </option>
+            </select>
+
+            <!-- Tier 2: Class / Batch -->
+            <select v-model="selectedBatchId" aria-label="Filter by Batch" class="text-xs bg-white border border-indigo-300 rounded-lg px-2.5 py-1.5 font-bold text-indigo-950 focus:ring-2 focus:ring-indigo-500 shadow-2xs">
+              <option value="ALL">-- View All Batches in Group --</option>
+              <option v-for="b in selectableTimetableBatches" :key="b.id" :value="b.id">
+                {{ b.name }}
+              </option>
             </select>
           </div>
 
@@ -718,8 +736,8 @@
 
         <!-- Legend -->
         <div class="flex items-center gap-3 text-xs text-slate-500 font-medium">
-          <span class="inline-flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded bg-indigo-600 inline-block"></span> Theory</span>
-          <span class="inline-flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded bg-emerald-600 inline-block"></span> Laboratory</span>
+          <span class="inline-flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded bg-indigo-500 inline-block"></span> Theory (Color-coded)</span>
+          <span class="inline-flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded bg-indigo-600 inline-block ring-1 ring-indigo-300"></span> Lab (Matching Hue + LAB)</span>
           <span class="inline-flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded bg-amber-400 inline-block"></span> Lunch / Break</span>
           <span class="inline-flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded bg-rose-500 inline-block"></span> Blocked</span>
         </div>
@@ -795,16 +813,19 @@
                     <!-- Active teaching slot -->
                     <div v-else class="space-y-1 h-full flex flex-col justify-start">
                       <div v-for="entry in getCellEntries(target, dayIdx, pIdx)" :key="entry.id"
-                           :class="entry.is_lab ? 'bg-emerald-50 border-emerald-300 text-emerald-950' : 'bg-indigo-50 border-indigo-200 text-indigo-950'"
-                           class="p-1 rounded border shadow-2xs text-left text-[10px] leading-tight overflow-hidden">
+                           :class="getCourseColorClasses(entry.course_code, entry.is_lab)"
+                           class="p-1 rounded border shadow-2xs text-left text-[10px] leading-tight overflow-hidden transition">
                         <div class="flex items-center justify-between gap-0.5">
                           <span class="font-mono font-bold">{{ entry.course_code }}</span>
-                          <span v-if="entry.sub_batch_name" class="bg-indigo-200 text-indigo-900 font-bold px-1 rounded text-[8px] truncate max-w-[50px]">
+                          <span v-if="entry.is_lab" class="px-1 py-0.2 rounded text-[8px] font-bold uppercase" :class="getCourseBadgeClass(entry.course_code)">
+                            LAB
+                          </span>
+                          <span v-else-if="entry.sub_batch_name" class="bg-slate-200/80 text-slate-800 font-bold px-1 rounded text-[8px] truncate max-w-[50px]">
                             {{ entry.sub_batch_name }}
                           </span>
                         </div>
                         <div class="font-medium truncate text-[10px] mt-0.5 text-slate-900" :title="entry.course_name">{{ entry.course_name }}</div>
-                        <div class="text-[9px] text-slate-600 mt-0.5 flex items-center justify-between gap-1 border-t border-slate-200/60 pt-0.5">
+                        <div class="text-[9px] text-slate-600 mt-0.5 flex items-center justify-between gap-1 border-t border-black/5 pt-0.5">
                           <span v-if="target.type !== 'teacher'" class="font-medium text-slate-800 truncate" :title="entry.teacher_name">{{ entry.teacher_code || entry.teacher_name }}</span>
                           <span v-else class="font-bold text-slate-800">{{ entry.batch_name }}</span>
                           <span class="text-slate-500 font-mono text-[8px] bg-white/70 px-1 rounded truncate">{{ entry.room_name || 'Room 101' }}</span>
@@ -1219,6 +1240,50 @@
 
       <div class="flex justify-end pt-2 border-t border-slate-100">
         <button @click="batchUnavailModal.open = false" class="px-4 py-1.5 bg-slate-900 text-white rounded-lg text-xs font-bold shadow-xs">Done</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: COURSE / SUBJECT UNAVAILABILITY -->
+  <div v-if="courseUnavailModal.open" 
+       role="dialog" aria-modal="true" aria-labelledby="course-unavail-modal-title"
+       class="fixed inset-0 bg-slate-900/60 backdrop-blur-2xs flex items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-xl shadow-xl border border-slate-200 max-w-2xl w-full p-5 space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+        <div>
+          <h3 id="course-unavail-modal-title" class="font-bold text-sm text-slate-900">Course Blocked Hours Matrix</h3>
+          <p class="text-xs text-slate-500">Block or reserve periods for course <strong>{{ courseUnavailModal.course.code }} — {{ courseUnavailModal.course.name }}</strong>.</p>
+        </div>
+        <button @click="courseUnavailModal.open = false" aria-label="Close dialog" class="text-slate-400 hover:text-slate-600 font-bold">✕</button>
+      </div>
+
+      <div class="overflow-x-auto border border-slate-200 rounded-lg">
+        <table class="w-full text-center text-xs border-collapse">
+          <thead>
+            <tr class="bg-slate-100 text-slate-700 font-semibold">
+              <th class="p-2 border-r border-slate-200 text-left">Day</th>
+              <th v-for="p in data.config.periods" :key="p.id" class="p-2 border-r border-slate-200">{{ p.name }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(day, dIdx) in data.config.days" :key="dIdx" class="border-t border-slate-200">
+              <td class="p-2 font-bold text-left bg-slate-50 border-r border-slate-200">{{ day }}</td>
+              <td v-for="(p, pIdx) in data.config.periods" :key="p.id"
+                  @click="!p.is_break && toggleCourseSlot(dIdx, pIdx)"
+                  :class="p.is_break ? 'bg-amber-50 text-amber-900 font-bold cursor-not-allowed' : (isCourseSlotUnavailable(dIdx, pIdx) ? 'bg-rose-500 text-white font-bold cursor-pointer' : 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100 cursor-pointer')"
+                  class="p-2 border-r border-slate-200 select-none text-[11px]">
+                <span v-if="p.is_break">BREAK</span>
+                <span v-else-if="isCourseSlotUnavailable(dIdx, pIdx)">BLOCKED</span>
+                <span v-else>AVAILABLE</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="flex items-center justify-between pt-2 border-t border-slate-100">
+        <button @click="clearCourseSlots" class="text-xs text-rose-600 hover:text-rose-800 font-semibold">Clear All Blocked Slots</button>
+        <button @click="courseUnavailModal.open = false" class="px-4 py-1.5 bg-slate-900 text-white rounded-lg text-xs font-bold shadow-xs">Done</button>
       </div>
     </div>
   </div>
@@ -1820,6 +1885,33 @@ createApp({
       saveStateToServer();
     };
 
+    // Course Unavailability Modal
+    const courseUnavailModal = ref({ open: false, course: {} });
+    const openCourseUnavailModal = c => {
+      if (!c.unavailable_slots) c.unavailable_slots = [];
+      courseUnavailModal.value = { open: true, course: c };
+    };
+    const isCourseSlotUnavailable = (d, p) => {
+      const slots = courseUnavailModal.value.course?.unavailable_slots || [];
+      return slots.some(s => s.day === d && s.period === p);
+    };
+    const toggleCourseSlot = (d, p) => {
+      if (!courseUnavailModal.value.course.unavailable_slots) {
+        courseUnavailModal.value.course.unavailable_slots = [];
+      }
+      const slots = courseUnavailModal.value.course.unavailable_slots;
+      const idx = slots.findIndex(s => s.day === d && s.period === p);
+      if (idx >= 0) slots.splice(idx, 1);
+      else slots.push({ day: d, period: p });
+      saveStateToServer();
+    };
+    const clearCourseSlots = () => {
+      if (courseUnavailModal.value.course) {
+        courseUnavailModal.value.course.unavailable_slots = [];
+        saveStateToServer();
+      }
+    };
+
     const closeAllModals = () => {
       multiFacultyModal.value.open = false;
       facultyModal.value.open = false;
@@ -1831,12 +1923,111 @@ createApp({
       subBatchModal.value.open = false;
       unavailModal.value.open = false;
       batchUnavailModal.value.open = false;
+      courseUnavailModal.value.open = false;
+    };
+
+    // Cascading Timetable Filters (Group -> Batch)
+    const timetableCycleFilter = ref('ALL');
+
+    const activeSemesterCycles = computed(() => {
+      const activeCycleIds = new Set(activeSemesterBatches.value.map(b => b.cycle_id));
+      return (data.value.cycles || []).filter(c => activeCycleIds.has(c.id));
+    });
+
+    const selectableTimetableBatches = computed(() => {
+      if (timetableCycleFilter.value === 'ALL') {
+        return activeSemesterBatches.value;
+      }
+      return activeSemesterBatches.value.filter(b => b.cycle_id === timetableCycleFilter.value);
+    });
+
+    // Course Palette System: Distinct hue per subject family; Labs share identical color hue with rich tone & LAB badge
+    const coursePaletteList = [
+      {
+        theory: 'bg-sky-50 border-sky-300 text-sky-950',
+        lab: 'bg-sky-100/90 border-sky-400 text-sky-950 ring-1 ring-sky-300',
+        badge: 'bg-sky-200 text-sky-900 border border-sky-300'
+      },
+      {
+        theory: 'bg-emerald-50 border-emerald-300 text-emerald-950',
+        lab: 'bg-emerald-100/90 border-emerald-400 text-emerald-950 ring-1 ring-emerald-300',
+        badge: 'bg-emerald-200 text-emerald-900 border border-emerald-300'
+      },
+      {
+        theory: 'bg-amber-50 border-amber-300 text-amber-950',
+        lab: 'bg-amber-100/90 border-amber-400 text-amber-950 ring-1 ring-amber-300',
+        badge: 'bg-amber-200 text-amber-900 border border-amber-300'
+      },
+      {
+        theory: 'bg-violet-50 border-violet-300 text-violet-950',
+        lab: 'bg-violet-100/90 border-violet-400 text-violet-950 ring-1 ring-violet-300',
+        badge: 'bg-violet-200 text-violet-900 border border-violet-300'
+      },
+      {
+        theory: 'bg-rose-50 border-rose-300 text-rose-950',
+        lab: 'bg-rose-100/90 border-rose-400 text-rose-950 ring-1 ring-rose-300',
+        badge: 'bg-rose-200 text-rose-900 border border-rose-300'
+      },
+      {
+        theory: 'bg-indigo-50 border-indigo-300 text-indigo-950',
+        lab: 'bg-indigo-100/90 border-indigo-400 text-indigo-950 ring-1 ring-indigo-300',
+        badge: 'bg-indigo-200 text-indigo-900 border border-indigo-300'
+      },
+      {
+        theory: 'bg-teal-50 border-teal-300 text-teal-950',
+        lab: 'bg-teal-100/90 border-teal-400 text-teal-950 ring-1 ring-teal-300',
+        badge: 'bg-teal-200 text-teal-900 border border-teal-300'
+      },
+      {
+        theory: 'bg-orange-50 border-orange-300 text-orange-950',
+        lab: 'bg-orange-100/90 border-orange-400 text-orange-950 ring-1 ring-orange-300',
+        badge: 'bg-orange-200 text-orange-900 border border-orange-300'
+      },
+      {
+        theory: 'bg-fuchsia-50 border-fuchsia-300 text-fuchsia-950',
+        lab: 'bg-fuchsia-100/90 border-fuchsia-400 text-fuchsia-950 ring-1 ring-fuchsia-300',
+        badge: 'bg-fuchsia-200 text-fuchsia-900 border border-fuchsia-300'
+      },
+      {
+        theory: 'bg-cyan-50 border-cyan-300 text-cyan-950',
+        lab: 'bg-cyan-100/90 border-cyan-400 text-cyan-950 ring-1 ring-cyan-300',
+        badge: 'bg-cyan-200 text-cyan-900 border border-cyan-300'
+      }
+    ];
+
+    const getBaseCourseCode = (code) => {
+      if (!code) return 'DEFAULT';
+      let c = String(code).toUpperCase().trim();
+      c = c.replace(/(-LAB|P-LAB|\(LAB\))$/i, '');
+      c = c.replace(/(-A|-B|-C|-D)$/i, '');
+      c = c.replace(/P$/i, '');
+      return c.replace(/[\s\-_]/g, '');
+    };
+
+    const getCoursePalette = (code) => {
+      const base = getBaseCourseCode(code);
+      let hash = 0;
+      for (let i = 0; i < base.length; i++) {
+        hash = (hash << 5) - hash + base.charCodeAt(i);
+        hash |= 0;
+      }
+      const idx = Math.abs(hash) % coursePaletteList.length;
+      return coursePaletteList[idx];
+    };
+
+    const getCourseColorClasses = (code, isLab) => {
+      const pal = getCoursePalette(code);
+      return isLab ? pal.lab : pal.theory;
+    };
+
+    const getCourseBadgeClass = (code) => {
+      return getCoursePalette(code).badge;
     };
 
     // Master Timetable Grid Targets
     const activeGridTargets = computed(() => {
       if (viewMode.value === 'batch') {
-        const batches = activeSemesterBatches.value;
+        const batches = selectableTimetableBatches.value;
         if (selectedBatchId.value === 'ALL') {
           return batches.map(b => ({ id: b.id, type: 'batch', title: `Batch: ${b.name}`, unavailable_slots: b.unavailable_slots }));
         }
@@ -2020,6 +2211,16 @@ createApp({
       openBatchUnavailabilityModal,
       isBatchSlotUnavailable,
       toggleBatchSlot,
+      courseUnavailModal,
+      openCourseUnavailModal,
+      isCourseSlotUnavailable,
+      toggleCourseSlot,
+      clearCourseSlots,
+      timetableCycleFilter,
+      activeSemesterCycles,
+      selectableTimetableBatches,
+      getCourseColorClasses,
+      getCourseBadgeClass,
       closeAllModals,
       generateTimetable,
       saveStateToServer,

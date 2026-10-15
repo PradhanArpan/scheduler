@@ -131,6 +131,15 @@ class TimetableScheduler:
             if demand > total_week_slots:
                 errors.append(f"Lab '{r_name}' requires {demand} lab hours, exceeding total weekly capacity ({total_week_slots} slots).")
 
+        # 4. Course-level blocked hours capacity check
+        for c in self.courses:
+            c_name = c.get("name", c.get("code", "Course"))
+            u_count = len(c.get("unavailable_slots", []))
+            demand = c.get("weekly_periods", 0)
+            avail = total_week_slots - u_count
+            if demand > avail:
+                errors.append(f"Course '{c_name}' requires {demand} periods, but only {avail} slots are available due to course-level blocked hours.")
+
         return {
             "feasible": len(errors) == 0,
             "errors": errors,
@@ -167,6 +176,13 @@ class TimetableScheduler:
                 continue
 
             block_size = c.get("block_size", 1)
+            if c.get("is_lab"):
+                # 2hr Lab sessions to be always together. If subject has 4hr of lab, then sets of 2 - 2hrs each.
+                if periods_needed == 4 or (periods_needed >= 2 and periods_needed % 2 == 0):
+                    block_size = 2
+                elif periods_needed >= 2 and block_size < 2:
+                    block_size = 2
+
             if block_size > periods_needed:
                 block_size = periods_needed
             teacher_ids = c.get("teacher_ids") or ([c["teacher_id"]] if c.get("teacher_id") else [])
@@ -187,7 +203,8 @@ class TimetableScheduler:
                     "preferred_room_id": c.get("preferred_room_id"),
                     "room_type": c.get("room_type", "Lecture"),
                     "block_size": block_size,
-                    "is_lab": c.get("is_lab", False)
+                    "is_lab": c.get("is_lab", False),
+                    "unavailable_slots": c.get("unavailable_slots", [])
                 })
                 
             for j in range(remaining_singles):
@@ -202,7 +219,8 @@ class TimetableScheduler:
                     "preferred_room_id": c.get("preferred_room_id"),
                     "room_type": c.get("room_type", "Lecture"),
                     "block_size": 1,
-                    "is_lab": False
+                    "is_lab": False,
+                    "unavailable_slots": c.get("unavailable_slots", [])
                 })
 
         # Sort: labs & larger blocks first (Most Constrained First heuristic)
@@ -326,10 +344,10 @@ class TimetableScheduler:
                 if exceeded_daily:
                     continue
 
-            # Check single theory lecture per day per subject
-            if not is_lab and self.single_theory_per_day_per_course:
-                if batch_day_courses.get((batch_id, d, course_id), 0) >= 1:
-                    continue
+            # Max 1 session per day per course (theory or lab)
+            # This ensures two 2-hour lab blocks of a 4-hour lab course are scheduled on different days
+            if batch_day_courses.get((batch_id, d, course_id), 0) >= 1:
+                continue
 
             for i in range(len(self.teaching_period_indices) - block_size + 1):
                 block_periods = self.teaching_period_indices[i : i + block_size]
@@ -345,6 +363,11 @@ class TimetableScheduler:
 
                 # Inactive / Closed slots
                 if any((d, p) in self.inactive_slots for p in block_periods):
+                    continue
+
+                # Course-level unavailable hours constraint
+                course_unavail = set((u.get("day"), u.get("period")) for u in act.get("unavailable_slots", []))
+                if any((d, p) in course_unavail for p in block_periods):
                     continue
 
                 # Department Meeting constraint
@@ -371,13 +394,31 @@ class TimetableScheduler:
                 for room in suitable_rooms:
                     candidate_slots.append((d, block_periods, room))
 
-        # Heuristic sorting: favor preferred rooms and uniform day spread
+        p1_idx = self.teaching_period_indices[0] if self.teaching_period_indices else 0
+        break_indices = [i for i, p in enumerate(self.periods) if p.get("is_break")]
+        post_break_idx = min((p for p in self.teaching_period_indices if p > break_indices[0]), default=None) if break_indices else (self.teaching_period_indices[4] if len(self.teaching_period_indices) > 4 else None)
+
+        # Heuristic sorting: favor preferred rooms, uniform day spread, and 95% fill on Period 1 & Period 5
         def slot_score(slot):
             d, p_list, rm = slot
             day_count = batch_day_courses.get((batch_id, d, course_id), 0)
             score = day_count * 20
             if preferred_room_id and rm["id"] == preferred_room_id:
                 score -= 8
+
+            # Constraint: No first (p1) and 5th hour (post-lunch) to be blank (95% constraint)
+            batch_occupied_on_d = [p for (bd, p) in batch_sched.get(batch_id, set()) if bd == d]
+            if p1_idx in p_list:
+                score -= 35 # strongly favor filling Period 1
+            elif p1_idx not in batch_occupied_on_d and p_list[0] > p1_idx:
+                score += 15  # penalize starting later when Period 1 is empty
+
+            if post_break_idx is not None:
+                if post_break_idx in p_list:
+                    score -= 30 # strongly favor filling Period 5
+                elif post_break_idx not in batch_occupied_on_d and any(p > post_break_idx for p in p_list):
+                    score += 15
+
             score += random.random()
             return score
 
@@ -509,6 +550,38 @@ class TimetableScheduler:
                 warnings.append(f"Faculty '{t_name}' has {count} hours on {d_name}.")
                 score -= 1.0
 
+        # Check start periods fill rate (No first and 5th hour blank - 95% constraint)
+        p1_idx = self.teaching_period_indices[0] if self.teaching_period_indices else 0
+        break_indices = [i for i, p in enumerate(self.periods) if p.get("is_break")]
+        break_idx = break_indices[0] if break_indices else 4
+        post_break_idx = min((p for p in self.teaching_period_indices if p > break_idx), default=None) if break_indices else (self.teaching_period_indices[4] if len(self.teaching_period_indices) > 4 else None)
+
+        batch_days_with_classes = {}
+        for s in schedule:
+            b_id = s.get("batch_id")
+            if b_id:
+                batch_days_with_classes.setdefault((b_id, s["day"]), set()).add(s["period"])
+
+        if batch_days_with_classes:
+            total_checks = 0
+            filled_checks = 0
+            for (b_id, d), periods_on_day in batch_days_with_classes.items():
+                b_obj = self.batches.get(b_id, {})
+                if b_obj.get("cycle_id") != "cycle_civil":
+                    continue  # Non-civil cohorts only take 1 external subject from Civil
+
+                if any(p < break_idx for p in periods_on_day):
+                    total_checks += 1
+                    if p1_idx in periods_on_day:
+                        filled_checks += 1
+                if post_break_idx is not None and any(p >= post_break_idx for p in periods_on_day):
+                    total_checks += 1
+                    if post_break_idx in periods_on_day:
+                        filled_checks += 1
+            start_fill_rate = round((filled_checks / total_checks * 100), 1) if total_checks > 0 else 100.0
+            if start_fill_rate < 95.0:
+                warnings.append(f"Morning & Afternoon start periods filled at {start_fill_rate}% (target: 95%).")
+
         score = max(round(score, 1), 90.0)
         status = "100% Conflict-Free" if len(warnings) == 0 else f"{score}% Optimal ({len(warnings)} soft notes)"
-        return {"score": score, "status": status, "warnings": warnings}
+        return {"score": score, "status": status, "warnings": warnings, "start_fill_rate": start_fill_rate if batch_days_with_classes else 100.0}
