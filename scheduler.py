@@ -90,9 +90,10 @@ class TimetableScheduler:
 
         for b_id, demand in batch_demand.items():
             b_name = self.batches.get(b_id, {}).get("name", b_id)
-            # count batch blocked slots
+            # count batch blocked slots and unavailable slots
             blocked_count = sum(1 for (b, d, p) in self.batch_blocked if b == b_id)
-            available = total_week_slots - blocked_count
+            unavail_count = len(self.batches.get(b_id, {}).get("unavailable_slots", []))
+            available = total_week_slots - blocked_count - unavail_count
             if demand > available:
                 errors.append(f"Batch '{b_name}' requires {demand} periods/week, but only {available} slots are available (Deficit: {demand - available}).")
             elif demand > available - 2:
