@@ -421,6 +421,8 @@ class TimetableScheduler:
 
         if not suitable_rooms:
             suitable_rooms = list(self.rooms.values())
+        if not suitable_rooms:
+            suitable_rooms = [{"id": "r_tbd", "name": "TBD", "type": "Lecture"}]
 
         candidate_slots = []
         for d in range(self.num_days):
@@ -613,8 +615,8 @@ class TimetableScheduler:
                     can_place = False
                     break
 
-                # Room collision
-                if (d, curr_p) in room_sched.get(room["id"], set()):
+                # Room collision (skip collision check if room is placeholder TBD)
+                if room.get("id") != "r_tbd" and (d, curr_p) in room_sched.get(room["id"], set()):
                     can_place = False
                     break
 
@@ -633,7 +635,8 @@ class TimetableScheduler:
                 else:
                     batch_sched.setdefault(batch_id, set()).add((d, curr_p))
 
-                room_sched.setdefault(room["id"], set()).add((d, curr_p))
+                if room.get("id") != "r_tbd":
+                    room_sched.setdefault(room["id"], set()).add((d, curr_p))
                 
                 # Format multiple teacher names/codes
                 names = [self.teachers[tid]["name"] for tid in teacher_ids if tid in self.teachers]
@@ -685,7 +688,8 @@ class TimetableScheduler:
                     sub_batch_sched[sub_batch_id].remove((d, curr_p))
                 else:
                     batch_sched[batch_id].remove((d, curr_p))
-                room_sched[room["id"]].remove((d, curr_p))
+                if room.get("id") != "r_tbd" and room["id"] in room_sched:
+                    room_sched[room["id"]].discard((d, curr_p))
                 result.pop()
 
             batch_day_courses[(batch_id, d, course_id)] -= block_size

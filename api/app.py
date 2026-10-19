@@ -58,11 +58,7 @@ def save_data(data):
     except Exception as e:
         print("Warning: unable to write to DATA_FILE:", e)
 
-ALIAS_ROOM_MAP = {
-    'r_lh_101': 'r_lh1',
-    'r_lh_102': 'r_lh2',
-    'r_lh_103': 'r_lh3'
-}
+ALIAS_ROOM_MAP = {}
 
 def sync_venue_names_and_ids(data):
     if not data:
@@ -73,12 +69,9 @@ def sync_venue_names_and_ids(data):
     if not rooms_by_id:
         return
 
-    default_lecture = next((r for r in rooms_list if r.get("type") != "Lab"), rooms_list[0])
-    default_lab = next((r for r in rooms_list if r.get("type") == "Lab"), rooms_list[0])
-
     def resolve_entry_room(entry):
         rid = entry.get("room_id")
-        if rid in ALIAS_ROOM_MAP:
+        if rid and rid in ALIAS_ROOM_MAP:
             rid = ALIAS_ROOM_MAP[rid]
             entry["room_id"] = rid
 
@@ -90,14 +83,6 @@ def sync_venue_names_and_ids(data):
             matched = rooms_by_name[entry["room_name"]]
             entry["room_id"] = matched["id"]
             entry["room_name"] = matched["name"]
-        # 3. Default fallback if missing
-        elif not entry.get("room_id") and not entry.get("room_name"):
-            if entry.get("is_lab") and default_lab:
-                entry["room_id"] = default_lab["id"]
-                entry["room_name"] = default_lab["name"]
-            elif default_lecture:
-                entry["room_id"] = default_lecture["id"]
-                entry["room_name"] = default_lecture["name"]
 
     # 1. Sync timetable entries
     for e in data.get("timetable", []):
