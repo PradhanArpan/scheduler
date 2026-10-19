@@ -1839,7 +1839,9 @@ createApp({
       try {
         const res = await fetch('/api/state');
         if (res.ok) {
-          const json = await res.json();
+          let json = await res.json();
+          if (!json || typeof json !== 'object') json = {};
+          if (!json.config) json.config = {};
           if (!json.config.advanced_constraints) {
             json.config.advanced_constraints = {
               faculty_max_hours_per_day: 4,
