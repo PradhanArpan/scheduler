@@ -222,36 +222,52 @@ def update_slot():
     target_day = body.get("target_day")
     target_period = body.get("target_period")
     target_room_id = body.get("target_room_id")
+    swap_entry_id = body.get("swap_entry_id")
 
     tt = data.get("timetable", [])
     entry = next((e for e in tt if e.get("id") == entry_id), None)
     if not entry:
         return jsonify({"success": False, "message": "Entry not found"}), 404
 
-    # Validation checks
-    conflicts = []
-    entry_teachers = set(entry.get("teacher_ids") or ([entry["teacher_id"]] if entry.get("teacher_id") else []))
-
-    for other in tt:
-        if other.get("id") == entry_id:
-            continue
-        if other.get("day") == target_day and other.get("period") == target_period:
-            other_teachers = set(other.get("teacher_ids") or ([other["teacher_id"]] if other.get("teacher_id") else []))
-            common_t = entry_teachers.intersection(other_teachers)
-            if common_t:
-                conflicts.append(f"Faculty conflict: Teacher(s) already engaged in {other.get('course_name')}.")
-            if other.get("batch_id") == entry.get("batch_id"):
-                conflicts.append(f"Batch conflict: {entry.get('batch_name')} already has {other.get('course_name')}.")
-            if target_room_id and other.get("room_id") == target_room_id:
-                conflicts.append(f"Room collision: {other.get('room_name')} is already occupied.")
-
-    entry["day"] = target_day
     days_list = data["config"].get("days", [])
+    periods_list = data["config"].get("periods", [])
+
+    if swap_entry_id:
+        swap_entry = next((e for e in tt if e.get("id") == swap_entry_id), None)
+        if not swap_entry:
+            return jsonify({"success": False, "message": "Swap target entry not found"}), 404
+
+        # Swap positions between entry and swap_entry
+        orig_day = entry["day"]
+        orig_period = entry["period"]
+
+        entry["day"] = swap_entry["day"]
+        entry["period"] = swap_entry["period"]
+        entry["day_name"] = swap_entry.get("day_name")
+        entry["period_name"] = swap_entry.get("period_name")
+        entry["period_time"] = swap_entry.get("period_time")
+
+        swap_entry["day"] = orig_day
+        swap_entry["period"] = orig_period
+        swap_entry["day_name"] = days_list[orig_day] if orig_day < len(days_list) else f"Day {orig_day+1}"
+        if orig_period < len(periods_list):
+            swap_entry["period_name"] = periods_list[orig_period].get("name")
+            swap_entry["period_time"] = periods_list[orig_period].get("time")
+
+        save_data(data)
+        return jsonify({
+            "success": True,
+            "action": "swap",
+            "message": f"Successfully swapped {entry.get('course_code')} and {swap_entry.get('course_code')}",
+            "timetable": tt
+        })
+
+    # Standard Move
+    entry["day"] = target_day
     entry["day_name"] = days_list[target_day] if target_day < len(days_list) else f"Day {target_day+1}"
     entry["period"] = target_period
     
     # Update period name and time
-    periods_list = data["config"].get("periods", [])
     if target_period < len(periods_list):
         entry["period_name"] = periods_list[target_period].get("name")
         entry["period_time"] = periods_list[target_period].get("time")
@@ -265,7 +281,8 @@ def update_slot():
     save_data(data)
     return jsonify({
         "success": True,
-        "conflicts": conflicts,
+        "action": "move",
+        "message": f"Successfully moved {entry.get('course_code')} to {entry.get('day_name')} {entry.get('period_name')}",
         "timetable": tt
     })
 

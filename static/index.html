@@ -301,7 +301,7 @@
                 <th class="px-2.5 py-2 w-20">Code</th>
                 <th class="px-2.5 py-2">Course Title</th>
                 <th class="px-2.5 py-2 w-20">Batch</th>
-                <th class="px-2.5 py-2 w-44">Assigned Faculty (Co-Teaching)</th>
+                <th class="px-2.5 py-2 w-44">Faculty / Co-Faculty</th>
                 <th class="px-2.5 py-2 w-24 text-center">Hours</th>
                 <th class="px-2.5 py-2 w-40">Constraints / Slots</th>
                 <th class="px-2.5 py-2 w-20">Format</th>
@@ -320,7 +320,7 @@
                 <td class="px-2.5 py-1.5 font-semibold text-slate-900">{{ c.name }}</td>
                 <td class="px-2.5 py-1.5 font-bold text-slate-800 whitespace-nowrap">{{ getBatchName(c.batch_id) }}</td>
                 
-                <!-- Multi-Faculty Assignment Wrapped Pills -->
+                <!-- Faculty / Co-Faculty First Name Badges -->
                 <td class="px-2.5 py-1.5 max-w-[176px]">
                   <button @click="openMultiFacultyModal(c)" 
                           aria-label="Assign faculty to this course"
@@ -328,9 +328,9 @@
                     <span v-if="getAssignedFacultyCount(c) === 0" class="text-amber-800 font-normal px-1">
                       + Assign Faculty (0)
                     </span>
-                    <span v-else v-for="fc in getAssignedFacultyCodes(c)" :key="fc"
-                          class="bg-indigo-100/90 text-indigo-900 border border-indigo-200 px-1.5 py-0.2 rounded font-mono font-bold text-[9px]">
-                      {{ fc }}
+                    <span v-else v-for="fn in getAssignedFacultyFirstNames(c)" :key="fn"
+                          class="bg-indigo-100/90 text-indigo-950 border border-indigo-200 px-1.5 py-0.5 rounded font-semibold text-[10px] shadow-2xs">
+                      {{ fn }}
                     </span>
                     <span class="text-[8px] text-slate-400 ml-auto px-0.5">▾</span>
                   </button>
@@ -694,90 +694,164 @@
     <!-- ========================================================================= -->
     <section v-if="currentTab === 'settings'" class="space-y-8">
       
-      <!-- Core Scheduling Rules -->
+      <!-- Core Scheduling Rules with FET Confidence Levels -->
       <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-xs space-y-6">
-        <div class="border-b pb-2 flex flex-wrap items-center justify-between gap-2">
+        <div class="border-b pb-3 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 class="text-sm font-bold uppercase tracking-wider text-slate-800">Scheduling Constraints & Load Distribution</h2>
-            <p class="text-xs text-slate-500">Automated rules to enforce balanced student days, optimal pedagogy, and prevent faculty burnout.</p>
+            <div class="flex items-center gap-2">
+              <h2 class="text-sm font-bold uppercase tracking-wider text-slate-800">FET-Style Constraint Weighting & Confidence Levels</h2>
+              <span class="text-[10px] bg-indigo-50 text-indigo-700 border border-indigo-200 px-2 py-0.5 rounded-full font-bold">FET Architecture</span>
+            </div>
+            <p class="text-xs text-slate-500 mt-0.5">Customize constraint weights from 0% (disabled) to 100% (strict hard). Soft constraints guide heuristic optimization with confidence levels.</p>
           </div>
-          <span class="text-xs font-semibold px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full flex items-center gap-1.5">
-            <span class="w-2 h-2 rounded-full bg-emerald-500"></span> Active Solver Engine
-          </span>
+          
+          <!-- Preset Controls -->
+          <div class="flex items-center gap-1.5 text-xs">
+            <span class="text-slate-400 font-medium mr-1 text-[11px]">Presets:</span>
+            <button @click="applyFETPreset('default')" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md font-semibold text-[11px] transition">
+              Recommended (85-95%)
+            </button>
+            <button @click="applyFETPreset('strict')" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md font-semibold text-[11px] transition">
+              100% Strict Hard
+            </button>
+            <button @click="applyFETPreset('relaxed')" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md font-semibold text-[11px] transition">
+              Relaxed (70%)
+            </button>
+          </div>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
-          <!-- Max Teaching Hours per Day -->
-          <div class="space-y-1.5 bg-slate-50 p-4 rounded-lg border border-slate-200">
+          <!-- 1. Max Teaching Hours per Day -->
+          <div class="space-y-2.5 bg-slate-50 p-4 rounded-lg border border-slate-200">
             <div class="flex items-center justify-between">
               <label class="block font-bold text-slate-800">Max Daily Teaching Hours</label>
-              <span class="text-[10px] bg-slate-200 text-slate-700 px-1.5 py-0.5 rounded font-mono font-bold">Hard Limit</span>
+              <span :class="getFETBadgeClass(data.config.advanced_constraints.max_daily_weight ?? 95)" class="text-[10px] px-2 py-0.5 rounded-full font-bold border">
+                {{ getFETWeightLabel(data.config.advanced_constraints.max_daily_weight ?? 95) }}
+              </span>
             </div>
-            <input v-model.number="data.config.advanced_constraints.faculty_max_hours_per_day" aria-label="Max daily hours" type="number" min="1" max="8" class="border rounded-md px-2.5 py-1.5 w-24 font-bold bg-white">
-            <p class="text-[11px] text-slate-500">Prevents assigning any instructor more than this number of periods in a single day.</p>
+            <div class="flex items-center gap-2">
+              <input v-model.number="data.config.advanced_constraints.faculty_max_hours_per_day" aria-label="Max daily hours" type="number" min="1" max="8" class="border rounded-md px-2.5 py-1 w-20 font-bold bg-white text-xs">
+              <span class="text-slate-500 text-[11px]">hours / faculty / day</span>
+            </div>
+            <div>
+              <div class="flex justify-between text-[11px] text-slate-500 mb-1">
+                <span>Confidence Level</span>
+                <span class="font-bold text-indigo-700">{{ data.config.advanced_constraints.max_daily_weight ?? 95 }}%</span>
+              </div>
+              <input type="range" min="0" max="100" step="5" v-model.number="data.config.advanced_constraints.max_daily_weight" class="w-full accent-indigo-600 cursor-pointer">
+            </div>
+            <p class="text-[11px] text-slate-500">Prevents overloading faculty on single busy days.</p>
           </div>
 
-          <!-- Max Consecutive Teaching Hours -->
-          <div class="space-y-1.5 bg-slate-50 p-4 rounded-lg border border-slate-200">
+          <!-- 2. Max Consecutive Teaching Hours -->
+          <div class="space-y-2.5 bg-slate-50 p-4 rounded-lg border border-slate-200">
             <div class="flex items-center justify-between">
               <label class="block font-bold text-slate-800">Max Consecutive Hours</label>
-              <span class="text-[10px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded font-bold">Labs Only</span>
+              <span :class="getFETBadgeClass(data.config.advanced_constraints.consecutive_weight ?? 95)" class="text-[10px] px-2 py-0.5 rounded-full font-bold border">
+                {{ getFETWeightLabel(data.config.advanced_constraints.consecutive_weight ?? 95) }}
+              </span>
             </div>
-            <input v-model.number="data.config.advanced_constraints.faculty_max_consecutive_hours" aria-label="Max consecutive hours" type="number" min="1" max="5" class="border rounded-md px-2.5 py-1.5 w-24 font-bold bg-white">
-            <p class="text-[11px] text-slate-500">Consecutive teaching is strictly restricted to 2-hour labs. All other sessions require a break of &ge;1 hour.</p>
+            <div class="flex items-center gap-2">
+              <input v-model.number="data.config.advanced_constraints.faculty_max_consecutive_hours" aria-label="Max consecutive hours" type="number" min="1" max="5" class="border rounded-md px-2.5 py-1 w-20 font-bold bg-white text-xs">
+              <span class="text-slate-500 text-[11px]">hours (2h labs only)</span>
+            </div>
+            <div>
+              <div class="flex justify-between text-[11px] text-slate-500 mb-1">
+                <span>Confidence Level</span>
+                <span class="font-bold text-indigo-700">{{ data.config.advanced_constraints.consecutive_weight ?? 95 }}%</span>
+              </div>
+              <input type="range" min="0" max="100" step="5" v-model.number="data.config.advanced_constraints.consecutive_weight" class="w-full accent-indigo-600 cursor-pointer">
+            </div>
+            <p class="text-[11px] text-slate-500">Consecutive classes restricted to 2-hour labs; mandatory &ge;1h gap otherwise.</p>
           </div>
 
-          <!-- Theory on 1st Hour Always -->
-          <div class="space-y-1.5 bg-slate-50 p-4 rounded-lg border border-slate-200">
+          <!-- 3. Theory on 1st Hour Always -->
+          <div class="space-y-2.5 bg-slate-50 p-4 rounded-lg border border-slate-200">
             <div class="flex items-center justify-between">
               <label class="block font-bold text-slate-800">Theory on 1st Hour Always</label>
-              <span class="text-[10px] bg-indigo-100 text-indigo-800 px-1.5 py-0.5 rounded font-bold">Enforced</span>
+              <span :class="getFETBadgeClass(data.config.advanced_constraints.theory_1st_weight ?? 95)" class="text-[10px] px-2 py-0.5 rounded-full font-bold border">
+                {{ getFETWeightLabel(data.config.advanced_constraints.theory_1st_weight ?? 95) }}
+              </span>
             </div>
-            <div class="text-xs font-semibold text-indigo-700 flex items-center gap-1.5 py-1">
-              <span class="text-base">🏛️</span> Period 1 (09:00 - 10:00)
+            <div class="text-xs font-semibold text-indigo-800 flex items-center gap-1.5 py-0.5">
+              <span>🏛️</span> Period 1 (09:00 - 10:00) Theory Only
             </div>
-            <p class="text-[11px] text-slate-500">Laboratories are strictly barred from the first period of the day to maximize morning cognitive engagement.</p>
+            <div>
+              <div class="flex justify-between text-[11px] text-slate-500 mb-1">
+                <span>Confidence Level</span>
+                <span class="font-bold text-indigo-700">{{ data.config.advanced_constraints.theory_1st_weight ?? 95 }}%</span>
+              </div>
+              <input type="range" min="0" max="100" step="5" v-model.number="data.config.advanced_constraints.theory_1st_weight" class="w-full accent-indigo-600 cursor-pointer">
+            </div>
+            <p class="text-[11px] text-slate-500">Bars laboratory practicals from morning opener to enhance student focus.</p>
           </div>
 
-          <!-- Prime Hours Priority (No Blank 1st, 4th, 5th) -->
-          <div class="space-y-1.5 bg-slate-50 p-4 rounded-lg border border-slate-200">
+          <!-- 4. Fill Prime Hours (1st, 4th, 5th) -->
+          <div class="space-y-2.5 bg-slate-50 p-4 rounded-lg border border-slate-200">
             <div class="flex items-center justify-between">
               <label class="block font-bold text-slate-800">Fill 1st, 4th & 5th Hours</label>
-              <span class="text-[10px] bg-indigo-100 text-indigo-800 px-1.5 py-0.5 rounded font-bold">Enforced</span>
+              <span :class="getFETBadgeClass(data.config.advanced_constraints.prime_hours_weight ?? 90)" class="text-[10px] px-2 py-0.5 rounded-full font-bold border">
+                {{ getFETWeightLabel(data.config.advanced_constraints.prime_hours_weight ?? 90) }}
+              </span>
             </div>
-            <div class="text-xs font-semibold text-indigo-700 flex items-center gap-1.5 py-1">
-              <span class="text-base">⏰</span> 09:00, 12:00 & 14:00
+            <div class="text-xs font-semibold text-indigo-800 flex items-center gap-1.5 py-0.5">
+              <span>⏰</span> 09:00, 12:00, 14:00 Occupied
             </div>
-            <p class="text-[11px] text-slate-500">Ensures morning start (1st hr), pre-lunch (4th hr), and post-lunch (5th hr) periods are filled on active class days.</p>
+            <div>
+              <div class="flex justify-between text-[11px] text-slate-500 mb-1">
+                <span>Confidence Level</span>
+                <span class="font-bold text-indigo-700">{{ data.config.advanced_constraints.prime_hours_weight ?? 90 }}%</span>
+              </div>
+              <input type="range" min="0" max="100" step="5" v-model.number="data.config.advanced_constraints.prime_hours_weight" class="w-full accent-indigo-600 cursor-pointer">
+            </div>
+            <p class="text-[11px] text-slate-500">Eliminates awkward gaps leading up to and immediately after the lunch break.</p>
           </div>
 
-          <!-- Faculty Guaranteed Free Day -->
-          <div class="space-y-1.5 bg-slate-50 p-4 rounded-lg border border-slate-200">
+          <!-- 5. Faculty Guaranteed Free Day -->
+          <div class="space-y-2.5 bg-slate-50 p-4 rounded-lg border border-slate-200">
             <div class="flex items-center justify-between">
               <label class="block font-bold text-slate-800">Faculty Free Day</label>
-              <span class="text-[10px] bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded font-bold">&ge; 1 Day / Wk</span>
+              <span :class="getFETBadgeClass(data.config.advanced_constraints.free_day_weight ?? 95)" class="text-[10px] px-2 py-0.5 rounded-full font-bold border">
+                {{ getFETWeightLabel(data.config.advanced_constraints.free_day_weight ?? 95) }}
+              </span>
             </div>
-            <div class="text-xs font-semibold text-emerald-700 flex items-center gap-1.5 py-1">
-              <span class="text-base">🌿</span> 100% Free Day Guaranteed
+            <div class="text-xs font-semibold text-emerald-800 flex items-center gap-1.5 py-0.5">
+              <span>🌿</span> &ge; 1 Free Weekday Guaranteed
             </div>
-            <p class="text-[11px] text-slate-500">Guarantees every faculty member at least one complete teaching-free weekday for research, grading, and prep.</p>
+            <div>
+              <div class="flex justify-between text-[11px] text-slate-500 mb-1">
+                <span>Confidence Level</span>
+                <span class="font-bold text-indigo-700">{{ data.config.advanced_constraints.free_day_weight ?? 95 }}%</span>
+              </div>
+              <input type="range" min="0" max="100" step="5" v-model.number="data.config.advanced_constraints.free_day_weight" class="w-full accent-indigo-600 cursor-pointer">
+            </div>
+            <p class="text-[11px] text-slate-500">Guarantees each teacher at least 1 full day with zero teaching responsibilities.</p>
           </div>
 
-          <!-- Even Weekly Distribution -->
-          <div class="space-y-1.5 bg-slate-50 p-4 rounded-lg border border-slate-200">
+          <!-- 6. Even Weekly Distribution -->
+          <div class="space-y-2.5 bg-slate-50 p-4 rounded-lg border border-slate-200">
             <div class="flex items-center justify-between">
               <label class="block font-bold text-slate-800">Balanced Weekly Spread</label>
-              <span class="text-[10px] bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded font-bold">Harmonized</span>
+              <span :class="getFETBadgeClass(data.config.advanced_constraints.even_dist_weight ?? 85)" class="text-[10px] px-2 py-0.5 rounded-full font-bold border">
+                {{ getFETWeightLabel(data.config.advanced_constraints.even_dist_weight ?? 85) }}
+              </span>
             </div>
-            <div class="text-xs font-semibold text-slate-700 flex items-center gap-1.5 py-1">
-              <span class="text-base">📅</span> Mon &ndash; Sat Even Load
+            <div class="text-xs font-semibold text-slate-800 flex items-center gap-1.5 py-0.5">
+              <span>📅</span> Even Mon &ndash; Sat Course Spread
             </div>
-            <p class="text-[11px] text-slate-500">Spreads theory lectures across distinct non-consecutive days, avoiding course clustering or uneven daily workloads.</p>
+            <div>
+              <div class="flex justify-between text-[11px] text-slate-500 mb-1">
+                <span>Confidence Level</span>
+                <span class="font-bold text-indigo-700">{{ data.config.advanced_constraints.even_dist_weight ?? 85 }}%</span>
+              </div>
+              <input type="range" min="0" max="100" step="5" v-model.number="data.config.advanced_constraints.even_dist_weight" class="w-full accent-indigo-600 cursor-pointer">
+            </div>
+            <p class="text-[11px] text-slate-500">Prevents clustering lectures on consecutive days; distributes load evenly.</p>
           </div>
         </div>
 
         <div class="pt-2 flex items-center justify-between border-t border-slate-100">
-          <p class="text-[11px] text-slate-500">All constraints are validated natively during the CSP backtracking schedule generation.</p>
+          <p class="text-[11px] text-slate-500">FET weights dynamically govern solver heuristics and pruning thresholds.</p>
           <button @click="saveStateToServer" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-bold shadow-xs transition">
             Save Constraint Settings
           </button>
@@ -903,12 +977,17 @@
           </div>
         </div>
 
-        <!-- Legend -->
-        <div class="flex items-center gap-3 text-xs text-slate-500 font-medium">
-          <span class="inline-flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded bg-indigo-500 inline-block"></span> Theory (Color-coded)</span>
-          <span class="inline-flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded bg-indigo-600 inline-block ring-1 ring-indigo-300"></span> Lab (Matching Hue + LAB)</span>
-          <span class="inline-flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded bg-amber-400 inline-block"></span> Lunch / Break</span>
-          <span class="inline-flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded bg-rose-500 inline-block"></span> Blocked</span>
+        <!-- Legend & Drag-and-Drop Hint -->
+        <div class="flex flex-wrap items-center justify-between gap-3 text-xs text-slate-500 font-medium">
+          <div class="flex items-center gap-3">
+            <span class="inline-flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded bg-indigo-500 inline-block"></span> Theory (Color-coded)</span>
+            <span class="inline-flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded bg-indigo-600 inline-block ring-1 ring-indigo-300"></span> Lab (Matching Hue + LAB)</span>
+            <span class="inline-flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded bg-amber-400 inline-block"></span> Lunch / Break</span>
+            <span class="inline-flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded bg-rose-500 inline-block"></span> Blocked</span>
+          </div>
+          <div class="text-[11px] text-indigo-700 bg-indigo-50 border border-indigo-200 px-2.5 py-1 rounded-md flex items-center gap-1.5 shadow-2xs">
+            <span>✨</span> <span><strong>Drag &amp; Drop Enabled:</strong> Drag any class to an open slot to move, or onto another class to swap with instant FET validation.</span>
+          </div>
         </div>
       </div>
 
@@ -952,9 +1031,13 @@
                   </td>
 
                   <td v-for="(p, pIdx) in data.config.periods" :key="p.id"
+                      @dragover.prevent="onSlotDragOver($event, target, dayIdx, pIdx)"
+                      @dragleave="onSlotDragLeave($event)"
+                      @drop.prevent="onSlotDrop($event, target, dayIdx, pIdx)"
                       :class="[
                         p.is_break ? 'bg-amber-50/70 text-amber-900 font-medium' : (isSlotClosed(dayIdx, pIdx) ? 'bg-slate-100/60 text-slate-400' : ''),
-                        'p-1 border-r border-slate-200 align-top h-20'
+                        isDropTarget(target, dayIdx, pIdx) ? 'ring-2 ring-indigo-500 bg-indigo-50/50' : '',
+                        'p-1 border-r border-slate-200 align-top h-20 transition-all'
                       ]">
                     
                     <!-- Break period cell -->
@@ -982,8 +1065,15 @@
                     <!-- Active teaching slot -->
                     <div v-else class="space-y-1 h-full flex flex-col justify-start">
                       <div v-for="entry in getCellEntries(target, dayIdx, pIdx)" :key="entry.id"
-                           :class="getCourseColorClasses(entry.course_code, entry.is_lab)"
-                           class="p-1 rounded border shadow-2xs text-left text-[10px] leading-tight overflow-hidden transition">
+                           :draggable="true"
+                           @dragstart="onSessionDragStart($event, entry, target)"
+                           @dragend="onSessionDragEnd($event)"
+                           :class="[
+                             getCourseColorClasses(entry.course_code, entry.is_lab),
+                             draggedSession?.entry?.id === entry.id ? 'opacity-40 scale-95 ring-2 ring-indigo-400' : 'hover:shadow-sm'
+                           ]"
+                           class="p-1 rounded border shadow-2xs text-left text-[10px] leading-tight overflow-hidden transition cursor-grab active:cursor-grabbing select-none group relative"
+                           title="Drag to move or swap this session">
                         <div class="flex items-center justify-between gap-0.5">
                           <span class="font-mono font-bold">{{ entry.course_code }}</span>
                           <span v-if="entry.is_lab" class="px-1 py-0.2 rounded text-[8px] font-bold uppercase" :class="getCourseBadgeClass(entry.course_code)">
@@ -995,7 +1085,7 @@
                         </div>
                         <div class="font-medium truncate text-[10px] mt-0.5 text-slate-900" :title="entry.course_name">{{ entry.course_name }}</div>
                         <div class="text-[9px] text-slate-600 mt-0.5 flex items-center justify-between gap-1 border-t border-black/5 pt-0.5">
-                          <span v-if="target.type !== 'teacher'" class="font-medium text-slate-800 truncate" :title="entry.teacher_name">{{ entry.teacher_code || entry.teacher_name }}</span>
+                          <span v-if="target.type !== 'teacher'" class="font-medium text-slate-800 truncate" :title="entry.teacher_name">{{ entry.teacher_code || getFacultyFirstName(entry.teacher_name) || entry.teacher_name }}</span>
                           <span v-else class="font-bold text-slate-800">{{ entry.batch_name }}</span>
                           <span class="text-slate-500 font-mono text-[8px] bg-white/70 px-1 rounded truncate">{{ entry.room_name || 'Room 101' }}</span>
                         </div>
@@ -1546,6 +1636,128 @@
     </div>
   </div>
 
+  <!-- ========================================================================= -->
+  <!-- MODAL: DRAG & DROP / MOVE / SWAP VALIDATION POPUP -->
+  <!-- ========================================================================= -->
+  <div v-if="moveModal.open"
+       role="dialog" aria-modal="true" aria-labelledby="move-modal-title"
+       class="fixed inset-0 bg-slate-900/60 backdrop-blur-2xs flex items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-xl shadow-2xl border border-slate-200 max-w-lg w-full p-5 space-y-4 animate-in fade-in zoom-in-95 duration-150">
+      
+      <!-- Header -->
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <div class="flex items-center gap-2.5">
+          <div :class="moveModal.canMove ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'" class="p-2 rounded-xl">
+            <svg v-if="moveModal.canMove" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+            </svg>
+            <svg v-else class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </div>
+          <div>
+            <h3 id="move-modal-title" class="font-bold text-sm text-slate-900">
+              <span v-if="moveModal.canMove">
+                {{ moveModal.isSwap ? 'Confirm Session Swap' : 'Confirm Session Reallocation' }}
+              </span>
+              <span v-else>
+                Schedule Move Blocked
+              </span>
+            </h3>
+            <p class="text-xs text-slate-500">
+              <span v-if="moveModal.canMove" class="text-emerald-700 font-semibold">Constraint Validation Passed (0 Conflicts)</span>
+              <span v-else class="text-rose-600 font-semibold">FET Constraint Conflict Detected</span>
+            </p>
+          </div>
+        </div>
+        <button @click="moveModal.open = false" aria-label="Close dialog" class="text-slate-400 hover:text-slate-600 font-bold p-1">✕</button>
+      </div>
+
+      <!-- Comparison Card: Source Session -->
+      <div class="space-y-2">
+        <div class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Session Being Moved</div>
+        <div class="p-3 bg-slate-50 rounded-lg border border-slate-200 text-xs space-y-1">
+          <div class="flex items-center justify-between">
+            <span class="font-mono font-bold text-indigo-700 text-sm">{{ moveModal.sourceEntry?.course_code }}</span>
+            <span class="font-semibold text-slate-700 bg-white px-2 py-0.5 rounded border border-slate-200 text-[11px]">{{ moveModal.sourceEntry?.batch_name }}</span>
+          </div>
+          <div class="font-medium text-slate-900">{{ moveModal.sourceEntry?.course_name }}</div>
+          <div class="text-slate-600 flex items-center justify-between text-[11px] pt-1 border-t border-slate-200/60">
+            <span>👨‍🏫 {{ moveModal.sourceEntry?.teacher_name }}</span>
+            <span class="font-mono text-slate-500">📍 {{ moveModal.sourceEntry?.room_name || 'Room 101' }}</span>
+          </div>
+          <div class="text-[11px] font-semibold text-slate-500">
+            Current: {{ getDayName(moveModal.sourceEntry?.day) }}, {{ data.config.periods[moveModal.sourceEntry?.period]?.name }} ({{ moveModal.sourceEntry?.period_time || data.config.periods[moveModal.sourceEntry?.period]?.time }})
+          </div>
+        </div>
+      </div>
+
+      <!-- Arrow Divider or Swap Icon -->
+      <div class="flex items-center justify-center text-slate-400 gap-2 text-xs font-semibold">
+        <span v-if="moveModal.isSwap" class="bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-full border border-indigo-200 flex items-center gap-1 font-bold shadow-2xs">
+          ⇄ Swapping with Target Session
+        </span>
+        <span v-else class="bg-slate-100 text-slate-700 px-2.5 py-1 rounded-full border border-slate-200 flex items-center gap-1 font-bold shadow-2xs">
+          ↓ Moving to Slot
+        </span>
+      </div>
+
+      <!-- Destination Slot / Target Session -->
+      <div class="space-y-2">
+        <div class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+          {{ moveModal.isSwap ? 'Existing Session at Target Slot' : 'Target Destination Slot' }}
+        </div>
+        <div v-if="moveModal.isSwap" class="p-3 bg-indigo-50/60 rounded-lg border border-indigo-200 text-xs space-y-1">
+          <div class="flex items-center justify-between">
+            <span class="font-mono font-bold text-indigo-800 text-sm">{{ moveModal.targetEntry?.course_code }}</span>
+            <span class="font-semibold text-slate-700 bg-white px-2 py-0.5 rounded border border-slate-200 text-[11px]">{{ moveModal.targetEntry?.batch_name }}</span>
+          </div>
+          <div class="font-medium text-slate-900">{{ moveModal.targetEntry?.course_name }}</div>
+          <div class="text-slate-600 flex items-center justify-between text-[11px] pt-1 border-t border-indigo-100">
+            <span>👨‍🏫 {{ moveModal.targetEntry?.teacher_name }}</span>
+            <span class="font-mono text-slate-500">📍 {{ moveModal.targetEntry?.room_name || 'Room 101' }}</span>
+          </div>
+          <div class="text-[11px] font-semibold text-indigo-900">
+            Will move to: {{ getDayName(moveModal.sourceEntry?.day) }}, {{ data.config.periods[moveModal.sourceEntry?.period]?.name }} ({{ data.config.periods[moveModal.sourceEntry?.period]?.time }})
+          </div>
+        </div>
+        <div v-else class="p-3 bg-slate-50 rounded-lg border border-slate-200 text-xs flex items-center justify-between">
+          <div>
+            <div class="font-bold text-slate-800">{{ getDayName(moveModal.targetDay) }}</div>
+            <div class="text-slate-500 text-[11px]">{{ data.config.periods[moveModal.targetPeriod]?.name }} ({{ data.config.periods[moveModal.targetPeriod]?.time }})</div>
+          </div>
+          <span class="px-2 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded text-[11px] font-bold">Open Slot</span>
+        </div>
+      </div>
+
+      <!-- Conflicts Alert List (if invalid) -->
+      <div v-if="!moveModal.canMove && moveModal.conflicts.length > 0" class="space-y-2">
+        <div class="text-xs font-bold uppercase tracking-wider text-rose-700 flex items-center gap-1">
+          <span>🚫</span> Specific Constraints Violated ({{ moveModal.conflicts.length }})
+        </div>
+        <div class="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+          <div v-for="(conflict, cIdx) in moveModal.conflicts" :key="cIdx"
+               class="p-2.5 bg-rose-50 border border-rose-200 rounded-lg text-xs text-rose-900 flex items-start gap-2">
+            <span class="text-rose-600 font-bold shrink-0">✕</span>
+            <span class="font-medium leading-relaxed">{{ conflict }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal Footer Actions -->
+      <div class="pt-3 border-t border-slate-100 flex items-center justify-end gap-2.5">
+        <button @click="moveModal.open = false" class="px-4 py-2 border border-slate-300 hover:bg-slate-100 text-slate-700 rounded-lg text-xs font-semibold transition">
+          {{ moveModal.canMove ? 'Cancel' : 'Close / Dismiss' }}
+        </button>
+        <button v-if="moveModal.canMove" @click="executeConfirmedMoveOrSwap"
+                class="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-bold shadow-xs transition flex items-center gap-1.5">
+          <span>✓</span> Confirm &amp; Apply Changes
+        </button>
+      </div>
+
+    </div>
+  </div>
+
 </div>
 
 <!-- VUE 3 APPLICATION SCRIPT -->
@@ -1805,6 +2017,20 @@ createApp({
       if (c.teacher_ids && c.teacher_ids.length > 0) return c.teacher_ids.length;
       if (c.teacher_id && c.teacher_id !== '') return 1;
       return 0;
+    };
+
+    const getFacultyFirstName = name => {
+      if (!name) return '';
+      const clean = name.replace(/^(Dr\.|Prof\.|Mr\.|Mrs\.|Ms\.)\s+/i, '').trim();
+      return clean.split(/\s+/)[0] || clean;
+    };
+
+    const getAssignedFacultyFirstNames = c => {
+      const ids = c.teacher_ids && c.teacher_ids.length > 0 ? c.teacher_ids : (c.teacher_id ? [c.teacher_id] : []);
+      return ids.map(id => {
+        const f = data.value.faculty.find(x => x.id === id);
+        return f ? getFacultyFirstName(f.name) : id;
+      });
     };
 
     const getAssignedFacultyInitials = c => {
@@ -2453,6 +2679,308 @@ createApp({
       }
     };
 
+    // FET Confidence Badge & Preset Helpers
+    const getFETBadgeClass = (w) => {
+      const val = Number(w ?? 95);
+      if (val >= 100) return 'bg-rose-100 text-rose-800 border-rose-300';
+      if (val >= 85) return 'bg-emerald-100 text-emerald-800 border-emerald-300';
+      if (val >= 60) return 'bg-amber-100 text-amber-800 border-amber-300';
+      return 'bg-slate-100 text-slate-700 border-slate-300';
+    };
+
+    const getFETWeightLabel = (w) => {
+      const val = Number(w ?? 95);
+      if (val >= 100) return '100% Strict Hard';
+      if (val >= 85) return `${val}% High Priority`;
+      if (val >= 60) return `${val}% Medium Weight`;
+      if (val > 0) return `${val}% Low Weight`;
+      return '0% Disabled';
+    };
+
+    const applyFETPreset = (preset) => {
+      if (!data.value.config.advanced_constraints) {
+        data.value.config.advanced_constraints = {};
+      }
+      const c = data.value.config.advanced_constraints;
+      if (preset === 'strict') {
+        c.max_daily_weight = 100;
+        c.consecutive_weight = 100;
+        c.theory_1st_weight = 100;
+        c.prime_hours_weight = 100;
+        c.free_day_weight = 100;
+        c.even_dist_weight = 100;
+        showToast('Applied 100% Strict Hard FET preset.', 'info');
+      } else if (preset === 'relaxed') {
+        c.max_daily_weight = 70;
+        c.consecutive_weight = 75;
+        c.theory_1st_weight = 70;
+        c.prime_hours_weight = 70;
+        c.free_day_weight = 70;
+        c.even_dist_weight = 65;
+        showToast('Applied Relaxed (70%) FET preset.', 'info');
+      } else {
+        // default / recommended
+        c.max_daily_weight = 95;
+        c.consecutive_weight = 95;
+        c.theory_1st_weight = 95;
+        c.prime_hours_weight = 90;
+        c.free_day_weight = 95;
+        c.even_dist_weight = 85;
+        showToast('Applied Recommended FET preset (85–95%).', 'info');
+      }
+      saveStateToServer();
+    };
+
+    // =========================================================================
+    // MASTER TIMETABLE DRAG & DROP / MOVE / SWAP VALIDATION SYSTEM
+    // =========================================================================
+    const draggedSession = ref(null);
+    const dragOverTarget = ref(null);
+
+    const isDropTarget = (target, dayIdx, pIdx) => {
+      if (!dragOverTarget.value) return false;
+      return (
+        dragOverTarget.value.targetId === target.id &&
+        dragOverTarget.value.dayIdx === dayIdx &&
+        dragOverTarget.value.periodIdx === pIdx
+      );
+    };
+
+    const onSessionDragStart = (event, entry, target) => {
+      draggedSession.value = { entry, target };
+      if (event.dataTransfer) {
+        event.dataTransfer.effectAllowed = 'move';
+        event.dataTransfer.setData('text/plain', JSON.stringify({ entryId: entry.id, targetId: target.id }));
+      }
+    };
+
+    const onSessionDragEnd = () => {
+      draggedSession.value = null;
+      dragOverTarget.value = null;
+    };
+
+    const onSlotDragOver = (event, target, dayIdx, pIdx) => {
+      if (!draggedSession.value) return;
+      dragOverTarget.value = { targetId: target.id, dayIdx, periodIdx: pIdx };
+    };
+
+    const onSlotDragLeave = () => {
+      // Intentionally keep highlight while moving between sub-elements
+    };
+
+    const moveModal = ref({
+      open: false,
+      canMove: false,
+      isSwap: false,
+      sourceEntry: null,
+      targetEntry: null,
+      targetDay: 0,
+      targetPeriod: 0,
+      targetContext: null,
+      conflicts: []
+    });
+
+    const onSlotDrop = (event, target, dayIdx, pIdx) => {
+      dragOverTarget.value = null;
+      if (!draggedSession.value) return;
+      const source = draggedSession.value.entry;
+      draggedSession.value = null;
+
+      // If dropped on the exact same slot, do nothing
+      if (source.day === dayIdx && source.period === pIdx) {
+        return;
+      }
+
+      validateAndOpenMoveModal(source, target, dayIdx, pIdx);
+    };
+
+    const validateAndOpenMoveModal = (sourceEntry, targetContext, targetDay, targetPeriod) => {
+      const conflicts = [];
+      const periodObj = data.value.config.periods[targetPeriod];
+
+      // 1. Check if target period is a Break (e.g. Lunch)
+      if (periodObj && periodObj.is_break) {
+        conflicts.push(`Lunch Break Restriction: Classes cannot be scheduled during ${periodObj.break_name || 'Lunch Break'} (${periodObj.time}).`);
+      }
+
+      // 2. Check if target slot is Closed
+      if (isSlotClosed(targetDay, targetPeriod)) {
+        conflicts.push(`Slot Closed: Working hours policy or Saturday early-close limits classes in ${getDayName(targetDay)} ${periodObj?.name || 'Period ' + (targetPeriod + 1)}.`);
+      }
+
+      // 3. Department Meetings
+      if (isDepartmentMeeting(targetDay, targetPeriod)) {
+        conflicts.push(`Department Meeting Conflict: A mandatory Faculty Meeting is scheduled during this period.`);
+      }
+
+      // 4. Target context unavailability (Batch, Teacher, Room)
+      if (targetContext && isTargetSlotUnavailable(targetContext, targetDay, targetPeriod)) {
+        conflicts.push(`Unavailable Slot: This time slot is marked as blocked for ${targetContext.title}.`);
+      }
+
+      // 5. Course blocked hours (if course has explicit unavailable slots)
+      const sourceCourse = (data.value.unmapped_subjects || []).find(s => s.code === sourceEntry.course_code || s.name === sourceEntry.course_name);
+      if (sourceCourse && sourceCourse.unavailable_slots?.some(s => s.day === targetDay && s.period === targetPeriod)) {
+        conflicts.push(`Course Specific Restriction: ${sourceCourse.code} (${sourceCourse.name}) has this slot designated as unavailable.`);
+      }
+
+      // 6. Theory on 1st hour constraint
+      if (sourceEntry.is_lab && targetPeriod === 0) {
+        conflicts.push(`Theory on 1st Hour Rule: Period 1 (09:00 - 10:00) is reserved for Theory lectures only. Laboratory sessions are prohibited in the first hour.`);
+      }
+
+      // Check existing entries in the destination cell
+      const cellEntries = getCellEntries(targetContext, targetDay, targetPeriod);
+      const isSwap = cellEntries.length > 0;
+      const targetEntry = isSwap ? cellEntries[0] : null;
+
+      // 7. Batch Collision Check
+      const batchBusy = (data.value.timetable || []).find(e =>
+        e.id !== sourceEntry.id &&
+        (!targetEntry || e.id !== targetEntry.id) &&
+        e.batch_id === sourceEntry.batch_id &&
+        e.day === targetDay &&
+        e.period === targetPeriod
+      );
+      if (batchBusy) {
+        conflicts.push(`Batch Double-Booking: Batch ${sourceEntry.batch_name} is already attending ${batchBusy.course_code} (${batchBusy.course_name}) on ${getDayName(targetDay)} ${periodObj?.name || 'Period ' + (targetPeriod + 1)}.`);
+      }
+
+      // 8. Faculty Collision & Unavailability Check
+      const sourceTeacherIds = sourceEntry.teacher_ids && sourceEntry.teacher_ids.length > 0
+        ? sourceEntry.teacher_ids
+        : (sourceEntry.teacher_id ? [sourceEntry.teacher_id] : []);
+      
+      sourceTeacherIds.forEach(tId => {
+        const fac = (data.value.faculty || []).find(f => f.id === tId);
+        const facName = fac ? fac.name : sourceEntry.teacher_name;
+        if (fac && fac.unavailable_slots?.some(s => s.day === targetDay && s.period === targetPeriod)) {
+          conflicts.push(`Faculty Unavailable: ${facName} has marked ${getDayName(targetDay)} ${periodObj?.name || 'Period ' + (targetPeriod + 1)} as unavailable.`);
+        }
+        const teacherBusy = (data.value.timetable || []).find(e =>
+          e.id !== sourceEntry.id &&
+          (!targetEntry || e.id !== targetEntry.id) &&
+          e.day === targetDay &&
+          e.period === targetPeriod &&
+          (e.teacher_id === tId || (e.teacher_ids && e.teacher_ids.includes(tId)))
+        );
+        if (teacherBusy) {
+          conflicts.push(`Faculty Double-Booking: ${facName} is already assigned to teach ${teacherBusy.course_code} (${teacherBusy.batch_name}) on ${getDayName(targetDay)} ${periodObj?.name || 'Period ' + (targetPeriod + 1)}.`);
+        }
+      });
+
+      // 9. Room Collision Check
+      if (sourceEntry.room_id) {
+        const roomBusy = (data.value.timetable || []).find(e =>
+          e.id !== sourceEntry.id &&
+          (!targetEntry || e.id !== targetEntry.id) &&
+          e.room_id === sourceEntry.room_id &&
+          e.day === targetDay &&
+          e.period === targetPeriod
+        );
+        if (roomBusy) {
+          conflicts.push(`Room Double-Booking: Venue ${sourceEntry.room_name} is already occupied by ${roomBusy.course_code} (${roomBusy.batch_name}) on ${getDayName(targetDay)} ${periodObj?.name || 'Period ' + (targetPeriod + 1)}.`);
+        }
+      }
+
+      // If this is a SWAP, also validate moving targetEntry into sourceEntry's original slot!
+      if (isSwap && targetEntry) {
+        const origDay = sourceEntry.day;
+        const origPeriod = sourceEntry.period;
+        const origPeriodObj = data.value.config.periods[origPeriod];
+
+        if (origPeriodObj && origPeriodObj.is_break) {
+          conflicts.push(`Swap Conflict: Source slot is in a break period.`);
+        }
+        if (isSlotClosed(origDay, origPeriod)) {
+          conflicts.push(`Swap Conflict: Source slot is closed.`);
+        }
+        if (isDepartmentMeeting(origDay, origPeriod)) {
+          conflicts.push(`Swap Conflict: Department meeting at source slot.`);
+        }
+        if (targetEntry.is_lab && origPeriod === 0) {
+          conflicts.push(`Swap Conflict: ${targetEntry.course_code} is a Laboratory class and cannot be moved into Period 1 (09:00 - 10:00).`);
+        }
+
+        const swapBatchBusy = (data.value.timetable || []).find(e =>
+          e.id !== targetEntry.id &&
+          e.id !== sourceEntry.id &&
+          e.batch_id === targetEntry.batch_id &&
+          e.day === origDay &&
+          e.period === origPeriod
+        );
+        if (swapBatchBusy) {
+          conflicts.push(`Swap Batch Conflict: Batch ${targetEntry.batch_name} is already attending ${swapBatchBusy.course_code} on ${getDayName(origDay)} ${origPeriodObj?.name || 'Period ' + (origPeriod + 1)}.`);
+        }
+
+        const targetTeacherIds = targetEntry.teacher_ids && targetEntry.teacher_ids.length > 0
+          ? targetEntry.teacher_ids
+          : (targetEntry.teacher_id ? [targetEntry.teacher_id] : []);
+
+        targetTeacherIds.forEach(tId => {
+          const fac = (data.value.faculty || []).find(f => f.id === tId);
+          const facName = fac ? fac.name : targetEntry.teacher_name;
+          if (fac && fac.unavailable_slots?.some(s => s.day === origDay && s.period === origPeriod)) {
+            conflicts.push(`Swap Faculty Unavailable: ${facName} is unavailable on ${getDayName(origDay)} ${origPeriodObj?.name || 'Period ' + (origPeriod + 1)}.`);
+          }
+          const tBusy = (data.value.timetable || []).find(e =>
+            e.id !== targetEntry.id &&
+            e.id !== sourceEntry.id &&
+            e.day === origDay &&
+            e.period === origPeriod &&
+            (e.teacher_id === tId || (e.teacher_ids && e.teacher_ids.includes(tId)))
+          );
+          if (tBusy) {
+            conflicts.push(`Swap Faculty Collision: ${facName} is already teaching ${tBusy.course_code} (${tBusy.batch_name}) on ${getDayName(origDay)} ${origPeriodObj?.name || 'Period ' + (origPeriod + 1)}.`);
+          }
+        });
+      }
+
+      moveModal.value = {
+        open: true,
+        canMove: conflicts.length === 0,
+        isSwap: isSwap,
+        sourceEntry: sourceEntry,
+        targetEntry: targetEntry,
+        targetDay: targetDay,
+        targetPeriod: targetPeriod,
+        targetContext: targetContext,
+        conflicts: conflicts
+      };
+    };
+
+    const executeConfirmedMoveOrSwap = async () => {
+      const { sourceEntry, targetEntry, targetDay, targetPeriod, isSwap } = moveModal.value;
+      if (!sourceEntry) return;
+
+      try {
+        const payload = {
+          entry_id: sourceEntry.id,
+          target_day: targetDay,
+          target_period: targetPeriod,
+          target_room_id: sourceEntry.room_id,
+          swap_entry_id: isSwap && targetEntry ? targetEntry.id : null
+        };
+
+        const res = await fetch('/api/timetable/update-slot', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        const json = await res.json();
+        if (json.success) {
+          data.value.timetable = json.timetable;
+          moveModal.value.open = false;
+          showToast(json.message || (isSwap ? 'Sessions swapped successfully!' : 'Session moved successfully!'), 'success');
+        } else {
+          showToast(json.message || 'Failed to update timetable.', 'error');
+        }
+      } catch (err) {
+        showToast('Error updating slot: ' + err.message, 'error');
+      }
+    };
+
     const triggerPrint = () => { window.print(); };
 
     onMounted(() => {
@@ -2506,6 +3034,8 @@ createApp({
       clearAllFaculty,
       saveMultiFacultySelection,
       getAssignedFacultyCount,
+      getFacultyFirstName,
+      getAssignedFacultyFirstNames,
       getAssignedFacultyInitials,
       getFacultyAssignedHours,
       getFacultyWorkload,
@@ -2565,7 +3095,21 @@ createApp({
       closeAllModals,
       generateTimetable,
       saveStateToServer,
-      triggerPrint
+      triggerPrint,
+      getFETBadgeClass,
+      getFETWeightLabel,
+      applyFETPreset,
+      draggedSession,
+      dragOverTarget,
+      isDropTarget,
+      onSessionDragStart,
+      onSessionDragEnd,
+      onSlotDragOver,
+      onSlotDragLeave,
+      onSlotDrop,
+      moveModal,
+      validateAndOpenMoveModal,
+      executeConfirmedMoveOrSwap
     };
   }
 }).mount('#app');
