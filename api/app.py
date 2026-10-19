@@ -327,9 +327,11 @@ def update_slot():
         # Swap positions between entry and swap_entry
         orig_day = entry["day"]
         orig_period = entry["period"]
+        swap_orig_day = swap_entry["day"]
+        swap_orig_period = swap_entry["period"]
 
-        entry["day"] = swap_entry["day"]
-        entry["period"] = swap_entry["period"]
+        entry["day"] = swap_orig_day
+        entry["period"] = swap_orig_period
         entry["day_name"] = swap_entry.get("day_name")
         entry["period_name"] = swap_entry.get("period_name")
         entry["period_time"] = swap_entry.get("period_time")
@@ -340,6 +342,22 @@ def update_slot():
         if orig_period < len(periods_list):
             swap_entry["period_name"] = periods_list[orig_period].get("name")
             swap_entry["period_time"] = periods_list[orig_period].get("time")
+
+        # Sync fixed schedules
+        for sched_name in ["fixed_ce234p_schedule", "fixed_physics_schedule"]:
+            for f_entry in data.get(sched_name, []):
+                if f_entry.get("id") == entry.get("id") or (f_entry.get("course_code") == entry.get("course_code") and f_entry.get("batch_id") == entry.get("batch_id") and f_entry.get("day") == orig_day and f_entry.get("period") == orig_period):
+                    f_entry["day"] = entry["day"]
+                    f_entry["period"] = entry["period"]
+                    f_entry["day_name"] = entry.get("day_name")
+                    f_entry["period_name"] = entry.get("period_name")
+                    f_entry["period_time"] = entry.get("period_time")
+                elif f_entry.get("id") == swap_entry.get("id") or (f_entry.get("course_code") == swap_entry.get("course_code") and f_entry.get("batch_id") == swap_entry.get("batch_id") and f_entry.get("day") == swap_orig_day and f_entry.get("period") == swap_orig_period):
+                    f_entry["day"] = swap_entry["day"]
+                    f_entry["period"] = swap_entry["period"]
+                    f_entry["day_name"] = swap_entry.get("day_name")
+                    f_entry["period_name"] = swap_entry.get("period_name")
+                    f_entry["period_time"] = swap_entry.get("period_time")
 
         import time
         data["_last_modified"] = int(time.time() * 1000)
@@ -353,6 +371,8 @@ def update_slot():
         })
 
     # Standard Move
+    orig_day = entry["day"]
+    orig_period = entry["period"]
     entry["day"] = target_day
     entry["day_name"] = days_list[target_day] if target_day < len(days_list) else f"Day {target_day+1}"
     entry["period"] = target_period
@@ -367,6 +387,19 @@ def update_slot():
         if room_obj:
             entry["room_id"] = room_obj["id"]
             entry["room_name"] = room_obj["name"]
+
+    # Sync fixed schedules
+    for sched_name in ["fixed_ce234p_schedule", "fixed_physics_schedule"]:
+        for f_entry in data.get(sched_name, []):
+            if f_entry.get("id") == entry.get("id") or (f_entry.get("course_code") == entry.get("course_code") and f_entry.get("batch_id") == entry.get("batch_id") and f_entry.get("day") == orig_day and f_entry.get("period") == orig_period):
+                f_entry["day"] = entry["day"]
+                f_entry["period"] = entry["period"]
+                f_entry["day_name"] = entry.get("day_name")
+                f_entry["period_name"] = entry.get("period_name")
+                f_entry["period_time"] = entry.get("period_time")
+                if target_room_id and room_obj:
+                    f_entry["room_id"] = room_obj["id"]
+                    f_entry["room_name"] = room_obj["name"]
 
     import time
     data["_last_modified"] = int(time.time() * 1000)

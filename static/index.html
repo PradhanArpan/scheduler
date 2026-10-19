@@ -2517,6 +2517,12 @@ createApp({
             entry.teacher_ids = teacherIds;
             entry.teacher_name = tNameStr;
             entry.teacher_code = tCodeStr;
+            if (course.name) entry.course_name = course.name;
+            if (course.code) entry.course_code = course.code;
+            if (course.preferred_room_id) {
+              entry.room_id = course.preferred_room_id;
+              entry.room_name = course.preferred_room_name || ((data.value.rooms || []).find(r => r.id === course.preferred_room_id)?.name) || '';
+            }
           }
         });
       }
@@ -2531,6 +2537,12 @@ createApp({
             entry.teacher_ids = teacherIds;
             entry.teacher_name = tNameStr;
             entry.teacher_code = tCodeStr;
+            if (course.name) entry.course_name = course.name;
+            if (course.code) entry.course_code = course.code;
+            if (course.preferred_room_id) {
+              entry.room_id = course.preferred_room_id;
+              entry.room_name = course.preferred_room_name || ((data.value.rooms || []).find(r => r.id === course.preferred_room_id)?.name) || '';
+            }
           }
         });
       }
@@ -2545,6 +2557,12 @@ createApp({
             entry.teacher_ids = teacherIds;
             entry.teacher_name = tNameStr;
             entry.teacher_code = tCodeStr;
+            if (course.name) entry.course_name = course.name;
+            if (course.code) entry.course_code = course.code;
+            if (course.preferred_room_id) {
+              entry.room_id = course.preferred_room_id;
+              entry.room_name = course.preferred_room_name || ((data.value.rooms || []).find(r => r.id === course.preferred_room_id)?.name) || '';
+            }
           }
         });
       }
@@ -2672,18 +2690,73 @@ createApp({
       }
       if (facultyModal.value.isEdit) {
         const idx = data.value.faculty.findIndex(x => x.id === facultyModal.value.form.id);
-        if (idx >= 0) data.value.faculty[idx] = { ...facultyModal.value.form };
+        if (idx >= 0) {
+          data.value.faculty[idx] = { ...facultyModal.value.form };
+          // Propagate updated faculty name and code to all assigned courses and timetable sessions
+          const updatedFac = data.value.faculty[idx];
+          if (data.value.unmapped_subjects) {
+            data.value.unmapped_subjects.forEach(s => {
+              if (s.teacher_id === updatedFac.id || (s.teacher_ids && s.teacher_ids.includes(updatedFac.id))) {
+                propagateCourseFacultyUpdate(s);
+              }
+            });
+          }
+        }
       } else {
         data.value.faculty.push({ ...facultyModal.value.form });
         data.value.faculty.sort((a, b) => a.name.localeCompare(b.name));
       }
       saveStateToServer();
       facultyModal.value.open = false;
+      showToast(`Faculty "${facultyModal.value.form.name}" saved successfully.`, "success");
     };
+
     const deleteTeacher = id => {
-      if (confirm("Remove this faculty member?")) {
+      const fac = (data.value.faculty || []).find(f => f.id === id);
+      const name = fac ? fac.name : 'this faculty member';
+      if (confirm(`Remove faculty member ${name}? They will be unassigned from all courses and scheduled sessions.`)) {
         data.value.faculty = data.value.faculty.filter(f => f.id !== id);
+        // Cascade unassign from courses
+        if (data.value.unmapped_subjects) {
+          data.value.unmapped_subjects.forEach(s => {
+            if (s.teacher_ids && s.teacher_ids.includes(id)) {
+              s.teacher_ids = s.teacher_ids.filter(tid => tid !== id);
+              if (s.teacher_id === id) {
+                s.teacher_id = s.teacher_ids.length > 0 ? s.teacher_ids[0] : '';
+              }
+              propagateCourseFacultyUpdate(s);
+            } else if (s.teacher_id === id) {
+              s.teacher_id = '';
+              s.teacher_ids = [];
+              propagateCourseFacultyUpdate(s);
+            }
+          });
+        }
+        // Cascade unassign from scheduled sessions
+        ['timetable', 'fixed_ce234p_schedule', 'fixed_physics_schedule'].forEach(schedKey => {
+          if (data.value[schedKey]) {
+            data.value[schedKey].forEach(e => {
+              if (e.teacher_ids && e.teacher_ids.includes(id)) {
+                e.teacher_ids = e.teacher_ids.filter(tid => tid !== id);
+                if (e.teacher_id === id) {
+                  e.teacher_id = e.teacher_ids.length > 0 ? e.teacher_ids[0] : '';
+                }
+                const remNames = (e.teacher_ids || []).map(tid => {
+                  const f = (data.value.faculty || []).find(fac => fac.id === tid);
+                  return f ? f.name : tid;
+                });
+                e.teacher_name = remNames.join(' & ') || 'TBD';
+              } else if (e.teacher_id === id) {
+                e.teacher_id = '';
+                e.teacher_ids = [];
+                e.teacher_name = 'TBD';
+                e.teacher_code = '';
+              }
+            });
+          }
+        });
         saveStateToServer();
+        showToast(`Faculty member ${name} removed and unassigned.`, 'info');
       }
     };
 
@@ -2796,30 +2869,18 @@ createApp({
           data.value.rooms[idx] = { ...roomModal.value.form };
 
           // Propagate venue rename across timetable entries
-          if (data.value.timetable) {
-            data.value.timetable.forEach(e => {
+          const updateVenueRename = (sched) => {
+            if (!sched) return;
+            sched.forEach(e => {
               if (e.room_id === oldId || e.room_id === targetId || e.room_name === oldName) {
                 e.room_id = targetId;
                 e.room_name = targetName;
               }
             });
-          }
-          if (data.value.fixed_ce234p_schedule) {
-            data.value.fixed_ce234p_schedule.forEach(e => {
-              if (e.room_id === oldId || e.room_id === targetId || e.room_name === oldName) {
-                e.room_id = targetId;
-                e.room_name = targetName;
-              }
-            });
-          }
-          if (data.value.fixed_physics_schedule) {
-            data.value.fixed_physics_schedule.forEach(e => {
-              if (e.room_id === oldId || e.room_id === targetId || e.room_name === oldName) {
-                e.room_id = targetId;
-                e.room_name = targetName;
-              }
-            });
-          }
+          };
+          updateVenueRename(data.value.timetable);
+          updateVenueRename(data.value.fixed_ce234p_schedule);
+          updateVenueRename(data.value.fixed_physics_schedule);
         }
       } else {
         data.value.rooms.push({ ...roomModal.value.form });
@@ -2853,6 +2914,48 @@ createApp({
         });
       }
 
+      // Propagate course and batch venue assignments directly into all active timetable schedules
+      const propagateRoomAllotments = (sched) => {
+        if (!sched) return;
+        sched.forEach(entry => {
+          const isAssignedCourse = assignedCoursesSet.has(entry.course_id) ||
+            (data.value.unmapped_subjects || []).some(s => assignedCoursesSet.has(s.id) && s.code === entry.course_code && (!entry.batch_id || !s.batch_id || entry.batch_id === s.batch_id));
+
+          if (isAssignedCourse) {
+            entry.room_id = targetId;
+            entry.room_name = targetName;
+          } else if (entry.room_id === targetId) {
+            // Check if course or batch is still assigned
+            const courseStillAssigned = (data.value.unmapped_subjects || []).some(s =>
+              (s.id === entry.course_id || (s.code === entry.course_code && (!entry.batch_id || !s.batch_id || entry.batch_id === s.batch_id))) &&
+              s.preferred_room_id === targetId
+            );
+            const batchStillAssigned = (data.value.batches || []).some(b => b.id === entry.batch_id && b.default_room_id === targetId);
+            if (!courseStillAssigned && !batchStillAssigned) {
+              const b = (data.value.batches || []).find(batch => batch.id === entry.batch_id);
+              if (b && b.default_room_id) {
+                entry.room_id = b.default_room_id;
+                entry.room_name = b.default_room_name;
+              } else {
+                entry.room_id = "";
+                entry.room_name = "";
+              }
+            }
+          } else if (assignedBatchesSet.has(entry.batch_id)) {
+            // Batch assigned to targetId: if entry has no room or default batch room, update
+            const course = (data.value.unmapped_subjects || []).find(s => s.id === entry.course_id || (s.code === entry.course_code && (!entry.batch_id || !s.batch_id || entry.batch_id === s.batch_id)));
+            if (!course || !course.preferred_room_id) {
+              entry.room_id = targetId;
+              entry.room_name = targetName;
+            }
+          }
+        });
+      };
+
+      propagateRoomAllotments(data.value.timetable);
+      propagateRoomAllotments(data.value.fixed_ce234p_schedule);
+      propagateRoomAllotments(data.value.fixed_physics_schedule);
+
       saveStateToServer();
       roomModal.value.open = false;
       showToast(`Venue "${targetName}" and all allotments saved successfully.`, "success");
@@ -2879,6 +2982,23 @@ createApp({
             }
           });
         }
+        // Cascade clear from all scheduled sessions
+        ['timetable', 'fixed_ce234p_schedule', 'fixed_physics_schedule'].forEach(schedKey => {
+          if (data.value[schedKey]) {
+            data.value[schedKey].forEach(e => {
+              if (e.room_id === id || e.room_name === name) {
+                const b = (data.value.batches || []).find(batch => batch.id === e.batch_id);
+                if (b && b.default_room_id && b.default_room_id !== id) {
+                  e.room_id = b.default_room_id;
+                  e.room_name = b.default_room_name;
+                } else {
+                  e.room_id = "";
+                  e.room_name = "";
+                }
+              }
+            });
+          }
+        });
         saveStateToServer();
         showToast(`Venue "${name}" deleted.`, "info");
       }
@@ -2958,9 +3078,21 @@ createApp({
     };
 
     const deleteSubject = id => {
-      if (confirm("Delete this subject?")) {
+      const subj = (data.value.unmapped_subjects || []).find(s => s.id === id);
+      const code = subj ? subj.code : 'this subject';
+      if (confirm(`Delete subject ${code}? All scheduled sessions for this subject will also be removed.`)) {
         data.value.unmapped_subjects = data.value.unmapped_subjects.filter(s => s.id !== id);
+        ['timetable', 'fixed_ce234p_schedule', 'fixed_physics_schedule'].forEach(schedKey => {
+          if (data.value[schedKey]) {
+            data.value[schedKey] = data.value[schedKey].filter(e => {
+              if (e.course_id && e.course_id === id) return false;
+              if (subj && e.course_code === subj.code && (!e.batch_id || !subj.batch_id || e.batch_id === subj.batch_id)) return false;
+              return true;
+            });
+          }
+        });
         saveStateToServer();
+        showToast(`Subject ${code} and its scheduled sessions deleted.`, 'info');
       }
     };
 
@@ -3108,10 +3240,19 @@ createApp({
       batchModal.value.open = false;
     };
     const deleteBatch = bId => {
-      if (confirm("Delete this batch?")) {
+      const batch = (data.value.batches || []).find(b => b.id === bId);
+      const name = batch ? batch.name : 'this batch';
+      if (confirm(`Delete batch ${name}? All courses and timetable sessions for this batch will also be deleted.`)) {
         data.value.batches = data.value.batches.filter(b => b.id !== bId);
-        data.value.sub_batches = data.value.sub_batches.filter(sb => sb.batch_id !== bId);
+        data.value.sub_batches = (data.value.sub_batches || []).filter(sb => sb.batch_id !== bId);
+        data.value.unmapped_subjects = (data.value.unmapped_subjects || []).filter(s => s.batch_id !== bId);
+        ['timetable', 'fixed_ce234p_schedule', 'fixed_physics_schedule'].forEach(schedKey => {
+          if (data.value[schedKey]) {
+            data.value[schedKey] = data.value[schedKey].filter(e => e.batch_id !== bId);
+          }
+        });
         saveStateToServer();
+        showToast(`Batch ${name} and its courses/sessions deleted.`, 'info');
       }
     };
 
@@ -3900,37 +4041,43 @@ createApp({
       if (!sourceEntry) return;
 
       // 1. Immediately update reactive timetable in client memory
-      const tt = data.value.timetable || [];
-      const src = tt.find(e => e.id === sourceEntry.id);
-      if (src) {
-        const daysList = data.value.config.days || [];
-        const periodsList = data.value.config.periods || [];
+      const daysList = data.value.config.days || [];
+      const periodsList = data.value.config.periods || [];
 
-        if (isSwap && targetEntry) {
-          const tgt = tt.find(e => e.id === targetEntry.id);
-          if (tgt) {
-            const origDay = src.day;
-            const origPeriod = src.period;
-            src.day = tgt.day;
-            src.period = tgt.period;
-            src.day_name = tgt.day_name;
-            src.period_name = tgt.period_name;
-            src.period_time = tgt.period_time;
+      const updateListMoveOrSwap = (list) => {
+        if (!list) return;
+        const src = list.find(e => e.id === sourceEntry.id || (e.course_code === sourceEntry.course_code && e.batch_id === sourceEntry.batch_id && e.day === sourceEntry.day && e.period === sourceEntry.period));
+        if (src) {
+          if (isSwap && targetEntry) {
+            const tgt = list.find(e => e.id === targetEntry.id || (e.course_code === targetEntry.course_code && e.batch_id === targetEntry.batch_id && e.day === targetEntry.day && e.period === targetEntry.period));
+            if (tgt) {
+              const origDay = src.day;
+              const origPeriod = src.period;
+              src.day = tgt.day;
+              src.period = tgt.period;
+              src.day_name = tgt.day_name;
+              src.period_name = tgt.period_name;
+              src.period_time = tgt.period_time;
 
-            tgt.day = origDay;
-            tgt.period = origPeriod;
-            tgt.day_name = daysList[origDay] || `Day ${origDay + 1}`;
-            tgt.period_name = periodsList[origPeriod]?.name;
-            tgt.period_time = periodsList[origPeriod]?.time;
+              tgt.day = origDay;
+              tgt.period = origPeriod;
+              tgt.day_name = daysList[origDay] || `Day ${origDay + 1}`;
+              tgt.period_name = periodsList[origPeriod]?.name;
+              tgt.period_time = periodsList[origPeriod]?.time;
+            }
+          } else {
+            src.day = targetDay;
+            src.day_name = daysList[targetDay] || `Day ${targetDay + 1}`;
+            src.period = targetPeriod;
+            src.period_name = periodsList[targetPeriod]?.name;
+            src.period_time = periodsList[targetPeriod]?.time;
           }
-        } else {
-          src.day = targetDay;
-          src.day_name = daysList[targetDay] || `Day ${targetDay + 1}`;
-          src.period = targetPeriod;
-          src.period_name = periodsList[targetPeriod]?.name;
-          src.period_time = periodsList[targetPeriod]?.time;
         }
-      }
+      };
+
+      updateListMoveOrSwap(data.value.timetable);
+      updateListMoveOrSwap(data.value.fixed_ce234p_schedule);
+      updateListMoveOrSwap(data.value.fixed_physics_schedule);
 
       moveModal.value.open = false;
       saveStateToServer();
