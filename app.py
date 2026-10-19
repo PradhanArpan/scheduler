@@ -189,18 +189,29 @@ def sync_fixed_schedule_teachers(data, sem_type=None):
             entry["teacher_name"] = " & ".join(names) if names else "TBD"
             entry["teacher_code"] = "/".join(codes) if codes else ""
                 
-    # Also update timetable if it already has entries for fixed slots
+    # Update ALL timetable entries with latest assigned teachers from subject catalog
     tt = data.get("timetable", [])
     if tt:
         fixed_map = {(e.get("batch_id"), e.get("course_code"), e.get("day"), e.get("period")): e for e in fixed_schedule}
         for item in tt:
+            b_id = item.get("batch_id")
+            code = item.get("course_code")
+            matched = subject_lookup.get((b_id, code))
+            if not matched and code:
+                matched = next((s for s in data.get("unmapped_subjects", []) if s.get("code") == code), None)
+            if matched:
+                t_ids = matched.get("teacher_ids") or ([matched["teacher_id"]] if matched.get("teacher_id") else [])
+                t_ids = [tid for tid in t_ids if tid]
+                item["teacher_ids"] = t_ids
+                item["teacher_id"] = t_ids[0] if t_ids else ""
+                names = [teachers_by_id[tid]["name"] for tid in t_ids if tid in teachers_by_id]
+                codes = [teachers_by_id[tid]["code"] for tid in t_ids if tid in teachers_by_id]
+                item["teacher_name"] = " & ".join(names) if names else "TBD"
+                item["teacher_code"] = "/".join(codes) if codes else ""
+
             key = (item.get("batch_id"), item.get("course_code"), item.get("day"), item.get("period"))
             if key in fixed_map:
                 f_item = fixed_map[key]
-                item["teacher_id"] = f_item.get("teacher_id", "")
-                item["teacher_ids"] = f_item.get("teacher_ids", [])
-                item["teacher_name"] = f_item.get("teacher_name", "TBD")
-                item["teacher_code"] = f_item.get("teacher_code", "")
                 if f_item.get("room_name"):
                     item["room_id"] = f_item.get("room_id")
                     item["room_name"] = f_item.get("room_name")
@@ -221,9 +232,12 @@ def get_state():
 @app.route('/api/state', methods=['POST'])
 def update_state():
     new_data = request.get_json(force=True)
+    import time
+    if "_last_modified" not in new_data:
+        new_data["_last_modified"] = int(time.time() * 1000)
     sync_fixed_schedule_teachers(new_data)
     save_data(new_data)
-    return jsonify({"success": True, "message": "State saved successfully."})
+    return jsonify({"success": True, "message": "State saved successfully.", "_last_modified": new_data.get("_last_modified")})
 
 @app.route('/api/precheck', methods=['POST'])
 def precheck():
@@ -327,12 +341,15 @@ def update_slot():
             swap_entry["period_name"] = periods_list[orig_period].get("name")
             swap_entry["period_time"] = periods_list[orig_period].get("time")
 
+        import time
+        data["_last_modified"] = int(time.time() * 1000)
         save_data(data)
         return jsonify({
             "success": True,
             "action": "swap",
             "message": f"Successfully swapped {entry.get('course_code')} and {swap_entry.get('course_code')}",
-            "timetable": tt
+            "timetable": tt,
+            "_last_modified": data["_last_modified"]
         })
 
     # Standard Move
@@ -351,12 +368,15 @@ def update_slot():
             entry["room_id"] = room_obj["id"]
             entry["room_name"] = room_obj["name"]
 
+    import time
+    data["_last_modified"] = int(time.time() * 1000)
     save_data(data)
     return jsonify({
         "success": True,
         "action": "move",
         "message": f"Successfully moved {entry.get('course_code')} to {entry.get('day_name')} {entry.get('period_name')}",
-        "timetable": tt
+        "timetable": tt,
+        "_last_modified": data["_last_modified"]
     })
 
 @app.route('/api/export/csv', methods=['GET'])

@@ -130,13 +130,25 @@
           <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
           Print
         </button>
+
+        <!-- Manual Save Button -->
+        <button @click="saveStateToServer" 
+                title="Immediately save all changes in browser and sync to server"
+                class="px-2.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold shadow-xs transition flex items-center gap-1.5 focus-visible:ring-2 focus-visible:ring-indigo-400">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg>
+          <span>Save State</span>
+        </button>
+
+        <!-- Hidden Backup File Input -->
+        <input type="file" ref="backupFileInput" @change="importDataBackup" accept=".json" class="hidden">
+
         <!-- Export Dropdown -->
         <div class="relative">
           <button @click="exportDropdownOpen = !exportDropdownOpen" 
                   aria-label="Export Timetable Options"
                   class="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-medium border border-slate-700 transition flex items-center gap-1.5 focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:outline-none">
             <svg class="w-3.5 h-3.5 text-emerald-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-            <span>Export</span>
+            <span>Export &amp; Backup</span>
             <svg class="w-3 h-3 text-slate-400 transition-transform duration-150" :class="{'rotate-180': exportDropdownOpen}" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
           </button>
 
@@ -207,6 +219,30 @@
                   <span class="text-[10px] text-slate-500">Plain tabular dump</span>
                 </div>
               </a>
+
+              <!-- JSON Backup Option -->
+              <button @click="exportDataBackup(); exportDropdownOpen = false"
+                      class="w-full text-left flex items-center gap-2.5 px-3 py-1.5 text-slate-300 hover:bg-slate-800/80 hover:text-amber-300 transition group">
+                <div class="w-7 h-7 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-center justify-center shrink-0 group-hover:bg-amber-500/20">
+                  <svg class="w-3.5 h-3.5 text-amber-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg>
+                </div>
+                <div class="flex flex-col text-left">
+                  <span class="font-medium text-slate-300 group-hover:text-amber-300">Download Backup (.json)</span>
+                  <span class="text-[10px] text-slate-500">Full portal snapshot file</span>
+                </div>
+              </button>
+
+              <!-- Restore Backup Option -->
+              <button @click="triggerImportBackup(); exportDropdownOpen = false"
+                      class="w-full text-left flex items-center gap-2.5 px-3 py-1.5 text-slate-300 hover:bg-slate-800/80 hover:text-cyan-300 transition group">
+                <div class="w-7 h-7 rounded-lg bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center shrink-0 group-hover:bg-cyan-500/20">
+                  <svg class="w-3.5 h-3.5 text-cyan-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                </div>
+                <div class="flex flex-col text-left">
+                  <span class="font-medium text-slate-300 group-hover:text-cyan-300">Restore Backup (.json)</span>
+                  <span class="text-[10px] text-slate-500">Upload &amp; restore JSON snapshot</span>
+                </div>
+              </button>
             </div>
           </div>
         </div>
@@ -1889,11 +1925,16 @@
       <!-- Modal Footer Actions -->
       <div class="pt-3 border-t border-slate-100 flex items-center justify-end gap-2.5">
         <button @click="moveModal.open = false" class="px-4 py-2 border border-slate-300 hover:bg-slate-100 text-slate-700 rounded-lg text-xs font-semibold transition">
-          {{ moveModal.canMove ? 'Cancel' : 'Close / Dismiss' }}
+          {{ moveModal.canMove ? 'Cancel' : 'Cancel Move' }}
         </button>
-        <button v-if="moveModal.canMove" @click="executeConfirmedMoveOrSwap"
+        <button v-if="moveModal.canMove" @click="executeConfirmedMoveOrSwap(false)"
                 class="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-bold shadow-xs transition flex items-center gap-1.5">
           <span>✓</span> Confirm &amp; Apply Changes
+        </button>
+        <button v-else @click="executeConfirmedMoveOrSwap(true)"
+                class="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-lg text-xs font-bold shadow-xs transition flex items-center gap-1.5 focus-visible:ring-2 focus-visible:ring-amber-400"
+                title="Neglect flagged constraint for this specific case and apply changes anyway">
+          <span>⚠️</span> Override Constraint &amp; Move Anyway
         </button>
       </div>
 
@@ -1977,70 +2018,168 @@ createApp({
       showToast(`Switched active view to ${sem}`, 'info');
     };
 
+    const STORAGE_KEY = 'christ_timetable_data_v1';
+
+    const sanitizeLoadedData = (json) => {
+      if (!json || typeof json !== 'object') json = {};
+      if (!json.config) json.config = {};
+      if (!json.config.advanced_constraints) {
+        json.config.advanced_constraints = {
+          faculty_max_hours_per_day: 4,
+          faculty_max_consecutive_hours: 3,
+          single_theory_per_day_per_course: true,
+          faculty_no_consecutive_theory: false,
+          department_meetings: [],
+          batch_blocked_slots: []
+        };
+      }
+      if (!json.timetable || json.timetable.length === 0) {
+        json.timetable = json.fixed_physics_schedule || json.fixed_ce234p_schedule || [];
+      }
+
+      // Synchronize room names from current rooms list
+      const roomsMap = {};
+      (json.rooms || []).forEach(r => { roomsMap[r.id] = r.name; });
+      if (json.timetable) {
+        json.timetable.forEach(e => {
+          if (e.room_id && e.room_id in roomsMap) e.room_name = roomsMap[e.room_id];
+        });
+      }
+      if (json.unmapped_subjects) {
+        json.unmapped_subjects.forEach(s => {
+          if (s.preferred_room_id && s.preferred_room_id in roomsMap) s.preferred_room_name = roomsMap[s.preferred_room_id];
+        });
+      }
+      if (json.batches) {
+        json.batches.forEach(b => {
+          if (b.default_room_id && b.default_room_id in roomsMap) b.default_room_name = roomsMap[b.default_room_id];
+        });
+      }
+
+      return json;
+    };
+
+    const syncDefaultSelectedBatch = () => {
+      const isEven = (data.value.config?.semester || 'Even Semester').includes('Even');
+      if (selectedBatchId.value === 'ALL' || !selectedBatchId.value) {
+        const pref = (data.value.batches || []).find(b => b.name === (isEven ? '4BTCI' : '3BTCI'));
+        if (pref) selectedBatchId.value = pref.id;
+      }
+    };
+
     const fetchState = async () => {
+      // 1. Try to read from localStorage first
+      let localData = null;
+      try {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (stored) {
+          localData = JSON.parse(stored);
+        }
+      } catch (e) {
+        console.warn("Could not read from localStorage:", e);
+      }
+
       try {
         const res = await fetch('/api/state');
         if (res.ok) {
-          let json = await res.json();
-          if (!json || typeof json !== 'object') json = {};
-          if (!json.config) json.config = {};
-          if (!json.config.advanced_constraints) {
-            json.config.advanced_constraints = {
-              faculty_max_hours_per_day: 4,
-              faculty_max_consecutive_hours: 3,
-              single_theory_per_day_per_course: true,
-              faculty_no_consecutive_theory: false,
-              department_meetings: [],
-              batch_blocked_slots: []
-            };
-          }
-          if (!json.timetable || json.timetable.length === 0) {
-            json.timetable = json.fixed_physics_schedule || json.fixed_ce234p_schedule || [];
+          let serverData = await res.json();
+          serverData = sanitizeLoadedData(serverData);
+
+          // If localData exists and user made modifications newer than server
+          if (localData && localData._last_modified) {
+            const serverMod = serverData._last_modified || 0;
+            if (localData._last_modified > serverMod) {
+              console.log("Loading newer edits from browser localStorage:", localData._last_modified, "vs server:", serverMod);
+              data.value = sanitizeLoadedData(localData);
+              // Push local updates to server to synchronize
+              fetch('/api/state', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data.value)
+              }).catch(() => {});
+              syncDefaultSelectedBatch();
+              return;
+            }
           }
 
-          // Synchronize room names from current rooms list
-          const roomsMap = {};
-          (json.rooms || []).forEach(r => { roomsMap[r.id] = r.name; });
-          if (json.timetable) {
-            json.timetable.forEach(e => {
-              if (e.room_id && e.room_id in roomsMap) e.room_name = roomsMap[e.room_id];
-            });
-          }
-          if (json.unmapped_subjects) {
-            json.unmapped_subjects.forEach(s => {
-              if (s.preferred_room_id && s.preferred_room_id in roomsMap) s.preferred_room_name = roomsMap[s.preferred_room_id];
-            });
-          }
-          if (json.batches) {
-            json.batches.forEach(b => {
-              if (b.default_room_id && b.default_room_id in roomsMap) b.default_room_name = roomsMap[b.default_room_id];
-            });
-          }
-
-          data.value = json;
-          
-          const isEven = (json.config?.semester || 'Even Semester').includes('Even');
-          if (selectedBatchId.value === 'ALL' || !selectedBatchId.value) {
-            const pref = (json.batches || []).find(b => b.name === (isEven ? '4BTCI' : '3BTCI'));
-            if (pref) selectedBatchId.value = pref.id;
-          }
+          data.value = serverData;
+          syncDefaultSelectedBatch();
+          return;
         }
       } catch (err) {
-        console.error("Fetch error:", err);
+        console.error("Fetch error from server:", err);
+      }
+
+      // Fallback to localData if server fetch failed or offline
+      if (localData) {
+        data.value = sanitizeLoadedData(localData);
+        syncDefaultSelectedBatch();
       }
     };
 
     const saveStateToServer = async () => {
+      // 1. Stamp modification timestamp and store in localStorage instantly
+      const now = Date.now();
+      data.value._last_modified = now;
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(data.value));
+      } catch (e) {
+        console.warn("LocalStorage save error:", e);
+      }
+
+      // 2. Transmit to server
       try {
         const res = await fetch('/api/state', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(data.value)
         });
-        if (res.ok) showToast("All configuration saved successfully.", "success");
+        if (res.ok) {
+          showToast("All configuration saved successfully.", "success");
+        } else {
+          showToast("Saved locally in browser storage.", "info");
+        }
       } catch (err) {
-        showToast("Error saving data.", "error");
+        showToast("Saved locally in browser storage.", "info");
       }
+    };
+
+    // JSON Backup Export and Import
+    const exportDataBackup = () => {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data.value, null, 2));
+      const downloadAnchor = document.createElement('a');
+      const dateStr = new Date().toISOString().slice(0, 10);
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", `timetable_backup_${dateStr}.json`);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+      showToast("Downloaded timetable backup JSON.", "success");
+    };
+
+    const backupFileInput = ref(null);
+    const triggerImportBackup = () => {
+      if (backupFileInput.value) backupFileInput.value.click();
+    };
+
+    const importDataBackup = (event) => {
+      const file = event.target.files && event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const parsed = JSON.parse(e.target.result);
+          if (parsed && typeof parsed === 'object') {
+            data.value = sanitizeLoadedData(parsed);
+            saveStateToServer();
+            showToast("Backup JSON successfully restored and saved!", "success");
+          }
+        } catch (err) {
+          showToast("Failed to parse backup JSON: " + err.message, "error");
+        }
+      };
+      reader.readAsText(file);
+      event.target.value = '';
     };
 
     const promptAddAcademicYear = () => {
@@ -2167,14 +2306,74 @@ createApp({
       multiFacultyModal.value.selectedIds = [];
     };
 
+    const propagateCourseFacultyUpdate = (course) => {
+      if (!course) return;
+      const teacherIds = course.teacher_ids && course.teacher_ids.length > 0 
+        ? course.teacher_ids 
+        : (course.teacher_id ? [course.teacher_id] : []);
+      
+      const teachersById = {};
+      (data.value.faculty || []).forEach(f => { teachersById[f.id] = f; });
+
+      const names = teacherIds.map(tid => teachersById[tid]?.name || tid);
+      const codes = teacherIds.map(tid => teachersById[tid]?.code || tid);
+      const tNameStr = names.join(" & ") || "TBD";
+      const tCodeStr = codes.join("/") || "";
+      const primaryTid = teacherIds.length > 0 ? teacherIds[0] : "";
+
+      // 1. Propagate to timetable entries
+      if (data.value.timetable) {
+        data.value.timetable.forEach(entry => {
+          const matchCode = entry.course_code === course.code;
+          const matchBatch = !entry.batch_id || !course.batch_id || entry.batch_id === course.batch_id;
+          const matchCourseId = entry.course_id && entry.course_id === course.id;
+          if ((matchCode && matchBatch) || matchCourseId) {
+            entry.teacher_id = primaryTid;
+            entry.teacher_ids = teacherIds;
+            entry.teacher_name = tNameStr;
+            entry.teacher_code = tCodeStr;
+          }
+        });
+      }
+
+      // 2. Propagate to fixed_ce234p_schedule
+      if (data.value.fixed_ce234p_schedule) {
+        data.value.fixed_ce234p_schedule.forEach(entry => {
+          const matchCode = entry.course_code === course.code;
+          const matchBatch = !entry.batch_id || !course.batch_id || entry.batch_id === course.batch_id;
+          if (matchCode && matchBatch) {
+            entry.teacher_id = primaryTid;
+            entry.teacher_ids = teacherIds;
+            entry.teacher_name = tNameStr;
+            entry.teacher_code = tCodeStr;
+          }
+        });
+      }
+
+      // 3. Propagate to fixed_physics_schedule
+      if (data.value.fixed_physics_schedule) {
+        data.value.fixed_physics_schedule.forEach(entry => {
+          const matchCode = entry.course_code === course.code;
+          const matchBatch = !entry.batch_id || !course.batch_id || entry.batch_id === course.batch_id;
+          if (matchCode && matchBatch) {
+            entry.teacher_id = primaryTid;
+            entry.teacher_ids = teacherIds;
+            entry.teacher_name = tNameStr;
+            entry.teacher_code = tCodeStr;
+          }
+        });
+      }
+    };
+
     const saveMultiFacultySelection = () => {
       const c = multiFacultyModal.value.course;
       const ids = multiFacultyModal.value.selectedIds;
       c.teacher_ids = ids;
       c.teacher_id = ids.length > 0 ? ids[0] : '';
+      propagateCourseFacultyUpdate(c);
       multiFacultyModal.value.open = false;
       saveStateToServer();
-      showToast(`Assigned ${ids.length} faculty to ${c.code}`, 'success');
+      showToast(`Assigned ${ids.length} faculty to ${c.code} and updated all matching timetable sessions.`, 'success');
     };
 
     const getAssignedFacultyCount = c => {
@@ -2548,14 +2747,17 @@ createApp({
 
     const saveSubjectModal = () => {
       if (!subjectModal.value.form.code || !subjectModal.value.form.name) return;
+      const sForm = subjectModal.value.form;
       if (subjectModal.value.isEdit) {
-        const idx = data.value.unmapped_subjects.findIndex(x => x.id === subjectModal.value.form.id);
-        if (idx >= 0) data.value.unmapped_subjects[idx] = { ...subjectModal.value.form };
+        const idx = data.value.unmapped_subjects.findIndex(x => x.id === sForm.id);
+        if (idx >= 0) data.value.unmapped_subjects[idx] = { ...sForm };
       } else {
-        data.value.unmapped_subjects.push({ ...subjectModal.value.form });
+        data.value.unmapped_subjects.push({ ...sForm });
       }
+      propagateCourseFacultyUpdate(sForm);
       saveStateToServer();
       subjectModal.value.open = false;
+      showToast(`Saved ${sForm.code} and updated timetable sessions.`, 'success');
     };
 
     const deleteSubject = id => {
@@ -3310,10 +3512,53 @@ createApp({
       };
     };
 
-    const executeConfirmedMoveOrSwap = async () => {
+    const executeConfirmedMoveOrSwap = async (override = false) => {
       const { sourceEntry, targetEntry, targetDay, targetPeriod, isSwap } = moveModal.value;
       if (!sourceEntry) return;
 
+      // 1. Immediately update reactive timetable in client memory
+      const tt = data.value.timetable || [];
+      const src = tt.find(e => e.id === sourceEntry.id);
+      if (src) {
+        const daysList = data.value.config.days || [];
+        const periodsList = data.value.config.periods || [];
+
+        if (isSwap && targetEntry) {
+          const tgt = tt.find(e => e.id === targetEntry.id);
+          if (tgt) {
+            const origDay = src.day;
+            const origPeriod = src.period;
+            src.day = tgt.day;
+            src.period = tgt.period;
+            src.day_name = tgt.day_name;
+            src.period_name = tgt.period_name;
+            src.period_time = tgt.period_time;
+
+            tgt.day = origDay;
+            tgt.period = origPeriod;
+            tgt.day_name = daysList[origDay] || `Day ${origDay + 1}`;
+            tgt.period_name = periodsList[origPeriod]?.name;
+            tgt.period_time = periodsList[origPeriod]?.time;
+          }
+        } else {
+          src.day = targetDay;
+          src.day_name = daysList[targetDay] || `Day ${targetDay + 1}`;
+          src.period = targetPeriod;
+          src.period_name = periodsList[targetPeriod]?.name;
+          src.period_time = periodsList[targetPeriod]?.time;
+        }
+      }
+
+      moveModal.value.open = false;
+      saveStateToServer();
+
+      if (override) {
+        showToast(isSwap ? 'Sessions swapped (constraint overridden for this specific case).' : 'Session moved (constraint overridden for this specific case).', 'warning');
+      } else {
+        showToast(isSwap ? 'Sessions swapped successfully!' : 'Session moved successfully!', 'success');
+      }
+
+      // 2. Also notify backend in background
       try {
         const payload = {
           entry_id: sourceEntry.id,
@@ -3328,17 +3573,13 @@ createApp({
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         });
-
         const json = await res.json();
-        if (json.success) {
+        if (json.success && json.timetable) {
           data.value.timetable = json.timetable;
-          moveModal.value.open = false;
-          showToast(json.message || (isSwap ? 'Sessions swapped successfully!' : 'Session moved successfully!'), 'success');
-        } else {
-          showToast(json.message || 'Failed to update timetable.', 'error');
+          saveStateToServer();
         }
       } catch (err) {
-        showToast('Error updating slot: ' + err.message, 'error');
+        // Local memory and localStorage already updated
       }
     };
 
@@ -3478,7 +3719,12 @@ createApp({
       moveModal,
       validateAndOpenMoveModal,
       executeConfirmedMoveOrSwap,
-      resolveEntryRoomName
+      resolveEntryRoomName,
+      exportDataBackup,
+      backupFileInput,
+      triggerImportBackup,
+      importDataBackup,
+      propagateCourseFacultyUpdate
     };
   }
 }).mount('#app');
