@@ -1,8 +1,9 @@
 import os
 import json
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify, send_from_directory, send_file
 from flask_cors import CORS
 from scheduler import TimetableScheduler
+import exporter
 
 app = Flask(__name__, static_folder='static', static_url_path='')
 CORS(app)
@@ -285,6 +286,48 @@ def export_csv():
         'Content-Type': 'text/csv; charset=utf-8',
         'Content-Disposition': 'attachment; filename="civil_timetable_2026_27.csv"'
     }
+
+@app.route('/api/export/excel', methods=['GET'])
+def export_excel():
+    data = load_data()
+    sem_type = request.args.get("semester", data.get("config", {}).get("semester", "Even Semester"))
+    excel_stream = exporter.generate_excel(data, sem_type)
+    sem_slug = "even" if "Even" in str(sem_type) else "odd"
+    filename = f"civil_timetable_{sem_slug}_2026_27.xlsx"
+    return send_file(
+        excel_stream,
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        as_attachment=True,
+        download_name=filename
+    )
+
+@app.route('/api/export/pdf/class', methods=['GET'])
+def export_class_pdf():
+    data = load_data()
+    sem_type = request.args.get("semester", data.get("config", {}).get("semester", "Even Semester"))
+    pdf_stream = exporter.generate_class_pdf(data, sem_type)
+    sem_slug = "even" if "Even" in str(sem_type) else "odd"
+    filename = f"civil_class_timetable_{sem_slug}_2026_27.pdf"
+    return send_file(
+        pdf_stream,
+        mimetype="application/pdf",
+        as_attachment=True,
+        download_name=filename
+    )
+
+@app.route('/api/export/pdf/faculty', methods=['GET'])
+def export_faculty_pdf():
+    data = load_data()
+    sem_type = request.args.get("semester", data.get("config", {}).get("semester", "Even Semester"))
+    pdf_stream = exporter.generate_faculty_pdf(data, sem_type)
+    sem_slug = "even" if "Even" in str(sem_type) else "odd"
+    filename = f"civil_faculty_timetable_{sem_slug}_2026_27.pdf"
+    return send_file(
+        pdf_stream,
+        mimetype="application/pdf",
+        as_attachment=True,
+        download_name=filename
+    )
 
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 5000))
