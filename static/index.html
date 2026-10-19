@@ -2196,16 +2196,41 @@ createApp({
               }
             });
           }
-          // Propagate to course catalog preferred_room_id
+          // Propagate to fixed_ce234p_schedule
+          if (data.value.fixed_ce234p_schedule) {
+            data.value.fixed_ce234p_schedule.forEach(e => {
+              if (e.room_id === oldId || e.room_id === newId || e.room_name === oldName) {
+                e.room_id = newId;
+                e.room_name = newName;
+              }
+            });
+          }
+          // Propagate to fixed_physics_schedule
+          if (data.value.fixed_physics_schedule) {
+            data.value.fixed_physics_schedule.forEach(e => {
+              if (e.room_id === oldId || e.room_id === newId || e.room_name === oldName) {
+                e.room_id = newId;
+                e.room_name = newName;
+              }
+            });
+          }
+          // Propagate to course catalog preferred_room_id and fixed_slots
           if (data.value.unmapped_subjects) {
             data.value.unmapped_subjects.forEach(s => {
               if (s.preferred_room_id === oldId) s.preferred_room_id = newId;
+              if (s.fixed_slots) {
+                s.fixed_slots.forEach(fs => {
+                  if (fs.room_id === oldId) fs.room_id = newId;
+                  if (fs.room_id === newId) fs.room_name = newName;
+                });
+              }
             });
           }
           // Propagate to batch default_room_id
           if (data.value.batches) {
             data.value.batches.forEach(b => {
               if (b.default_room_id === oldId) b.default_room_id = newId;
+              if (b.default_room_id === newId) b.default_room_name = newName;
             });
           }
         }
@@ -2374,15 +2399,15 @@ createApp({
         const name = getRoomName(entry.room_id);
         if (name) return name;
       }
-      if (entry.room_name && entry.room_name !== 'Room 101' && entry.room_name !== 'MT Lab / CAD Lab') {
+      if (entry.room_name) {
         return entry.room_name;
       }
       if (entry.is_lab) {
         const defaultLab = (data.value.rooms || []).find(r => r.type === 'Lab');
-        return defaultLab ? defaultLab.name : (entry.room_name || 'Lab');
+        return defaultLab ? defaultLab.name : 'Lab';
       }
       const defaultLh = (data.value.rooms || []).find(r => r.type !== 'Lab');
-      return defaultLh ? defaultLh.name : (entry.room_name || 'Civil Lecture Hall 1');
+      return defaultLh ? defaultLh.name : 'Lecture Hall';
     };
     const getBatchesForCycle = cycleId => {
       return activeSemesterBatches.value.filter(b => b.cycle_id === cycleId);

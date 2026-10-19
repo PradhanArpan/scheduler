@@ -11,7 +11,19 @@ CORS(app)
 import shutil
 
 IS_VERCEL = os.environ.get("VERCEL") == "1"
-BASE_DATA_FILE = os.path.join(os.path.dirname(__file__), 'timetable_data.json')
+
+# Look for timetable_data.json across script dir, parent dir, or current working dir
+_script_dir = os.path.dirname(os.path.abspath(__file__))
+_parent_dir = os.path.abspath(os.path.join(_script_dir, '..'))
+_cwd = os.getcwd()
+
+_candidates = [
+    os.path.join(_script_dir, 'timetable_data.json'),
+    os.path.join(_parent_dir, 'timetable_data.json'),
+    os.path.join(_cwd, 'timetable_data.json'),
+    os.path.join(_cwd, 'api', 'timetable_data.json'),
+]
+BASE_DATA_FILE = next((p for p in _candidates if os.path.exists(p)), _candidates[0])
 
 if IS_VERCEL:
     DATA_FILE = os.path.join('/tmp', 'timetable_data.json')
@@ -57,6 +69,7 @@ def sync_venue_names_and_ids(data):
         return
     rooms_list = data.get("rooms", [])
     rooms_by_id = {r["id"]: r for r in rooms_list}
+    rooms_by_name = {r["name"]: r for r in rooms_list}
     if not rooms_by_id:
         return
 
@@ -69,9 +82,16 @@ def sync_venue_names_and_ids(data):
             rid = ALIAS_ROOM_MAP[rid]
             entry["room_id"] = rid
 
-        if rid in rooms_by_id:
+        # 1. Match by room_id
+        if rid and rid in rooms_by_id:
             entry["room_name"] = rooms_by_id[rid]["name"]
-        elif entry.get("room_name") in ["Room 101", "MT Lab / CAD Lab", ""]:
+        # 2. Match by existing room_name
+        elif entry.get("room_name") and entry["room_name"] in rooms_by_name:
+            matched = rooms_by_name[entry["room_name"]]
+            entry["room_id"] = matched["id"]
+            entry["room_name"] = matched["name"]
+        # 3. Default fallback if missing
+        elif not entry.get("room_id") and not entry.get("room_name"):
             if entry.get("is_lab") and default_lab:
                 entry["room_id"] = default_lab["id"]
                 entry["room_name"] = default_lab["name"]
@@ -93,11 +113,18 @@ def sync_venue_names_and_ids(data):
     for b in data.get("batches", []):
         if b.get("default_room_id") in ALIAS_ROOM_MAP:
             b["default_room_id"] = ALIAS_ROOM_MAP[b["default_room_id"]]
+        if b.get("default_room_id") in rooms_by_id:
+            b["default_room_name"] = rooms_by_id[b["default_room_id"]]["name"]
 
-    # 4. Sync unmapped_subjects preferred_room_id
+    # 4. Sync unmapped_subjects preferred_room_id and fixed_slots
     for s in data.get("unmapped_subjects", []):
         if s.get("preferred_room_id") in ALIAS_ROOM_MAP:
             s["preferred_room_id"] = ALIAS_ROOM_MAP[s["preferred_room_id"]]
+        for fs in s.get("fixed_slots", []):
+            if fs.get("room_id") in ALIAS_ROOM_MAP:
+                fs["room_id"] = ALIAS_ROOM_MAP[fs["room_id"]]
+            if fs.get("room_id") in rooms_by_id:
+                fs["room_name"] = rooms_by_id[fs["room_id"]]["name"]
 
 def sync_fixed_schedule_teachers(data, sem_type=None):
     if not data:
@@ -264,7 +291,7 @@ def generate():
         active_courses = all_subjects
 
     scheduler = TimetableScheduler(config, teachers, rooms, batches, active_courses, sub_batches=sub_batches, fixed_schedule=data.get("fixed_ce234p_schedule", []))
-    result = scheduler.generate(max_attempts=200)
+    result = scheduler.generate(max_attempts=30)
 
     if result["success"]:
         # Combined timetable includes fixed civil schedule and any course-level pinned sessions

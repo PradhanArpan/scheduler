@@ -217,7 +217,7 @@ class TimetableScheduler:
             "warnings": warnings
         }
 
-    def generate(self, max_attempts=200):
+    def generate(self, max_attempts=30):
         # 1. Run Pre-flight Feasibility
         pre_check = self.pre_check_feasibility()
         if not pre_check["feasible"]:
@@ -437,7 +437,7 @@ class TimetableScheduler:
 
             # Free day constraint for faculty (FET Flexible): as far as possible guarantee at least 1 day free
             if teacher_ids and self.faculty_guarantee_free_day and self.free_day_weight > 0:
-                free_day_attempts = max(10, int(35 * (self.free_day_weight / 100.0)))
+                free_day_attempts = 1 if self.free_day_weight < 100 else 3
                 if attempt < free_day_attempts:
                     free_day_violated = False
                     for tid in teacher_ids:
@@ -458,7 +458,7 @@ class TimetableScheduler:
                 
                 # Rule 3: Theory sessions on the 1st hour always -> Labs avoid Period 0 based on FET weight
                 if is_lab and (0 in block_periods):
-                    if self.theory_1st_weight >= 85 or (self.theory_1st_weight > 0 and attempt < 35):
+                    if (self.theory_1st_weight >= 95 and attempt < 2) or (self.theory_1st_weight > 0 and attempt < 1):
                         continue
 
                 # Check consecutive: no break period in between
@@ -502,7 +502,7 @@ class TimetableScheduler:
                             consec_conflict = True
                             break
                     if consec_conflict:
-                        consec_attempt_limit = 50 if self.consecutive_weight >= 90 else int(30 * (self.consecutive_weight / 100.0))
+                        consec_attempt_limit = 1 if self.consecutive_weight < 100 else 3
                         if attempt < consec_attempt_limit:
                             continue
 

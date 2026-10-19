@@ -186,8 +186,11 @@ def generate_excel(data, sem_type=None):
                 t_name = e.get("teacher_code") or e.get("teacher_name", "")
                 sb_name = e.get("sub_batch_name")
                 is_lab = e.get("is_lab", False)
+                r_name = e.get("room_name", "")
 
                 label = f"{code}\n{t_name}" if t_name else code
+                if r_name:
+                    label += f"\n[{r_name}]"
                 if sb_name:
                     label = f"[{sb_name}] {label}"
 
@@ -335,7 +338,11 @@ def generate_excel(data, sem_type=None):
                 code = e.get("course_code", "")
                 is_lab = e.get("is_lab", False)
 
-                cell.value = f"{b_name_s}\n{code}"
+                r_name = e.get("room_name", "")
+                label = f"{b_name_s}\n{code}"
+                if r_name:
+                    label += f"\n[{r_name}]"
+                cell.value = label
                 cell.alignment = al_center
                 cell.font = f_body_bold if is_lab else f_body
                 cell.fill = PatternFill(start_color=get_subject_hex(code), fill_type='solid')
@@ -452,7 +459,9 @@ def generate_excel(data, sem_type=None):
 
             lines = []
             for e in entries:
-                lines.append(f"{e.get('course_code')} ({e.get('batch_name')})\n{e.get('teacher_name')}")
+                r_name = e.get("room_name", "")
+                r_tag = f" [{r_name}]" if r_name else ""
+                lines.append(f"{e.get('course_code')} ({e.get('batch_name')}){r_tag}\n{e.get('teacher_name')}")
             cell.value = "\n---\n".join(lines)
             cell.alignment = al_center
             cell.font = f_body_bold
@@ -645,6 +654,9 @@ def generate_class_pdf(data, sem_type=None):
                     cell_p.append(Paragraph(t_name, p_cell_sub))
                 if sb_name:
                     cell_p.append(Paragraph(f"[{sb_name}]", p_cell_sub))
+                r_name = e.get("room_name", "")
+                if r_name:
+                    cell_p.append(Paragraph(f"[{r_name}]", p_cell_sub))
 
                 row_cells_temp[c_col] = cell_p
                 table_styles.append(('BACKGROUND', (c_col, row_index), (c_col, row_index), get_subject_reportlab_color(code)))
@@ -873,6 +885,9 @@ def generate_faculty_pdf(data, sem_type=None):
                 is_lab = e.get("is_lab", False)
 
                 cell_p = [Paragraph(f"<b>{b_name_s}</b>", p_cell_code), Paragraph(code, p_cell_sub)]
+                r_name = e.get("room_name", "")
+                if r_name:
+                    cell_p.append(Paragraph(f"[{r_name}]", p_cell_sub))
                 row_cells_temp[c_col] = cell_p
                 table_styles.append(('BACKGROUND', (c_col, row_index), (c_col, row_index), get_subject_reportlab_color(code)))
 

@@ -3,7 +3,16 @@
   "builds": [
     {
       "src": "api/index.py",
-      "use": "@vercel/python"
+      "use": "@vercel/python",
+      "config": {
+        "maxDuration": 60,
+        "includeFiles": [
+          "app.py",
+          "scheduler.py",
+          "exporter.py",
+          "timetable_data.json"
+        ]
+      }
     },
     {
       "src": "static/**",
