@@ -760,13 +760,13 @@
     <!-- ========================================================================= -->
     <section v-if="currentTab === 'settings'" class="space-y-8">
       
-      <!-- Core Scheduling Rules with FET Confidence Levels -->
+      <!-- Core Algorithmic Scheduling Rules & Optimizer Weights -->
       <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-xs space-y-6">
         <div class="border-b pb-3 flex flex-wrap items-center justify-between gap-3">
           <div>
             <div class="flex items-center gap-2">
-              <h2 class="text-sm font-bold uppercase tracking-wider text-slate-800">FET-Style Constraint Weighting & Confidence Levels</h2>
-              <span class="text-[10px] bg-indigo-50 text-indigo-700 border border-indigo-200 px-2 py-0.5 rounded-full font-bold">FET Architecture</span>
+              <h2 class="text-sm font-bold uppercase tracking-wider text-slate-800">Algorithmic Constraint Weighting &amp; Optimizer Settings</h2>
+              <span class="text-[10px] bg-indigo-50 text-indigo-700 border border-indigo-200 px-2 py-0.5 rounded-full font-bold">Heuristic Engine</span>
             </div>
             <p class="text-xs text-slate-500 mt-0.5">Customize constraint weights from 0% (disabled) to 100% (strict hard). Soft constraints guide heuristic optimization with confidence levels.</p>
           </div>
@@ -774,13 +774,13 @@
           <!-- Preset Controls -->
           <div class="flex items-center gap-1.5 text-xs">
             <span class="text-slate-400 font-medium mr-1 text-[11px]">Presets:</span>
-            <button @click="applyFETPreset('default')" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md font-semibold text-[11px] transition">
+            <button @click="applyWeightPreset('default')" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md font-semibold text-[11px] transition">
               Recommended (85-95%)
             </button>
-            <button @click="applyFETPreset('strict')" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md font-semibold text-[11px] transition">
+            <button @click="applyWeightPreset('strict')" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md font-semibold text-[11px] transition">
               100% Strict Hard
             </button>
-            <button @click="applyFETPreset('relaxed')" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md font-semibold text-[11px] transition">
+            <button @click="applyWeightPreset('relaxed')" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md font-semibold text-[11px] transition">
               Relaxed (70%)
             </button>
           </div>
@@ -791,8 +791,8 @@
           <div class="space-y-2.5 bg-slate-50 p-4 rounded-lg border border-slate-200">
             <div class="flex items-center justify-between">
               <label class="block font-bold text-slate-800">Max Daily Teaching Hours</label>
-              <span :class="getFETBadgeClass(data.config.advanced_constraints.max_daily_weight ?? 95)" class="text-[10px] px-2 py-0.5 rounded-full font-bold border">
-                {{ getFETWeightLabel(data.config.advanced_constraints.max_daily_weight ?? 95) }}
+              <span :class="getWeightBadgeClass(data.config.advanced_constraints.max_daily_weight ?? 95)" class="text-[10px] px-2 py-0.5 rounded-full font-bold border">
+                {{ getWeightLabel(data.config.advanced_constraints.max_daily_weight ?? 95) }}
               </span>
             </div>
             <div class="flex items-center gap-2">
@@ -813,8 +813,8 @@
           <div class="space-y-2.5 bg-slate-50 p-4 rounded-lg border border-slate-200">
             <div class="flex items-center justify-between">
               <label class="block font-bold text-slate-800">Max Consecutive Hours</label>
-              <span :class="getFETBadgeClass(data.config.advanced_constraints.consecutive_weight ?? 95)" class="text-[10px] px-2 py-0.5 rounded-full font-bold border">
-                {{ getFETWeightLabel(data.config.advanced_constraints.consecutive_weight ?? 95) }}
+              <span :class="getWeightBadgeClass(data.config.advanced_constraints.consecutive_weight ?? 95)" class="text-[10px] px-2 py-0.5 rounded-full font-bold border">
+                {{ getWeightLabel(data.config.advanced_constraints.consecutive_weight ?? 95) }}
               </span>
             </div>
             <div class="flex items-center gap-2">
@@ -835,8 +835,8 @@
           <div class="space-y-2.5 bg-slate-50 p-4 rounded-lg border border-slate-200">
             <div class="flex items-center justify-between">
               <label class="block font-bold text-slate-800">Theory on 1st Hour Always</label>
-              <span :class="getFETBadgeClass(data.config.advanced_constraints.theory_1st_weight ?? 95)" class="text-[10px] px-2 py-0.5 rounded-full font-bold border">
-                {{ getFETWeightLabel(data.config.advanced_constraints.theory_1st_weight ?? 95) }}
+              <span :class="getWeightBadgeClass(data.config.advanced_constraints.theory_1st_weight ?? 95)" class="text-[10px] px-2 py-0.5 rounded-full font-bold border">
+                {{ getWeightLabel(data.config.advanced_constraints.theory_1st_weight ?? 95) }}
               </span>
             </div>
             <div class="text-xs font-semibold text-indigo-800 flex items-center gap-1.5 py-0.5">
@@ -855,9 +855,9 @@
           <!-- 4. Fill Prime Hours (1st, 4th, 5th) -->
           <div class="space-y-2.5 bg-slate-50 p-4 rounded-lg border border-slate-200">
             <div class="flex items-center justify-between">
-              <label class="block font-bold text-slate-800">Fill 1st, 4th & 5th Hours</label>
-              <span :class="getFETBadgeClass(data.config.advanced_constraints.prime_hours_weight ?? 90)" class="text-[10px] px-2 py-0.5 rounded-full font-bold border">
-                {{ getFETWeightLabel(data.config.advanced_constraints.prime_hours_weight ?? 90) }}
+              <label class="block font-bold text-slate-800">Fill 1st, 4th &amp; 5th Hours</label>
+              <span :class="getWeightBadgeClass(data.config.advanced_constraints.prime_hours_weight ?? 90)" class="text-[10px] px-2 py-0.5 rounded-full font-bold border">
+                {{ getWeightLabel(data.config.advanced_constraints.prime_hours_weight ?? 90) }}
               </span>
             </div>
             <div class="text-xs font-semibold text-indigo-800 flex items-center gap-1.5 py-0.5">
@@ -877,8 +877,8 @@
           <div class="space-y-2.5 bg-slate-50 p-4 rounded-lg border border-slate-200">
             <div class="flex items-center justify-between">
               <label class="block font-bold text-slate-800">Faculty Free Day</label>
-              <span :class="getFETBadgeClass(data.config.advanced_constraints.free_day_weight ?? 95)" class="text-[10px] px-2 py-0.5 rounded-full font-bold border">
-                {{ getFETWeightLabel(data.config.advanced_constraints.free_day_weight ?? 95) }}
+              <span :class="getWeightBadgeClass(data.config.advanced_constraints.free_day_weight ?? 95)" class="text-[10px] px-2 py-0.5 rounded-full font-bold border">
+                {{ getWeightLabel(data.config.advanced_constraints.free_day_weight ?? 95) }}
               </span>
             </div>
             <div class="text-xs font-semibold text-emerald-800 flex items-center gap-1.5 py-0.5">
@@ -898,8 +898,8 @@
           <div class="space-y-2.5 bg-slate-50 p-4 rounded-lg border border-slate-200">
             <div class="flex items-center justify-between">
               <label class="block font-bold text-slate-800">Balanced Weekly Spread</label>
-              <span :class="getFETBadgeClass(data.config.advanced_constraints.even_dist_weight ?? 85)" class="text-[10px] px-2 py-0.5 rounded-full font-bold border">
-                {{ getFETWeightLabel(data.config.advanced_constraints.even_dist_weight ?? 85) }}
+              <span :class="getWeightBadgeClass(data.config.advanced_constraints.even_dist_weight ?? 85)" class="text-[10px] px-2 py-0.5 rounded-full font-bold border">
+                {{ getWeightLabel(data.config.advanced_constraints.even_dist_weight ?? 85) }}
               </span>
             </div>
             <div class="text-xs font-semibold text-slate-800 flex items-center gap-1.5 py-0.5">
@@ -914,10 +914,74 @@
             </div>
             <p class="text-[11px] text-slate-500">Prevents clustering lectures on consecutive days; distributes load evenly.</p>
           </div>
+
+          <!-- 7. Minimize Faculty Idle Gaps -->
+          <div class="space-y-2.5 bg-slate-50 p-4 rounded-lg border border-slate-200">
+            <div class="flex items-center justify-between">
+              <label class="block font-bold text-slate-800">Minimize Faculty Idle Gaps</label>
+              <span :class="getWeightBadgeClass(data.config.advanced_constraints.faculty_gaps_weight ?? 85)" class="text-[10px] px-2 py-0.5 rounded-full font-bold border">
+                {{ getWeightLabel(data.config.advanced_constraints.faculty_gaps_weight ?? 85) }}
+              </span>
+            </div>
+            <div class="text-xs font-semibold text-indigo-800 flex items-center gap-1.5 py-0.5">
+              <span>☕</span> Compact Daily Faculty Hours
+            </div>
+            <div>
+              <div class="flex justify-between text-[11px] text-slate-500 mb-1">
+                <span>Confidence Level</span>
+                <span class="font-bold text-indigo-700">{{ data.config.advanced_constraints.faculty_gaps_weight ?? 85 }}%</span>
+              </div>
+              <input type="range" min="0" max="100" step="5" v-model.number="data.config.advanced_constraints.faculty_gaps_weight" class="w-full accent-indigo-600 cursor-pointer">
+            </div>
+            <p class="text-[11px] text-slate-500">Eliminates empty waiting hours between a faculty member's first and last class.</p>
+          </div>
+
+          <!-- 8. Contiguous Student Hours -->
+          <div class="space-y-2.5 bg-slate-50 p-4 rounded-lg border border-slate-200">
+            <div class="flex items-center justify-between">
+              <label class="block font-bold text-slate-800">Contiguous Student Hours</label>
+              <span :class="getWeightBadgeClass(data.config.advanced_constraints.student_gaps_weight ?? 90)" class="text-[10px] px-2 py-0.5 rounded-full font-bold border">
+                {{ getWeightLabel(data.config.advanced_constraints.student_gaps_weight ?? 90) }}
+              </span>
+            </div>
+            <div class="text-xs font-semibold text-emerald-800 flex items-center gap-1.5 py-0.5">
+              <span>🎒</span> Zero Student Idle Gaps
+            </div>
+            <div>
+              <div class="flex justify-between text-[11px] text-slate-500 mb-1">
+                <span>Confidence Level</span>
+                <span class="font-bold text-indigo-700">{{ data.config.advanced_constraints.student_gaps_weight ?? 90 }}%</span>
+              </div>
+              <input type="range" min="0" max="100" step="5" v-model.number="data.config.advanced_constraints.student_gaps_weight" class="w-full accent-indigo-600 cursor-pointer">
+            </div>
+            <p class="text-[11px] text-slate-500">Prevents sporadic idle periods for student batches, keeping blocks continuous.</p>
+          </div>
+
+          <!-- 9. Faculty Max Days per Week -->
+          <div class="space-y-2.5 bg-slate-50 p-4 rounded-lg border border-slate-200">
+            <div class="flex items-center justify-between">
+              <label class="block font-bold text-slate-800">Faculty Max Days / Week</label>
+              <span :class="getWeightBadgeClass(data.config.advanced_constraints.max_days_weight ?? 90)" class="text-[10px] px-2 py-0.5 rounded-full font-bold border">
+                {{ getWeightLabel(data.config.advanced_constraints.max_days_weight ?? 90) }}
+              </span>
+            </div>
+            <div class="flex items-center gap-2">
+              <input v-model.number="data.config.advanced_constraints.faculty_max_days_per_week" aria-label="Faculty Max Days Per Week" type="number" min="1" max="6" class="border rounded-md px-2.5 py-1 w-20 font-bold bg-white text-xs">
+              <span class="text-slate-500 text-[11px]">days / week max</span>
+            </div>
+            <div>
+              <div class="flex justify-between text-[11px] text-slate-500 mb-1">
+                <span>Confidence Level</span>
+                <span class="font-bold text-indigo-700">{{ data.config.advanced_constraints.max_days_weight ?? 90 }}%</span>
+              </div>
+              <input type="range" min="0" max="100" step="5" v-model.number="data.config.advanced_constraints.max_days_weight" class="w-full accent-indigo-600 cursor-pointer">
+            </div>
+            <p class="text-[11px] text-slate-500">Caps weekly active teaching days so faculty have focused non-teaching days.</p>
+          </div>
         </div>
 
         <div class="pt-2 flex items-center justify-between border-t border-slate-100">
-          <p class="text-[11px] text-slate-500">FET weights dynamically govern solver heuristics and pruning thresholds.</p>
+          <p class="text-[11px] text-slate-500">Constraint weights dynamically govern solver heuristics and pruning thresholds.</p>
           <button @click="saveStateToServer" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-bold shadow-xs transition">
             Save Constraint Settings
           </button>
@@ -1052,8 +1116,38 @@
             <span class="inline-flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded bg-rose-500 inline-block"></span> Blocked</span>
           </div>
           <div class="text-[11px] text-indigo-700 bg-indigo-50 border border-indigo-200 px-2.5 py-1 rounded-md flex items-center gap-1.5 shadow-2xs">
-            <span>✨</span> <span><strong>Drag &amp; Drop Enabled:</strong> Drag any class to an open slot to move, or onto another class to swap with instant FET validation.</span>
+            <span>✨</span> <span><strong>Drag &amp; Drop Enabled:</strong> Drag any class to an open slot to move, or onto another class to swap with instant constraint validation.</span>
           </div>
+        </div>
+      </div>
+
+      <!-- Sticky Real-time Schedule Conflict Banner -->
+      <div v-if="activeClashes.length > 0" class="bg-gradient-to-r from-rose-600 to-rose-700 text-white p-4 rounded-xl shadow-lg border border-rose-500 flex flex-wrap items-center justify-between gap-4 no-print">
+        <div class="flex items-start gap-3">
+          <div class="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-xl font-bold flex-shrink-0 mt-0.5">
+            ⚠️
+          </div>
+          <div>
+            <div class="font-extrabold text-sm tracking-wide flex items-center gap-2">
+              <span>{{ activeClashes.length }} SCHEDULE CONFLICT{{ activeClashes.length > 1 ? 'S' : '' }} DETECTED</span>
+              <span class="bg-white/25 px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider">Collision Alert</span>
+            </div>
+            <p class="text-xs text-rose-100 mt-1 max-w-3xl leading-relaxed">
+              <strong>{{ activeClashes[0].entityName }}:</strong> {{ activeClashes[0].description }}
+              <span v-if="activeClashes.length > 1" class="font-semibold text-rose-200"> (+{{ activeClashes.length - 1 }} more conflicts)</span>
+            </p>
+          </div>
+        </div>
+        
+        <div class="flex items-center gap-2">
+          <button @click="conflictModalOpen = true" class="px-3.5 py-2 bg-white/20 hover:bg-white/30 text-white rounded-lg text-xs font-bold transition flex items-center gap-1.5 backdrop-blur-xs">
+            <span>👁️ Inspect All ({{ activeClashes.length }})</span>
+          </button>
+          <button @click="autoResolveClashes" :disabled="generating" class="px-4 py-2 bg-white text-rose-700 hover:bg-rose-50 rounded-lg text-xs font-black shadow-md transition flex items-center gap-1.5">
+            <span v-if="generating" class="animate-spin inline-block">🔄</span>
+            <span v-else>⚡</span>
+            <span>Auto-Resolve &amp; Regenerate</span>
+          </button>
         </div>
       </div>
 
@@ -1103,6 +1197,7 @@
                       :class="[
                         p.is_break ? 'bg-amber-50/70 text-amber-900 font-medium' : (isSlotClosed(dayIdx, pIdx) ? 'bg-slate-100/60 text-slate-400' : ''),
                         isDropTarget(target, dayIdx, pIdx) ? 'ring-2 ring-indigo-500 bg-indigo-50/50' : '',
+                        isCellClashing(target, dayIdx, pIdx) ? 'ring-2 ring-rose-500 bg-rose-50/80 border-rose-400' : '',
                         'p-1 border-r border-slate-200 align-top h-20 transition-all'
                       ]">
                     
@@ -1131,18 +1226,22 @@
                     <!-- Active teaching slot -->
                     <div v-else class="space-y-1 h-full flex flex-col justify-start">
                       <div v-for="entry in getCellEntries(target, dayIdx, pIdx)" :key="entry.id"
-                           :draggable="true"
-                           @dragstart="onSessionDragStart($event, entry, target)"
-                           @dragend="onSessionDragEnd($event)"
-                           :class="[
-                             getCourseColorClasses(entry.course_code, entry.is_lab),
-                             draggedSession?.entry?.id === entry.id ? 'opacity-40 scale-95 ring-2 ring-indigo-400' : 'hover:shadow-sm'
-                           ]"
-                           class="p-1 rounded border shadow-2xs text-left text-[10px] leading-tight overflow-hidden transition cursor-grab active:cursor-grabbing select-none group relative"
-                           title="Drag to move or swap this session">
+                            :draggable="true"
+                            @dragstart="onSessionDragStart($event, entry, target)"
+                            @dragend="onSessionDragEnd($event)"
+                            :class="[
+                              getCourseColorClasses(entry.course_code, entry.is_lab),
+                              draggedSession?.entry?.id === entry.id ? 'opacity-40 scale-95 ring-2 ring-indigo-400' : 'hover:shadow-sm',
+                              isEntryClashing(entry) ? 'ring-2 ring-rose-500 border-rose-400 bg-rose-50 text-rose-950 font-semibold' : ''
+                            ]"
+                            class="p-1 rounded border shadow-2xs text-left text-[10px] leading-tight overflow-hidden transition cursor-grab active:cursor-grabbing select-none group relative"
+                            :title="isEntryClashing(entry) ? getEntryClashReason(entry) : 'Drag to move or swap this session'">
                         <div class="flex items-center justify-between gap-0.5">
                           <span class="font-mono font-bold">{{ entry.course_code }}</span>
-                          <span v-if="entry.is_lab" class="px-1 py-0.2 rounded text-[8px] font-bold uppercase" :class="getCourseBadgeClass(entry.course_code)">
+                          <span v-if="isEntryClashing(entry)" class="px-1 py-0.2 rounded text-[8px] font-black uppercase bg-rose-600 text-white animate-pulse" :title="getEntryClashReason(entry)">
+                            ⚠️ Clash
+                          </span>
+                          <span v-else-if="entry.is_lab" class="px-1 py-0.2 rounded text-[8px] font-bold uppercase" :class="getCourseBadgeClass(entry.course_code)">
                             LAB
                           </span>
                           <span v-else-if="entry.sub_batch_name" class="bg-slate-200/80 text-slate-800 font-bold px-1 rounded text-[8px] truncate max-w-[50px]">
@@ -1154,6 +1253,9 @@
                           <span v-if="target.type !== 'teacher'" class="font-medium text-slate-800 truncate" :title="entry.teacher_name">{{ entry.teacher_code || getFacultyFirstName(entry.teacher_name) || entry.teacher_name }}</span>
                           <span v-else class="font-bold text-slate-800">{{ entry.batch_name }}</span>
                           <span class="text-slate-500 font-mono text-[8px] bg-white/70 px-1 rounded truncate">{{ resolveEntryRoomName(entry) }}</span>
+                        </div>
+                        <div v-if="isEntryClashing(entry)" class="text-[8px] text-rose-700 font-bold mt-0.5 truncate bg-rose-100/90 px-1 py-0.2 rounded" :title="getEntryClashReason(entry)">
+                          {{ getEntryClashReason(entry) }}
                         </div>
                       </div>
 
@@ -1175,6 +1277,89 @@
   <!-- ========================================================================= -->
   <!-- MODALS -->
   <!-- ========================================================================= -->
+
+  <!-- MODAL: SCHEDULE CONFLICT INSPECTOR -->
+  <div v-if="conflictModalOpen" 
+       role="dialog" aria-modal="true" aria-labelledby="conflict-modal-title"
+       class="fixed inset-0 bg-slate-900/60 backdrop-blur-2xs flex items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-xl shadow-xl border border-slate-200 max-w-2xl w-full p-6 space-y-5">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <div class="flex items-center gap-3">
+          <div class="p-2 rounded-lg bg-rose-100 text-rose-700">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+            </svg>
+          </div>
+          <div>
+            <h3 id="conflict-modal-title" class="font-bold text-base text-slate-900">Schedule Conflict Inspector</h3>
+            <p class="text-xs text-slate-500">Live collision detector across faculty, batches, and rooms</p>
+          </div>
+        </div>
+        <button @click="conflictModalOpen = false" aria-label="Close dialog" class="text-slate-400 hover:text-slate-600 font-bold p-1">✕</button>
+      </div>
+
+      <div v-if="activeClashes.length === 0" class="p-6 bg-emerald-50 rounded-xl border border-emerald-200 text-center space-y-2">
+        <div class="text-3xl">✅</div>
+        <div class="font-bold text-emerald-900 text-sm">Schedule is 100% Conflict-Free!</div>
+        <p class="text-xs text-emerald-700">No faculty double-bookings, batch overlaps, or venue collisions detected.</p>
+      </div>
+
+      <div v-else class="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
+        <div class="text-xs text-slate-600 font-medium">
+          Found <span class="font-bold text-rose-600">{{ activeClashes.length }} collision(s)</span> in current timetable:
+        </div>
+
+        <div v-for="clash in activeClashes" :key="clash.id" class="p-4 bg-rose-50/80 rounded-xl border border-rose-200 space-y-3 text-xs">
+          <div class="flex items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+              <span class="px-2 py-0.5 rounded font-bold uppercase text-[10px] bg-rose-600 text-white tracking-wider">
+                {{ clash.type === 'teacher' ? 'Faculty Double-Booked' : (clash.type === 'room' ? 'Venue Clashed' : 'Batch Overlap') }}
+              </span>
+              <span class="font-bold text-slate-900 text-sm">{{ clash.entityName }}</span>
+            </div>
+            <span class="font-semibold text-rose-900 bg-rose-100 px-2.5 py-0.5 rounded border border-rose-300 text-[11px]">
+              {{ clash.dayName }} &bull; {{ clash.periodLabel }}
+            </span>
+          </div>
+
+          <p class="text-slate-700 text-xs font-medium">
+            {{ clash.description }}
+          </p>
+
+          <!-- Conflicting sessions comparison -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-2 pt-1">
+            <div v-for="entry in clash.entries" :key="entry.id" class="p-2.5 bg-white rounded-lg border border-rose-200 shadow-2xs space-y-1">
+              <div class="flex items-center justify-between">
+                <span class="font-mono font-bold text-indigo-700">{{ entry.course_code }}</span>
+                <span class="px-1.5 py-0.2 rounded text-[9px] font-bold" :class="entry.is_lab ? 'bg-indigo-100 text-indigo-800' : 'bg-slate-100 text-slate-700'">
+                  {{ entry.is_lab ? 'LAB' : 'THEORY' }}
+                </span>
+              </div>
+              <div class="text-[11px] font-medium text-slate-800 truncate" :title="entry.course_name">{{ entry.course_name }}</div>
+              <div class="text-[10px] text-slate-600 flex justify-between pt-1 border-t border-slate-100">
+                <span>Class: <strong>{{ entry.batch_name }}</strong></span>
+                <span>Venue: <strong>{{ resolveEntryRoomName(entry) || 'TBD' }}</strong></span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-between pt-3 border-t border-slate-100">
+        <p class="text-[11px] text-slate-500">The Algorithmic Optimizer will automatically find conflict-free slots for all courses.</p>
+        <div class="flex items-center gap-2">
+          <button @click="conflictModalOpen = false" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold">
+            Close
+          </button>
+          <button @click="autoResolveClashes" :disabled="generating" class="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-lg text-xs font-bold shadow-xs transition flex items-center gap-1.5">
+            <span v-if="generating" class="animate-spin inline-block">🔄</span>
+            <span v-else>⚡</span>
+            <span>Auto-Resolve via Optimizer</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- MODAL: PRE-CHECK DIAGNOSTIC REPORT -->
   <div v-if="diagnosticModal.open" 
@@ -1844,7 +2029,7 @@
             </h3>
             <p class="text-xs text-slate-500">
               <span v-if="moveModal.canMove" class="text-emerald-700 font-semibold">Constraint Validation Passed (0 Conflicts)</span>
-              <span v-else class="text-rose-600 font-semibold">FET Constraint Conflict Detected</span>
+              <span v-else class="text-rose-600 font-semibold">Schedule Constraint Conflict Detected</span>
             </p>
           </div>
         </div>
@@ -2373,7 +2558,14 @@ createApp({
       propagateCourseFacultyUpdate(c);
       multiFacultyModal.value.open = false;
       saveStateToServer();
-      showToast(`Assigned ${ids.length} faculty to ${c.code} and updated all matching timetable sessions.`, 'success');
+
+      // Check if newly assigned faculty created schedule conflicts
+      const clashes = activeClashes.value;
+      if (clashes.length > 0) {
+        showToast(`Assigned ${ids.length} faculty to ${c.code}. ⚠️ Warning: ${clashes.length} collision(s) detected! Click 'Auto-Resolve & Regenerate' on timetable.`, 'warning');
+      } else {
+        showToast(`Assigned ${ids.length} faculty to ${c.code} and updated all matching timetable sessions.`, 'success');
+      }
     };
 
     const getAssignedFacultyCount = c => {
@@ -2757,7 +2949,12 @@ createApp({
       propagateCourseFacultyUpdate(sForm);
       saveStateToServer();
       subjectModal.value.open = false;
-      showToast(`Saved ${sForm.code} and updated timetable sessions.`, 'success');
+      const clashes = activeClashes.value;
+      if (clashes.length > 0) {
+        showToast(`Saved ${sForm.code}. ⚠️ Warning: ${clashes.length} collision(s) detected! Click 'Auto-Resolve & Regenerate' on timetable.`, 'warning');
+      } else {
+        showToast(`Saved ${sForm.code} and updated timetable sessions.`, 'success');
+      }
     };
 
     const deleteSubject = id => {
@@ -3209,6 +3406,7 @@ createApp({
     const generateTimetable = async () => {
       generating.value = true;
       try {
+        await saveStateToServer();
         const res = await fetch('/api/generate', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -3230,7 +3428,8 @@ createApp({
 
         if (json.success) {
           data.value.timetable = json.schedule;
-          showToast(`Timetable solved in ${json.attempts} attempts.`, 'success');
+          saveStateToServer();
+          showToast(`Timetable solved in ${json.attempts} attempts. All constraints satisfied.`, 'success');
           currentTab.value = 'timetable';
         } else {
           showToast(json.message || 'Could not satisfy all constraints.', 'error');
@@ -3242,8 +3441,183 @@ createApp({
       }
     };
 
-    // FET Confidence Badge & Preset Helpers
-    const getFETBadgeClass = (w) => {
+    // =========================================================================
+    // REAL-TIME CONFLICT DETECTOR & COLLISION MATRIX (INSTITUTIONAL AUDIT)
+    // =========================================================================
+    const conflictModalOpen = ref(false);
+
+    const activeClashes = computed(() => {
+      const timetable = data.value.timetable || [];
+      if (timetable.length === 0) return [];
+
+      const clashes = [];
+
+      // 1. Teacher Double-Booking: Same teacher in same (day, period) across multiple distinct entries
+      const teacherSlotMap = {};
+      timetable.forEach(entry => {
+        if (entry.day === undefined || entry.period === undefined) return;
+        const tids = entry.teacher_ids && entry.teacher_ids.length > 0 
+          ? entry.teacher_ids 
+          : (entry.teacher_id ? [entry.teacher_id] : []);
+        
+        tids.forEach(tid => {
+          if (!tid) return;
+          const key = `${entry.day}_${entry.period}_${tid}`;
+          if (!teacherSlotMap[key]) teacherSlotMap[key] = [];
+          teacherSlotMap[key].push(entry);
+        });
+      });
+
+      Object.entries(teacherSlotMap).forEach(([key, entries]) => {
+        if (entries.length > 1) {
+          const [dayStr, periodStr, tid] = key.split('_');
+          const day = Number(dayStr);
+          const period = Number(periodStr);
+          const teacher = (data.value.faculty || []).find(f => f.id === tid);
+          const teacherName = teacher ? teacher.name : tid;
+          const dayName = getDayName(day);
+          const periodObj = (data.value.config?.periods || [])[period];
+          const periodLabel = periodObj ? `${periodObj.name} (${periodObj.time})` : `Period ${period + 1}`;
+
+          clashes.push({
+            id: `teacher_${key}`,
+            type: 'teacher',
+            severity: 'critical',
+            entityId: tid,
+            entityName: teacherName,
+            day,
+            period,
+            dayName,
+            periodLabel,
+            description: `${teacherName} is double-booked for ${entries.length} simultaneous classes on ${dayName} at ${periodLabel}`,
+            entries,
+            entryIds: entries.map(e => e.id),
+            courseCodes: entries.map(e => e.course_code).join(', '),
+            batchNames: entries.map(e => e.batch_name || e.batch_id).join(', ')
+          });
+        }
+      });
+
+      // 2. Room Double-Booking: Same room in same (day, period) across distinct entries (ignore TBD/unassigned)
+      const roomSlotMap = {};
+      timetable.forEach(entry => {
+        if (entry.day === undefined || entry.period === undefined || !entry.room_id || entry.room_id === 'r_tbd') return;
+        const key = `${entry.day}_${entry.period}_${entry.room_id}`;
+        if (!roomSlotMap[key]) roomSlotMap[key] = [];
+        roomSlotMap[key].push(entry);
+      });
+
+      Object.entries(roomSlotMap).forEach(([key, entries]) => {
+        if (entries.length > 1) {
+          const [dayStr, periodStr, rid] = key.split('_');
+          const day = Number(dayStr);
+          const period = Number(periodStr);
+          const room = (data.value.rooms || []).find(r => r.id === rid);
+          const roomName = room ? room.name : rid;
+          const dayName = getDayName(day);
+          const periodObj = (data.value.config?.periods || [])[period];
+          const periodLabel = periodObj ? `${periodObj.name} (${periodObj.time})` : `Period ${period + 1}`;
+
+          clashes.push({
+            id: `room_${key}`,
+            type: 'room',
+            severity: 'critical',
+            entityId: rid,
+            entityName: roomName,
+            day,
+            period,
+            dayName,
+            periodLabel,
+            description: `Venue ${roomName} is double-booked for ${entries.length} simultaneous sessions on ${dayName} at ${periodLabel}`,
+            entries,
+            entryIds: entries.map(e => e.id),
+            courseCodes: entries.map(e => e.course_code).join(', '),
+            batchNames: entries.map(e => e.batch_name || e.batch_id).join(', ')
+          });
+        }
+      });
+
+      // 3. Whole Batch Double-Booking: Same batch (without sub-batches) scheduled for multiple classes in same slot
+      const batchSlotMap = {};
+      timetable.forEach(entry => {
+        if (entry.day === undefined || entry.period === undefined || !entry.batch_id || entry.sub_batch_id) return;
+        const key = `${entry.day}_${entry.period}_${entry.batch_id}`;
+        if (!batchSlotMap[key]) batchSlotMap[key] = [];
+        batchSlotMap[key].push(entry);
+      });
+
+      Object.entries(batchSlotMap).forEach(([key, entries]) => {
+        if (entries.length > 1) {
+          const [dayStr, periodStr, bid] = key.split('_');
+          const day = Number(dayStr);
+          const period = Number(periodStr);
+          const batch = (data.value.batches || []).find(b => b.id === bid);
+          const batchName = batch ? batch.name : bid;
+          const dayName = getDayName(day);
+          const periodObj = (data.value.config?.periods || [])[period];
+          const periodLabel = periodObj ? `${periodObj.name} (${periodObj.time})` : `Period ${period + 1}`;
+
+          clashes.push({
+            id: `batch_${key}`,
+            type: 'batch',
+            severity: 'critical',
+            entityId: bid,
+            entityName: batchName,
+            day,
+            period,
+            dayName,
+            periodLabel,
+            description: `Batch ${batchName} has ${entries.length} simultaneous classes on ${dayName} at ${periodLabel}`,
+            entries,
+            entryIds: entries.map(e => e.id),
+            courseCodes: entries.map(e => e.course_code).join(', ')
+          });
+        }
+      });
+
+      return clashes;
+    });
+
+    const isEntryClashing = (entry) => {
+      if (!entry || !entry.id) return false;
+      return activeClashes.value.some(c => c.entryIds.includes(entry.id));
+    };
+
+    const getEntryClashReason = (entry) => {
+      if (!entry || !entry.id) return '';
+      const clash = activeClashes.value.find(c => c.entryIds.includes(entry.id));
+      if (!clash) return '';
+      if (clash.type === 'teacher') {
+        const others = clash.entries.filter(e => e.id !== entry.id);
+        const otherCodes = others.map(e => `${e.course_code} (${e.batch_name || e.batch_id})`).join(', ');
+        return `⚠️ Double-Booked: ${clash.entityName} also scheduled for ${otherCodes}`;
+      } else if (clash.type === 'room') {
+        return `⚠️ Venue Collision: ${clash.entityName} double-booked`;
+      } else {
+        return `⚠️ Batch Overlap: ${clash.entityName} double-booked`;
+      }
+    };
+
+    const isCellClashing = (target, dayIdx, periodIdx) => {
+      return activeClashes.value.some(c => {
+        if (c.day !== dayIdx || c.period !== periodIdx) return false;
+        if (target.type === 'teacher' && c.type === 'teacher' && c.entityId === target.id) return true;
+        if (target.type === 'room' && c.type === 'room' && c.entityId === target.id) return true;
+        if (target.type === 'batch') {
+          const cellEntries = getCellEntries(target, dayIdx, periodIdx);
+          return cellEntries.some(e => c.entryIds.includes(e.id));
+        }
+        return false;
+      });
+    };
+
+    const autoResolveClashes = async () => {
+      conflictModalOpen.value = false;
+      await generateTimetable();
+    };
+
+    // Constraint Confidence Badge & Preset Helpers
+    const getWeightBadgeClass = (w) => {
       const val = Number(w ?? 95);
       if (val >= 100) return 'bg-rose-100 text-rose-800 border-rose-300';
       if (val >= 85) return 'bg-emerald-100 text-emerald-800 border-emerald-300';
@@ -3251,7 +3625,7 @@ createApp({
       return 'bg-slate-100 text-slate-700 border-slate-300';
     };
 
-    const getFETWeightLabel = (w) => {
+    const getWeightLabel = (w) => {
       const val = Number(w ?? 95);
       if (val >= 100) return '100% Strict Hard';
       if (val >= 85) return `${val}% High Priority`;
@@ -3260,7 +3634,7 @@ createApp({
       return '0% Disabled';
     };
 
-    const applyFETPreset = (preset) => {
+    const applyWeightPreset = (preset) => {
       if (!data.value.config.advanced_constraints) {
         data.value.config.advanced_constraints = {};
       }
@@ -3272,7 +3646,10 @@ createApp({
         c.prime_hours_weight = 100;
         c.free_day_weight = 100;
         c.even_dist_weight = 100;
-        showToast('Applied 100% Strict Hard FET preset.', 'info');
+        c.faculty_gaps_weight = 100;
+        c.student_gaps_weight = 100;
+        c.max_days_weight = 100;
+        showToast('Applied 100% Strict Hard constraint preset.', 'info');
       } else if (preset === 'relaxed') {
         c.max_daily_weight = 70;
         c.consecutive_weight = 75;
@@ -3280,7 +3657,10 @@ createApp({
         c.prime_hours_weight = 70;
         c.free_day_weight = 70;
         c.even_dist_weight = 65;
-        showToast('Applied Relaxed (70%) FET preset.', 'info');
+        c.faculty_gaps_weight = 65;
+        c.student_gaps_weight = 70;
+        c.max_days_weight = 75;
+        showToast('Applied Relaxed (70%) constraint preset.', 'info');
       } else {
         // default / recommended
         c.max_daily_weight = 95;
@@ -3289,7 +3669,10 @@ createApp({
         c.prime_hours_weight = 90;
         c.free_day_weight = 95;
         c.even_dist_weight = 85;
-        showToast('Applied Recommended FET preset (85–95%).', 'info');
+        c.faculty_gaps_weight = 85;
+        c.student_gaps_weight = 90;
+        c.max_days_weight = 90;
+        showToast('Applied Recommended constraint preset (85–95%).', 'info');
       }
       saveStateToServer();
     };
@@ -3705,9 +4088,15 @@ createApp({
       generateTimetable,
       saveStateToServer,
       triggerPrint,
-      getFETBadgeClass,
-      getFETWeightLabel,
-      applyFETPreset,
+      getWeightBadgeClass,
+      getWeightLabel,
+      applyWeightPreset,
+      conflictModalOpen,
+      activeClashes,
+      isEntryClashing,
+      getEntryClashReason,
+      isCellClashing,
+      autoResolveClashes,
       draggedSession,
       dragOverTarget,
       isDropTarget,

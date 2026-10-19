@@ -1,6 +1,6 @@
-# 📅 Smart Timetable Portal (Simplified FET Alternative)
+# 📅 Smart Timetable Portal (Institutional Academic Timetable System)
 
-A modern, fast, web-based timetable generator designed specifically for college departments and academic institutions. Unlike FET, it eliminates unnecessary complexity while providing instant conflict-free schedule generation, faculty availability matrices, lab block allocation, and wall-chart printing.
+A modern, fast, web-based timetable generator designed specifically for college departments and academic institutions. It provides instant conflict-free schedule generation, faculty availability matrices, lab block allocation, customizable constraint weights, and wall-chart printing.
 
 ---
 

@@ -46,7 +46,7 @@ class TimetableScheduler:
                     if not is_active:
                         self.inactive_slots.add((d, p_idx))
 
-        # Advanced constraints configuration with FET Confidence Weights (0% - 100%)
+        # Advanced constraints configuration with Confidence Weights (0% - 100%)
         adv = config.get("advanced_constraints", {})
         self.faculty_max_hours_per_day = adv.get("faculty_max_hours_per_day", 4)
         self.max_daily_weight = adv.get("max_daily_weight", 95)
@@ -69,6 +69,16 @@ class TimetableScheduler:
         
         self.distribute_sessions_evenly = adv.get("distribute_sessions_evenly", True)
         self.even_dist_weight = adv.get("even_dist_weight", 85)
+
+        # Institutional Constraints: Faculty gaps, student contiguous hours, max days
+        self.minimize_faculty_gaps = adv.get("minimize_faculty_gaps", True)
+        self.faculty_gaps_weight = adv.get("faculty_gaps_weight", 85)
+
+        self.contiguous_student_hours = adv.get("contiguous_student_hours", True)
+        self.student_gaps_weight = adv.get("student_gaps_weight", 90)
+
+        self.faculty_max_days_per_week = adv.get("faculty_max_days_per_week", 5)
+        self.max_days_weight = adv.get("max_days_weight", 90)
         
         # Meeting slots: (day, period) - applies to all faculty
         self.meeting_slots = set()
@@ -437,7 +447,7 @@ class TimetableScheduler:
                     if exceeded_daily:
                         continue
 
-            # Free day constraint for faculty (FET Flexible): as far as possible guarantee at least 1 day free
+            # Free day constraint for faculty: as far as possible guarantee at least 1 day free
             if teacher_ids and self.faculty_guarantee_free_day and self.free_day_weight > 0:
                 free_day_attempts = 1 if self.free_day_weight < 100 else 3
                 if attempt < free_day_attempts:
@@ -450,6 +460,19 @@ class TimetableScheduler:
                     if free_day_violated:
                         continue
 
+            # Max days per week constraint for faculty
+            if teacher_ids and self.faculty_max_days_per_week and self.max_days_weight > 0:
+                max_days_limit = self.faculty_max_days_per_week
+                if self.max_days_weight >= 90 and attempt < 2:
+                    exceeded_max_days = False
+                    for tid in teacher_ids:
+                        t_active_days = set(td for (td, _) in teacher_sched.get(tid, set()))
+                        if d not in t_active_days and len(t_active_days) >= max_days_limit:
+                            exceeded_max_days = True
+                            break
+                    if exceeded_max_days:
+                        continue
+
             # Max 1 session per day per course (theory or lab)
             # This ensures two 2-hour lab blocks of a 4-hour lab course are scheduled on different days
             if batch_day_courses.get((batch_id, d, course_id), 0) >= 1:
@@ -458,7 +481,7 @@ class TimetableScheduler:
             for i in range(len(self.teaching_period_indices) - block_size + 1):
                 block_periods = self.teaching_period_indices[i : i + block_size]
                 
-                # Rule 3: Theory sessions on the 1st hour always -> Labs avoid Period 0 based on FET weight
+                # Rule 3: Theory sessions on the 1st hour always -> Labs avoid Period 0 based on confidence weight
                 if is_lab and (0 in block_periods):
                     if (self.theory_1st_weight >= 95 and attempt < 2) or (self.theory_1st_weight > 0 and attempt < 1):
                         continue
@@ -490,7 +513,7 @@ class TimetableScheduler:
                     continue
 
                 # Rule 4: Max Consecutive Teaching Hours is 2 ONLY for Labs; otherwise NO classes consecutive for faculty
-                # Scaled by FET confidence weight
+                # Scaled by confidence weight
                 if teacher_ids and self.faculty_no_consecutive and self.consecutive_weight > 0:
                     consec_conflict = False
                     p_start = block_periods[0]
@@ -528,7 +551,7 @@ class TimetableScheduler:
             elif not is_lab and batch_default_room and rm["id"] == batch_default_room:
                 score -= 8
 
-            # FET Weight 1: Distribute sessions evenly throughout the week
+            # Weight 1: Distribute sessions evenly throughout the week
             w_even = (self.even_dist_weight / 100.0) if self.distribute_sessions_evenly else 0.0
             if w_even > 0:
                 day_load = len(batch_day_periods[d])
@@ -539,7 +562,7 @@ class TimetableScheduler:
                 if any(abs(d - cd) == 1 for cd in course_days):
                     score += 15 * w_even
 
-            # FET Weight 2: Theory sessions on the 1st hour always
+            # Weight 2: Theory sessions on the 1st hour always
             w_th1 = (self.theory_1st_weight / 100.0) if self.theory_on_first_hour else 0.0
             if w_th1 > 0:
                 batch_occupied = batch_day_periods[d]
@@ -551,7 +574,7 @@ class TimetableScheduler:
                 elif p1_idx not in batch_occupied and p_list[0] > p1_idx:
                     score += 25 * w_th1  # Penalize leaving 1st hour empty
 
-            # FET Weight 3: Don't have 4th hour (p4_idx = 3) or 5th hour (p5_idx = 5) free
+            # Weight 3: Don't have 4th hour (p4_idx = 3) or 5th hour (p5_idx = 5) free
             w_prime = (self.prime_hours_weight / 100.0) if self.no_fourth_hour_free else 0.0
             if w_prime > 0:
                 batch_occupied = batch_day_periods[d]
@@ -565,7 +588,7 @@ class TimetableScheduler:
                 elif p5_idx not in batch_occupied and any(p > p5_idx for p in batch_occupied):
                     score += 25 * w_prime
 
-            # FET Weight 4: Keep faculty free day intact by favoring days the teacher already teaches on
+            # Weight 4: Keep faculty free day intact by favoring days the teacher already teaches on
             w_free = (self.free_day_weight / 100.0) if self.faculty_guarantee_free_day else 0.0
             if teacher_ids and w_free > 0:
                 for tid in teacher_ids:
@@ -573,7 +596,7 @@ class TimetableScheduler:
                     if d in t_active_days:
                         score -= 15 * w_free  # Consolidate faculty classes onto existing active days
 
-            # FET Weight 5: Consecutive teaching penalty
+            # Weight 5: Consecutive teaching penalty
             w_consec = (self.consecutive_weight / 100.0) if self.faculty_no_consecutive else 0.0
             if teacher_ids and w_consec > 0:
                 p_start = p_list[0]
@@ -584,6 +607,46 @@ class TimetableScheduler:
                         score += 35 * w_consec
                     if (p_end + 1) in self.teaching_period_indices and (d, p_end + 1) in t_busy:
                         score += 35 * w_consec
+
+            # Weight 6: Minimize Faculty Idle Gaps
+            w_gaps = (self.faculty_gaps_weight / 100.0) if self.minimize_faculty_gaps else 0.0
+            if teacher_ids and w_gaps > 0:
+                for tid in teacher_ids:
+                    t_day_busy = [tp for (td, tp) in teacher_sched.get(tid, set()) if td == d]
+                    if t_day_busy:
+                        old_span = max(t_day_busy) - min(t_day_busy) + 1
+                        old_gaps = max(0, old_span - len(t_day_busy))
+
+                        combined = sorted(t_day_busy + p_list)
+                        new_span = max(combined) - min(combined) + 1
+                        new_gaps = max(0, new_span - len(combined))
+
+                        if new_gaps > old_gaps:
+                            score += (new_gaps - old_gaps) * 22 * w_gaps
+                        elif new_gaps == 0 and len(combined) > 1:
+                            score -= 10 * w_gaps
+
+            # Weight 7: Contiguous Student Hours (Zero Student Gaps)
+            w_sgaps = (self.student_gaps_weight / 100.0) if self.contiguous_student_hours else 0.0
+            if w_sgaps > 0:
+                b_day_busy = batch_day_periods[d]
+                if b_day_busy:
+                    def count_batch_gaps(periods):
+                        if not periods:
+                            return 0
+                        p_min, p_max = min(periods), max(periods)
+                        gaps = 0
+                        for p in range(p_min, p_max + 1):
+                            if p in self.teaching_period_indices and p not in periods:
+                                gaps += 1
+                        return gaps
+
+                    old_b_gaps = count_batch_gaps(b_day_busy)
+                    new_b_gaps = count_batch_gaps(sorted(b_day_busy + p_list))
+                    if new_b_gaps > old_b_gaps:
+                        score += (new_b_gaps - old_b_gaps) * 25 * w_sgaps
+                    elif new_b_gaps == 0 and len(b_day_busy) > 0:
+                        score -= 12 * w_sgaps
 
             score += random.random()
             return score
