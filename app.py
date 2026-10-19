@@ -46,6 +46,59 @@ def save_data(data):
     except Exception as e:
         print("Warning: unable to write to DATA_FILE:", e)
 
+ALIAS_ROOM_MAP = {
+    'r_lh_101': 'r_lh1',
+    'r_lh_102': 'r_lh2',
+    'r_lh_103': 'r_lh3'
+}
+
+def sync_venue_names_and_ids(data):
+    if not data:
+        return
+    rooms_list = data.get("rooms", [])
+    rooms_by_id = {r["id"]: r for r in rooms_list}
+    if not rooms_by_id:
+        return
+
+    default_lecture = next((r for r in rooms_list if r.get("type") != "Lab"), rooms_list[0])
+    default_lab = next((r for r in rooms_list if r.get("type") == "Lab"), rooms_list[0])
+
+    def resolve_entry_room(entry):
+        rid = entry.get("room_id")
+        if rid in ALIAS_ROOM_MAP:
+            rid = ALIAS_ROOM_MAP[rid]
+            entry["room_id"] = rid
+
+        if rid in rooms_by_id:
+            entry["room_name"] = rooms_by_id[rid]["name"]
+        elif entry.get("room_name") in ["Room 101", "MT Lab / CAD Lab", ""]:
+            if entry.get("is_lab") and default_lab:
+                entry["room_id"] = default_lab["id"]
+                entry["room_name"] = default_lab["name"]
+            elif default_lecture:
+                entry["room_id"] = default_lecture["id"]
+                entry["room_name"] = default_lecture["name"]
+
+    # 1. Sync timetable entries
+    for e in data.get("timetable", []):
+        resolve_entry_room(e)
+
+    # 2. Sync fixed schedules
+    for e in data.get("fixed_ce234p_schedule", []):
+        resolve_entry_room(e)
+    for e in data.get("fixed_physics_schedule", []):
+        resolve_entry_room(e)
+
+    # 3. Sync batches default_room_id
+    for b in data.get("batches", []):
+        if b.get("default_room_id") in ALIAS_ROOM_MAP:
+            b["default_room_id"] = ALIAS_ROOM_MAP[b["default_room_id"]]
+
+    # 4. Sync unmapped_subjects preferred_room_id
+    for s in data.get("unmapped_subjects", []):
+        if s.get("preferred_room_id") in ALIAS_ROOM_MAP:
+            s["preferred_room_id"] = ALIAS_ROOM_MAP[s["preferred_room_id"]]
+
 def sync_fixed_schedule_teachers(data, sem_type=None):
     if not data:
         return
@@ -55,6 +108,9 @@ def sync_fixed_schedule_teachers(data, sem_type=None):
     sem_key = "Odd" if "Odd" in str(sem_type) else "Even"
     teachers_by_id = {t["id"]: t for t in data.get("faculty", [])}
     rooms_by_id = {r["id"]: r for r in data.get("rooms", [])}
+    
+    # First sync all venue names across all data models
+    sync_venue_names_and_ids(data)
     
     # Map (batch_id, course_code) -> subject for active semester
     subject_lookup = {}
@@ -86,17 +142,19 @@ def sync_fixed_schedule_teachers(data, sem_type=None):
             entry["course_id"] = matched.get("id", "")
             
             # Ensure room is assigned if missing
-            if not entry.get("room_name"):
-                pref_r = matched.get("preferred_room_id")
-                if pref_r and pref_r in rooms_by_id:
-                    entry["room_id"] = pref_r
-                    entry["room_name"] = rooms_by_id[pref_r]["name"]
-                elif entry.get("is_lab"):
-                    entry["room_id"] = "r_mt_lab"
-                    entry["room_name"] = rooms_by_id.get("r_mt_lab", {}).get("name", "MT Lab / CAD Lab")
-                else:
-                    entry["room_id"] = "r_lh_101"
-                    entry["room_name"] = rooms_by_id.get("r_lh_101", {}).get("name", "Room 101")
+            pref_r = matched.get("preferred_room_id")
+            if pref_r and pref_r in rooms_by_id:
+                entry["room_id"] = pref_r
+                entry["room_name"] = rooms_by_id[pref_r]["name"]
+            elif not entry.get("room_name"):
+                default_lab = next((r for r in data.get("rooms", []) if r.get("type") == "Lab"), None)
+                default_lh = next((r for r in data.get("rooms", []) if r.get("type") != "Lab"), None)
+                if entry.get("is_lab") and default_lab:
+                    entry["room_id"] = default_lab["id"]
+                    entry["room_name"] = default_lab["name"]
+                elif default_lh:
+                    entry["room_id"] = default_lh["id"]
+                    entry["room_name"] = default_lh["name"]
         else:
             if "teacher_ids" not in entry:
                 entry["teacher_ids"] = []
@@ -131,9 +189,12 @@ def sync_fixed_schedule_teachers(data, sem_type=None):
                 item["teacher_ids"] = f_item.get("teacher_ids", [])
                 item["teacher_name"] = f_item.get("teacher_name", "TBD")
                 item["teacher_code"] = f_item.get("teacher_code", "")
-                if f_item.get("room_name") and not item.get("room_name"):
+                if f_item.get("room_name"):
                     item["room_id"] = f_item.get("room_id")
                     item["room_name"] = f_item.get("room_name")
+
+    # Final pass to ensure all timetable entries have updated room names
+    sync_venue_names_and_ids(data)
 
 @app.route('/')
 def index():
@@ -289,6 +350,7 @@ def update_slot():
 @app.route('/api/export/csv', methods=['GET'])
 def export_csv():
     data = load_data()
+    sync_fixed_schedule_teachers(data)
     tt = data.get("timetable", [])
     if not tt:
         tt = data.get("fixed_ce234p_schedule", [])
@@ -307,6 +369,7 @@ def export_csv():
 def export_excel():
     data = load_data()
     sem_type = request.args.get("semester", data.get("config", {}).get("semester", "Even Semester"))
+    sync_fixed_schedule_teachers(data, sem_type)
     excel_stream = exporter.generate_excel(data, sem_type)
     sem_slug = "even" if "Even" in str(sem_type) else "odd"
     filename = f"civil_timetable_{sem_slug}_2026_27.xlsx"
@@ -321,6 +384,7 @@ def export_excel():
 def export_class_pdf():
     data = load_data()
     sem_type = request.args.get("semester", data.get("config", {}).get("semester", "Even Semester"))
+    sync_fixed_schedule_teachers(data, sem_type)
     pdf_stream = exporter.generate_class_pdf(data, sem_type)
     sem_slug = "even" if "Even" in str(sem_type) else "odd"
     filename = f"civil_class_timetable_{sem_slug}_2026_27.pdf"
@@ -335,6 +399,7 @@ def export_class_pdf():
 def export_faculty_pdf():
     data = load_data()
     sem_type = request.args.get("semester", data.get("config", {}).get("semester", "Even Semester"))
+    sync_fixed_schedule_teachers(data, sem_type)
     pdf_stream = exporter.generate_faculty_pdf(data, sem_type)
     sem_slug = "even" if "Even" in str(sem_type) else "odd"
     filename = f"civil_faculty_timetable_{sem_slug}_2026_27.pdf"

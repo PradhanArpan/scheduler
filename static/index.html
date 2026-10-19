@@ -474,7 +474,7 @@
                   <select v-model="b.default_room_id" @change="saveStateToServer"
                           class="text-xs bg-slate-50 border border-slate-300 rounded-md px-2 py-1 font-semibold text-slate-800 focus:ring-1 focus:ring-indigo-500 font-mono">
                     <option value="">Auto / Any Room</option>
-                    <option v-for="r in data.rooms.filter(rm => rm.type !== 'Laboratory')" :key="r.id" :value="r.id">
+                    <option v-for="r in data.rooms.filter(rm => rm.type !== 'Lab' && rm.type !== 'Laboratory')" :key="r.id" :value="r.id">
                       {{ r.name }}
                     </option>
                   </select>
@@ -1087,7 +1087,7 @@
                         <div class="text-[9px] text-slate-600 mt-0.5 flex items-center justify-between gap-1 border-t border-black/5 pt-0.5">
                           <span v-if="target.type !== 'teacher'" class="font-medium text-slate-800 truncate" :title="entry.teacher_name">{{ entry.teacher_code || getFacultyFirstName(entry.teacher_name) || entry.teacher_name }}</span>
                           <span v-else class="font-bold text-slate-800">{{ entry.batch_name }}</span>
-                          <span class="text-slate-500 font-mono text-[8px] bg-white/70 px-1 rounded truncate">{{ entry.room_name || 'Room 101' }}</span>
+                          <span class="text-slate-500 font-mono text-[8px] bg-white/70 px-1 rounded truncate">{{ resolveEntryRoomName(entry) }}</span>
                         </div>
                       </div>
 
@@ -1684,7 +1684,7 @@
           <div class="font-medium text-slate-900">{{ moveModal.sourceEntry?.course_name }}</div>
           <div class="text-slate-600 flex items-center justify-between text-[11px] pt-1 border-t border-slate-200/60">
             <span>👨‍🏫 {{ moveModal.sourceEntry?.teacher_name }}</span>
-            <span class="font-mono text-slate-500">📍 {{ moveModal.sourceEntry?.room_name || 'Room 101' }}</span>
+            <span class="font-mono text-slate-500">📍 {{ resolveEntryRoomName(moveModal.sourceEntry) }}</span>
           </div>
           <div class="text-[11px] font-semibold text-slate-500">
             Current: {{ getDayName(moveModal.sourceEntry?.day) }}, {{ data.config.periods[moveModal.sourceEntry?.period]?.name }} ({{ moveModal.sourceEntry?.period_time || data.config.periods[moveModal.sourceEntry?.period]?.time }})
@@ -1715,7 +1715,7 @@
           <div class="font-medium text-slate-900">{{ moveModal.targetEntry?.course_name }}</div>
           <div class="text-slate-600 flex items-center justify-between text-[11px] pt-1 border-t border-indigo-100">
             <span>👨‍🏫 {{ moveModal.targetEntry?.teacher_name }}</span>
-            <span class="font-mono text-slate-500">📍 {{ moveModal.targetEntry?.room_name || 'Room 101' }}</span>
+            <span class="font-mono text-slate-500">📍 {{ resolveEntryRoomName(moveModal.targetEntry) }}</span>
           </div>
           <div class="text-[11px] font-semibold text-indigo-900">
             Will move to: {{ getDayName(moveModal.sourceEntry?.day) }}, {{ data.config.periods[moveModal.sourceEntry?.period]?.name }} ({{ data.config.periods[moveModal.sourceEntry?.period]?.time }})
@@ -1853,6 +1853,28 @@ createApp({
           if (!json.timetable || json.timetable.length === 0) {
             json.timetable = json.fixed_physics_schedule || json.fixed_ce234p_schedule || [];
           }
+
+          // Automatically synchronize venue IDs and names across loaded timetable data
+          const aliasMap = { 'r_lh_101': 'r_lh1', 'r_lh_102': 'r_lh2', 'r_lh_103': 'r_lh3' };
+          const roomsMap = {};
+          (json.rooms || []).forEach(r => { roomsMap[r.id] = r.name; });
+          if (json.timetable) {
+            json.timetable.forEach(e => {
+              if (e.room_id in aliasMap) e.room_id = aliasMap[e.room_id];
+              if (e.room_id in roomsMap) e.room_name = roomsMap[e.room_id];
+            });
+          }
+          if (json.unmapped_subjects) {
+            json.unmapped_subjects.forEach(s => {
+              if (s.preferred_room_id in aliasMap) s.preferred_room_id = aliasMap[s.preferred_room_id];
+            });
+          }
+          if (json.batches) {
+            json.batches.forEach(b => {
+              if (b.default_room_id in aliasMap) b.default_room_id = aliasMap[b.default_room_id];
+            });
+          }
+
           data.value = json;
           
           const isEven = (json.config?.semester || 'Even Semester').includes('Even');
@@ -2157,12 +2179,42 @@ createApp({
       if (!roomModal.value.form.name) return;
       if (roomModal.value.isEdit) {
         const idx = data.value.rooms.findIndex(x => x.id === roomModal.value.form.id);
-        if (idx >= 0) data.value.rooms[idx] = { ...roomModal.value.form };
+        if (idx >= 0) {
+          const oldRoom = data.value.rooms[idx];
+          const oldName = oldRoom.name;
+          const oldId = oldRoom.id;
+          const newName = roomModal.value.form.name;
+          const newId = roomModal.value.form.id;
+          data.value.rooms[idx] = { ...roomModal.value.form };
+
+          // Propagate venue changes to all timetable entries immediately
+          if (data.value.timetable) {
+            data.value.timetable.forEach(e => {
+              if (e.room_id === oldId || e.room_id === newId || e.room_name === oldName) {
+                e.room_id = newId;
+                e.room_name = newName;
+              }
+            });
+          }
+          // Propagate to course catalog preferred_room_id
+          if (data.value.unmapped_subjects) {
+            data.value.unmapped_subjects.forEach(s => {
+              if (s.preferred_room_id === oldId) s.preferred_room_id = newId;
+            });
+          }
+          // Propagate to batch default_room_id
+          if (data.value.batches) {
+            data.value.batches.forEach(b => {
+              if (b.default_room_id === oldId) b.default_room_id = newId;
+            });
+          }
+        }
       } else {
         data.value.rooms.push({ ...roomModal.value.form });
       }
       saveStateToServer();
       roomModal.value.open = false;
+      showToast("Venue updated and propagated across all timetables.", "success");
     };
     const deleteRoom = id => {
       if (confirm("Delete this room?")) {
@@ -2304,9 +2356,34 @@ createApp({
       return false;
     };
 
-    const getDayName = idx => (data.value.config.days || [])[idx] || `Day ${idx+1}`;
-    const getBatchName = id => data.value.batches.find(b => b.id === id)?.name || id;
-    const getRoomName = id => data.value.rooms.find(r => r.id === id)?.name || '';
+    const getRoomName = (id) => {
+      if (!id) return '';
+      const r = (data.value.rooms || []).find(x => x.id === id);
+      if (r) return r.name;
+      const aliasMap = { 'r_lh_101': 'r_lh1', 'r_lh_102': 'r_lh2', 'r_lh_103': 'r_lh3' };
+      if (aliasMap[id]) {
+        const ar = (data.value.rooms || []).find(x => x.id === aliasMap[id]);
+        if (ar) return ar.name;
+      }
+      return '';
+    };
+
+    const resolveEntryRoomName = (entry) => {
+      if (!entry) return '';
+      if (entry.room_id) {
+        const name = getRoomName(entry.room_id);
+        if (name) return name;
+      }
+      if (entry.room_name && entry.room_name !== 'Room 101' && entry.room_name !== 'MT Lab / CAD Lab') {
+        return entry.room_name;
+      }
+      if (entry.is_lab) {
+        const defaultLab = (data.value.rooms || []).find(r => r.type === 'Lab');
+        return defaultLab ? defaultLab.name : (entry.room_name || 'Lab');
+      }
+      const defaultLh = (data.value.rooms || []).find(r => r.type !== 'Lab');
+      return defaultLh ? defaultLh.name : (entry.room_name || 'Civil Lecture Hall 1');
+    };
     const getBatchesForCycle = cycleId => {
       return activeSemesterBatches.value.filter(b => b.cycle_id === cycleId);
     };
@@ -3109,7 +3186,8 @@ createApp({
       onSlotDrop,
       moveModal,
       validateAndOpenMoveModal,
-      executeConfirmedMoveOrSwap
+      executeConfirmedMoveOrSwap,
+      resolveEntryRoomName
     };
   }
 }).mount('#app');

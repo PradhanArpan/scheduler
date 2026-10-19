@@ -82,6 +82,11 @@ class TimetableScheduler:
 
         self.teachers = {t["id"]: t for t in teachers}
         self.rooms = {r["id"]: r for r in rooms}
+        # Add legacy room aliases for backward compatibility
+        alias_map = {'r_lh_101': 'r_lh1', 'r_lh_102': 'r_lh2', 'r_lh_103': 'r_lh3'}
+        for old_id, new_id in alias_map.items():
+            if new_id in self.rooms and old_id not in self.rooms:
+                self.rooms[old_id] = self.rooms[new_id]
         self.batches = {b["id"]: b for b in batches}
         self.sub_batches = {sb["id"]: sb for sb in (sub_batches or [])}
         self.courses = courses
