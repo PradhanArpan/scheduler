@@ -206,9 +206,8 @@ def generate():
     result = scheduler.generate(max_attempts=200)
 
     if result["success"]:
-        # Prepend the fixed civil schedule (CE236P / CE236P-LAB) for 1st-year physics cycle batches
-        fixed_slots = list(data.get("fixed_ce234p_schedule", []))
-        combined = fixed_slots + result["schedule"]
+        # Combined timetable includes fixed civil schedule and any course-level pinned sessions
+        combined = list(scheduler.fixed_schedule) + list(result["schedule"])
         data["timetable"] = combined
         save_data(data)
         result["schedule"] = combined

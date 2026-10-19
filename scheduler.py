@@ -49,9 +49,14 @@ class TimetableScheduler:
         # Advanced constraints configuration
         adv = config.get("advanced_constraints", {})
         self.faculty_max_hours_per_day = adv.get("faculty_max_hours_per_day", 4)
-        self.faculty_no_consecutive_theory = adv.get("faculty_no_consecutive_theory", False)
-        self.faculty_max_consecutive_hours = adv.get("faculty_max_consecutive_hours", 3)
+        self.faculty_no_consecutive = adv.get("faculty_no_consecutive", True)
+        self.faculty_no_consecutive_theory = adv.get("faculty_no_consecutive_theory", True)
+        self.faculty_max_consecutive_hours = adv.get("faculty_max_consecutive_hours", 2)
         self.single_theory_per_day_per_course = adv.get("single_theory_per_day_per_course", True)
+        self.theory_on_first_hour = adv.get("theory_on_first_hour", True)
+        self.no_fourth_hour_free = adv.get("no_fourth_hour_free", True)
+        self.faculty_guarantee_free_day = adv.get("faculty_guarantee_free_day", True)
+        self.distribute_sessions_evenly = adv.get("distribute_sessions_evenly", True)
         
         # Meeting slots: (day, period) - applies to all faculty
         self.meeting_slots = set()
@@ -68,6 +73,55 @@ class TimetableScheduler:
         self.batches = {b["id"]: b for b in batches}
         self.sub_batches = {sb["id"]: sb for sb in (sub_batches or [])}
         self.courses = courses
+
+        # Incorporate course-level pinned/fixed sessions into self.fixed_schedule
+        for c in self.courses:
+            for fs in c.get("fixed_slots", []):
+                day = fs.get("day")
+                period = fs.get("period")
+                if day is not None and period is not None:
+                    t_ids = fs.get("teacher_ids") or c.get("teacher_ids") or ([c["teacher_id"]] if c.get("teacher_id") else [])
+                    t_ids = [tid for tid in t_ids if tid]
+                    r_id = fs.get("room_id") or c.get("preferred_room_id")
+                    b_id = c.get("batch_id")
+                    if not r_id and b_id:
+                        r_id = self.batches.get(b_id, {}).get("default_room_id")
+                    
+                    names = [self.teachers[tid]["name"] for tid in t_ids if tid in self.teachers]
+                    codes = [self.teachers[tid]["code"] for tid in t_ids if tid in self.teachers]
+                    t_name_str = " & ".join(names) if names else "TBD"
+                    t_code_str = "/".join(codes) if codes else ""
+                    
+                    period_obj = self.periods[period] if period < len(self.periods) else {"name": f"Period {period+1}", "time": ""}
+                    b_name = self.batches.get(b_id, {}).get("name", "")
+                    sb_name = self.sub_batches.get(c.get("sub_batch_id"), {}).get("name", "")
+                    r_name = self.rooms.get(r_id, {}).get("name", "")
+                    
+                    fixed_entry = {
+                        "id": f"pinned_{c['id']}_d{day}_p{period}",
+                        "day": day,
+                        "day_name": self.days[day] if day < len(self.days) else f"Day {day+1}",
+                        "period": period,
+                        "period_name": period_obj.get("name"),
+                        "period_time": period_obj.get("time"),
+                        "course_id": c["id"],
+                        "course_name": c.get("name"),
+                        "course_code": c.get("code"),
+                        "teacher_id": t_ids[0] if t_ids else "",
+                        "teacher_ids": t_ids,
+                        "teacher_name": t_name_str,
+                        "teacher_code": t_code_str,
+                        "batch_id": b_id,
+                        "batch_name": b_name,
+                        "sub_batch_id": c.get("sub_batch_id"),
+                        "sub_batch_name": sb_name,
+                        "room_id": r_id,
+                        "room_name": r_name,
+                        "is_lab": c.get("is_lab", False),
+                        "is_pinned": True
+                    }
+                    if not any(f.get("batch_id") == b_id and f.get("day") == day and f.get("period") == period for f in self.fixed_schedule):
+                        self.fixed_schedule.append(fixed_entry)
 
     def pre_check_feasibility(self):
         """
@@ -263,10 +317,11 @@ class TimetableScheduler:
                 random.shuffle(current_activities)
                 current_activities.sort(key=lambda a: (a["block_size"], a["is_lab"], len(a["teacher_ids"])), reverse=True)
 
+            step_count = [0]
             success = self._backtrack(
                 current_activities, 0,
                 teacher_schedule, teacher_day_load, batch_schedule, sub_batch_schedule,
-                room_schedule, batch_day_courses, assigned_schedule, bottlenecks
+                room_schedule, batch_day_courses, assigned_schedule, bottlenecks, attempt=attempt, step_count=step_count
             )
             
             if success:
@@ -308,7 +363,11 @@ class TimetableScheduler:
             "schedule": []
         }
 
-    def _backtrack(self, activities, index, teacher_sched, teacher_day_load, batch_sched, sub_batch_sched, room_sched, batch_day_courses, result, bottlenecks):
+    def _backtrack(self, activities, index, teacher_sched, teacher_day_load, batch_sched, sub_batch_sched, room_sched, batch_day_courses, result, bottlenecks, attempt=0, step_count=None):
+        if step_count is not None:
+            step_count[0] += 1
+            if step_count[0] > 1500:
+                return False
         if index >= len(activities):
             return True
 
@@ -322,14 +381,28 @@ class TimetableScheduler:
         course_id = act["course_id"]
         is_lab = act.get("is_lab", False)
         
-        suitable_rooms = [
-            r for r in self.rooms.values()
-            if r.get("type", "Lecture") == room_type or (room_type == "Lecture" and r.get("type") != "Lab")
-        ]
-        if preferred_room_id and preferred_room_id in self.rooms:
-            pref = self.rooms[preferred_room_id]
-            suitable_rooms = [pref] + [r for r in suitable_rooms if r["id"] != preferred_room_id]
-        elif not suitable_rooms:
+        batch_obj = self.batches.get(batch_id, {})
+        batch_default_room = batch_obj.get("default_room_id")
+
+        if is_lab:
+            # Labs MUST be in lab rooms, prioritizing the course preferred lab
+            if preferred_room_id and preferred_room_id in self.rooms:
+                pref = self.rooms[preferred_room_id]
+                suitable_rooms = [pref] + [r for r in self.rooms.values() if r.get("type") == "Lab" and r["id"] != preferred_room_id]
+            else:
+                suitable_rooms = [r for r in self.rooms.values() if r.get("type") == "Lab"]
+        else:
+            # Theory sessions: prioritize the batch's home classroom, fallback to other lecture rooms
+            if preferred_room_id and preferred_room_id in self.rooms:
+                pref = self.rooms[preferred_room_id]
+                suitable_rooms = [pref] + [r for r in self.rooms.values() if r.get("type") != "Lab" and r["id"] != preferred_room_id]
+            elif batch_default_room and batch_default_room in self.rooms:
+                home_room = self.rooms[batch_default_room]
+                suitable_rooms = [home_room] + [r for r in self.rooms.values() if r.get("type") != "Lab" and r["id"] != batch_default_room]
+            else:
+                suitable_rooms = [r for r in self.rooms.values() if r.get("type") != "Lab"]
+
+        if not suitable_rooms:
             suitable_rooms = list(self.rooms.values())
 
         candidate_slots = []
@@ -344,6 +417,18 @@ class TimetableScheduler:
                 if exceeded_daily:
                     continue
 
+            # Free day constraint for faculty: as far as possible guarantee at least 1 day free
+            # In early attempts, strictly preserve free day; in later attempts, soft penalty prevents solver stall
+            if teacher_ids and self.faculty_guarantee_free_day and attempt < 30:
+                free_day_violated = False
+                for tid in teacher_ids:
+                    t_active_days = set(td for (td, _) in teacher_sched.get(tid, set()))
+                    if d not in t_active_days and len(t_active_days) >= self.num_days - 1:
+                        free_day_violated = True
+                        break
+                if free_day_violated:
+                    continue
+
             # Max 1 session per day per course (theory or lab)
             # This ensures two 2-hour lab blocks of a 4-hour lab course are scheduled on different days
             if batch_day_courses.get((batch_id, d, course_id), 0) >= 1:
@@ -352,6 +437,10 @@ class TimetableScheduler:
             for i in range(len(self.teaching_period_indices) - block_size + 1):
                 block_periods = self.teaching_period_indices[i : i + block_size]
                 
+                # Rule 3: Theory sessions on the 1st hour always -> Labs NEVER in Period 0
+                if is_lab and (0 in block_periods):
+                    continue
+
                 # Check consecutive: no break period in between
                 if block_size > 1:
                     is_consecutive = (block_periods[-1] - block_periods[0]) == (block_size - 1)
@@ -378,14 +467,18 @@ class TimetableScheduler:
                 if any((batch_id, d, p) in self.batch_blocked for p in block_periods):
                     continue
 
-                # Faculty no-consecutive-theory constraint
-                if teacher_ids and not is_lab and self.faculty_no_consecutive_theory:
+                # Rule 4: Max Consecutive Teaching Hours is 2 ONLY for Labs; otherwise NO classes consecutive for faculty
+                # Even before or after a lab session!
+                if teacher_ids and self.faculty_no_consecutive:
                     consec_conflict = False
-                    first_p = block_periods[0]
-                    last_p = block_periods[-1]
+                    p_start = block_periods[0]
+                    p_end = block_periods[-1]
                     for tid in teacher_ids:
                         t_busy = teacher_sched.get(tid, set())
-                        if (d, first_p - 1) in t_busy or (d, last_p + 1) in t_busy:
+                        if (p_start - 1) in self.teaching_period_indices and (d, p_start - 1) in t_busy:
+                            consec_conflict = True
+                            break
+                        if (p_end + 1) in self.teaching_period_indices and (d, p_end + 1) in t_busy:
                             consec_conflict = True
                             break
                     if consec_conflict:
@@ -394,30 +487,57 @@ class TimetableScheduler:
                 for room in suitable_rooms:
                     candidate_slots.append((d, block_periods, room))
 
-        p1_idx = self.teaching_period_indices[0] if self.teaching_period_indices else 0
-        break_indices = [i for i, p in enumerate(self.periods) if p.get("is_break")]
-        post_break_idx = min((p for p in self.teaching_period_indices if p > break_indices[0]), default=None) if break_indices else (self.teaching_period_indices[4] if len(self.teaching_period_indices) > 4 else None)
+        p1_idx = 0  # 1st Hour (09:00 - 10:00)
+        p4_idx = 3  # 4th Hour (12:00 - 01:00)
+        p5_idx = 5  # 5th Hour (02:00 - 03:00)
 
-        # Heuristic sorting: favor preferred rooms, uniform day spread, and 95% fill on Period 1 & Period 5
+        # Precompute current batch periods on each day
+        batch_day_periods = {d: [p for (bd, p) in batch_sched.get(batch_id, set()) if bd == d] for d in range(self.num_days)}
+
         def slot_score(slot):
             d, p_list, rm = slot
-            day_count = batch_day_courses.get((batch_id, d, course_id), 0)
-            score = day_count * 20
+            score = 0.0
+
+            # Room preference: prefer course's specific preferred room or batch home room
             if preferred_room_id and rm["id"] == preferred_room_id:
+                score -= 12
+            elif not is_lab and batch_default_room and rm["id"] == batch_default_room:
                 score -= 8
 
-            # Constraint: No first (p1) and 5th hour (post-lunch) to be blank (95% constraint)
-            batch_occupied_on_d = [p for (bd, p) in batch_sched.get(batch_id, set()) if bd == d]
-            if p1_idx in p_list:
-                score -= 35 # strongly favor filling Period 1
-            elif p1_idx not in batch_occupied_on_d and p_list[0] > p1_idx:
-                score += 15  # penalize starting later when Period 1 is empty
+            # Rule 2: Distribute sessions evenly throughout the week
+            day_load = len(batch_day_periods[d])
+            score += day_load * 16  # Strong penalty for already loaded days
 
-            if post_break_idx is not None:
-                if post_break_idx in p_list:
-                    score -= 30 # strongly favor filling Period 5
-                elif post_break_idx not in batch_occupied_on_d and any(p > post_break_idx for p in p_list):
-                    score += 15
+            # Spread course across the week (avoid adjacent days for same course)
+            course_days = [cd for (cb, cd, cc) in batch_day_courses.keys() if cb == batch_id and cc == course_id and batch_day_courses[(cb, cd, cc)] > 0]
+            if any(abs(d - cd) == 1 for cd in course_days):
+                score += 15
+
+            # Rule 3: Theory sessions on the 1st hour always
+            batch_occupied = batch_day_periods[d]
+            if p1_idx in p_list:
+                if not is_lab:
+                    score -= 50  # Highly favor Theory on 1st hour
+            elif p1_idx not in batch_occupied and p_list[0] > p1_idx:
+                score += 25  # Penalize leaving 1st hour empty
+
+            # Rule 8: Don't have 4th hour (p4_idx = 3) or 5th hour (p5_idx = 5) free
+            if p4_idx in p_list:
+                score -= 35
+            elif p4_idx not in batch_occupied and any(p > p4_idx for p in batch_occupied):
+                score += 25
+
+            if p5_idx in p_list:
+                score -= 35
+            elif p5_idx not in batch_occupied and any(p > p5_idx for p in batch_occupied):
+                score += 25
+
+            # Rule 5: Keep faculty free day intact by favoring days the teacher already teaches on
+            if teacher_ids:
+                for tid in teacher_ids:
+                    t_active_days = set(td for (td, _) in teacher_sched.get(tid, set()))
+                    if d in t_active_days:
+                        score -= 15  # Consolidate faculty classes onto existing active days
 
             score += random.random()
             return score
@@ -508,7 +628,7 @@ class TimetableScheduler:
 
             batch_day_courses[(batch_id, d, course_id)] = batch_day_courses.get((batch_id, d, course_id), 0) + block_size
 
-            if self._backtrack(activities, index + 1, teacher_sched, teacher_day_load, batch_sched, sub_batch_sched, room_sched, batch_day_courses, result, bottlenecks):
+            if self._backtrack(activities, index + 1, teacher_sched, teacher_day_load, batch_sched, sub_batch_sched, room_sched, batch_day_courses, result, bottlenecks, attempt=attempt, step_count=step_count):
                 return True
 
             # Rollback
@@ -550,11 +670,10 @@ class TimetableScheduler:
                 warnings.append(f"Faculty '{t_name}' has {count} hours on {d_name}.")
                 score -= 1.0
 
-        # Check start periods fill rate (No first and 5th hour blank - 95% constraint)
-        p1_idx = self.teaching_period_indices[0] if self.teaching_period_indices else 0
-        break_indices = [i for i, p in enumerate(self.periods) if p.get("is_break")]
-        break_idx = break_indices[0] if break_indices else 4
-        post_break_idx = min((p for p in self.teaching_period_indices if p > break_idx), default=None) if break_indices else (self.teaching_period_indices[4] if len(self.teaching_period_indices) > 4 else None)
+        # Check key period fill rates (No blank 1st, 4th, and 5th hours)
+        p1_idx = 0  # 1st Hour (09:00 - 10:00)
+        p4_idx = 3  # 4th Hour (12:00 - 01:00)
+        p5_idx = 5  # 5th Hour (02:00 - 03:00)
 
         batch_days_with_classes = {}
         for s in schedule:
@@ -563,25 +682,46 @@ class TimetableScheduler:
                 batch_days_with_classes.setdefault((b_id, s["day"]), set()).add(s["period"])
 
         if batch_days_with_classes:
-            total_checks = 0
-            filled_checks = 0
+            p1_checks, p1_filled = 0, 0
+            p4_checks, p4_filled = 0, 0
+            p5_checks, p5_filled = 0, 0
             for (b_id, d), periods_on_day in batch_days_with_classes.items():
                 b_obj = self.batches.get(b_id, {})
                 if b_obj.get("cycle_id") != "cycle_civil":
                     continue  # Non-civil cohorts only take 1 external subject from Civil
 
-                if any(p < break_idx for p in periods_on_day):
-                    total_checks += 1
-                    if p1_idx in periods_on_day:
-                        filled_checks += 1
-                if post_break_idx is not None and any(p >= post_break_idx for p in periods_on_day):
-                    total_checks += 1
-                    if post_break_idx in periods_on_day:
-                        filled_checks += 1
-            start_fill_rate = round((filled_checks / total_checks * 100), 1) if total_checks > 0 else 100.0
-            if start_fill_rate < 95.0:
-                warnings.append(f"Morning & Afternoon start periods filled at {start_fill_rate}% (target: 95%).")
+                # Check 1st hour
+                p1_checks += 1
+                if p1_idx in periods_on_day:
+                    p1_filled += 1
+                # Check 4th hour
+                p4_checks += 1
+                if p4_idx in periods_on_day:
+                    p4_filled += 1
+                # Check 5th hour (if not Saturday)
+                if d != 5:
+                    p5_checks += 1
+                    if p5_idx in periods_on_day:
+                        p5_filled += 1
+
+            p1_rate = round((p1_filled / p1_checks * 100), 1) if p1_checks > 0 else 100.0
+            p4_rate = round((p4_filled / p4_checks * 100), 1) if p4_checks > 0 else 100.0
+            p5_rate = round((p5_filled / p5_checks * 100), 1) if p5_checks > 0 else 100.0
+            if p1_rate < 90.0:
+                warnings.append(f"1st Hour (09:00) filled at {p1_rate}% across active class days.")
+            if p4_rate < 90.0:
+                warnings.append(f"4th Hour (12:00) filled at {p4_rate}% across active class days.")
+            if p5_rate < 90.0:
+                warnings.append(f"5th Hour (02:00) filled at {p5_rate}% across weekday class days.")
+
+        # Check faculty free day
+        for tid, t_obj in self.teachers.items():
+            t_days = set(d for (t, d) in teacher_day_counts.keys() if t == tid)
+            if len(t_days) == self.num_days:
+                t_name = t_obj.get("name", tid)
+                warnings.append(f"Faculty '{t_name}' is scheduled on all 6 days (no free day).")
+                score -= 1.5
 
         score = max(round(score, 1), 90.0)
         status = "100% Conflict-Free" if len(warnings) == 0 else f"{score}% Optimal ({len(warnings)} soft notes)"
-        return {"score": score, "status": status, "warnings": warnings, "start_fill_rate": start_fill_rate if batch_days_with_classes else 100.0}
+        return {"score": score, "status": status, "warnings": warnings}

@@ -294,68 +294,78 @@
 
       <div class="bg-white rounded-xl shadow-xs border border-slate-200 overflow-hidden">
         <div class="overflow-x-auto">
-          <table class="w-full text-left text-[11px] border-collapse whitespace-nowrap">
+          <table class="w-full text-left text-[11px] border-collapse">
             <thead>
               <tr class="bg-slate-100 text-slate-700 font-semibold border-b border-slate-200">
-                <th class="px-2.5 py-2">Semester</th>
-                <th class="px-2.5 py-2">Course Code</th>
+                <th class="px-2.5 py-2 w-16">Sem</th>
+                <th class="px-2.5 py-2 w-20">Code</th>
                 <th class="px-2.5 py-2">Course Title</th>
-                <th class="px-2.5 py-2">Target Batch</th>
-                <th class="px-2.5 py-2">Assigned Faculty (Co-Teaching)</th>
-                <th class="px-2.5 py-2">Weekly Hours</th>
-                <th class="px-2.5 py-2">Blocked Hours</th>
-                <th class="px-2.5 py-2">Format</th>
-                <th class="px-2.5 py-2">Room / Lab</th>
-                <th class="px-2.5 py-2 text-right">Actions</th>
+                <th class="px-2.5 py-2 w-20">Batch</th>
+                <th class="px-2.5 py-2 w-44">Assigned Faculty (Co-Teaching)</th>
+                <th class="px-2.5 py-2 w-24 text-center">Hours</th>
+                <th class="px-2.5 py-2 w-40">Constraints / Slots</th>
+                <th class="px-2.5 py-2 w-20">Format</th>
+                <th class="px-2.5 py-2 w-28">Room / Lab</th>
+                <th class="px-2.5 py-2 text-right w-20">Actions</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-100">
               <tr v-for="c in filteredSubjects" :key="c.id" class="hover:bg-slate-50/70">
-                <td class="px-2.5 py-1.5">
+                <td class="px-2.5 py-1.5 whitespace-nowrap">
                   <span :class="c.semester_type === 'Even' ? 'bg-blue-50 text-blue-800 border-blue-200' : 'bg-purple-50 text-purple-800 border-purple-200'" class="px-2 py-0.5 rounded border font-semibold text-[10px]">
                     {{ c.semester_type || 'General' }}
                   </span>
                 </td>
-                <td class="px-2.5 py-1.5 font-mono font-bold text-slate-900">{{ c.code }}</td>
+                <td class="px-2.5 py-1.5 font-mono font-bold text-slate-900 whitespace-nowrap">{{ c.code }}</td>
                 <td class="px-2.5 py-1.5 font-semibold text-slate-900">{{ c.name }}</td>
-                <td class="px-2.5 py-1.5 font-bold text-slate-800">{{ getBatchName(c.batch_id) }}</td>
+                <td class="px-2.5 py-1.5 font-bold text-slate-800 whitespace-nowrap">{{ getBatchName(c.batch_id) }}</td>
                 
-                <!-- Multi-Faculty Assignment Pill -->
-                <td class="px-2.5 py-1.5">
+                <!-- Multi-Faculty Assignment Wrapped Pills -->
+                <td class="px-2.5 py-1.5 max-w-[176px]">
                   <button @click="openMultiFacultyModal(c)" 
                           aria-label="Assign faculty to this course"
-                          class="px-2 py-0.5 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded font-medium text-[10px] text-slate-800 inline-flex items-center gap-1.5 transition">
-                    <span v-if="getAssignedFacultyCount(c) === 0" class="text-amber-800 font-normal">
+                          class="p-1 bg-slate-50 hover:bg-slate-100 border border-slate-300 rounded font-medium text-[10px] text-slate-800 flex flex-wrap items-center gap-1 transition w-full text-left">
+                    <span v-if="getAssignedFacultyCount(c) === 0" class="text-amber-800 font-normal px-1">
                       + Assign Faculty (0)
                     </span>
-                    <span v-else class="text-slate-900 font-semibold">
-                      {{ getAssignedFacultyInitials(c) }}
+                    <span v-else v-for="fc in getAssignedFacultyCodes(c)" :key="fc"
+                          class="bg-indigo-100/90 text-indigo-900 border border-indigo-200 px-1.5 py-0.2 rounded font-mono font-bold text-[9px]">
+                      {{ fc }}
                     </span>
-                    <span class="text-[8px] text-slate-400">▾</span>
+                    <span class="text-[8px] text-slate-400 ml-auto px-0.5">▾</span>
                   </button>
                 </td>
 
                 <!-- Editable Weekly Hours -->
-                <td class="px-2.5 py-1.5">
+                <td class="px-2.5 py-1.5 text-center whitespace-nowrap">
                   <div class="inline-flex items-center gap-1">
                     <button @click="decrementWeeklyHours(c)" aria-label="Decrease hours" class="w-4 h-4 bg-slate-100 hover:bg-slate-200 rounded font-bold text-slate-700 flex items-center justify-center text-[10px]">-</button>
-                    <input v-model.number="c.weekly_periods" @change="saveStateToServer" aria-label="Weekly periods" type="number" min="1" max="15" class="w-9 text-center text-[11px] font-bold border rounded py-0.2 bg-slate-50">
+                    <input v-model.number="c.weekly_periods" @change="saveStateToServer" aria-label="Weekly periods" type="number" min="1" max="15" class="w-8 text-center text-[11px] font-bold border rounded py-0.2 bg-slate-50">
                     <button @click="incrementWeeklyHours(c)" aria-label="Increase hours" class="w-4 h-4 bg-slate-100 hover:bg-slate-200 rounded font-bold text-slate-700 flex items-center justify-center text-[10px]">+</button>
-                    <span class="text-slate-400 text-[10px] ml-0.5">hrs</span>
+                    <span class="text-slate-400 text-[10px] ml-0.5">h</span>
                   </div>
                 </td>
 
-                <!-- Blocked Hours for Course -->
-                <td class="px-2.5 py-1.5">
-                  <button @click="openCourseUnavailModal(c)" 
-                          class="inline-flex items-center gap-1 px-2 py-0.5 rounded border text-[10px] transition"
-                          :class="(c.unavailable_slots||[]).length > 0 ? 'bg-rose-50 border-rose-300 text-rose-800 font-bold' : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'">
-                    <span class="w-1.5 h-1.5 rounded-full" :class="(c.unavailable_slots||[]).length > 0 ? 'bg-rose-500' : 'bg-emerald-500'"></span>
-                    Blocked ({{ (c.unavailable_slots||[]).length }})
-                  </button>
+                <!-- Blocked & Pinned Hours for Course -->
+                <td class="px-2.5 py-1.5 whitespace-nowrap">
+                  <div class="flex items-center gap-1">
+                    <button @click="openCourseUnavailModal(c)" 
+                            title="Block specific hours when this course cannot take place"
+                            class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded border text-[10px] transition"
+                            :class="(c.unavailable_slots||[]).length > 0 ? 'bg-rose-50 border-rose-300 text-rose-800 font-bold' : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'">
+                      <span class="w-1.5 h-1.5 rounded-full" :class="(c.unavailable_slots||[]).length > 0 ? 'bg-rose-500' : 'bg-emerald-500'"></span>
+                      Blocked ({{ (c.unavailable_slots||[]).length }})
+                    </button>
+                    <button @click="openPinnedSlotsModal(c)"
+                            title="Pin specific sessions to fixed days and periods"
+                            class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded border text-[10px] transition"
+                            :class="(c.fixed_slots||[]).length > 0 ? 'bg-indigo-50 border-indigo-300 text-indigo-800 font-bold' : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'">
+                      📌 Fixed ({{ (c.fixed_slots||[]).length }})
+                    </button>
+                  </div>
                 </td>
 
-                <td class="px-2.5 py-1.5">
+                <td class="px-2.5 py-1.5 whitespace-nowrap">
                   <span v-if="c.is_lab" class="px-1.5 py-0.5 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded font-semibold text-[9px]">
                     Lab ({{ c.block_size }}h)
                   </span>
@@ -363,8 +373,14 @@
                     Lecture (1h)
                   </span>
                 </td>
-                <td class="px-2.5 py-1.5 text-slate-600 font-mono text-[10px]">{{ getRoomName(c.preferred_room_id) || 'General' }}</td>
-                <td class="px-2.5 py-1.5 text-right space-x-2 text-[11px]">
+                <td class="px-2.5 py-1.5">
+                  <select v-model="c.preferred_room_id" @change="saveStateToServer" 
+                          class="text-[10px] bg-slate-50 border border-slate-200 rounded px-1.5 py-0.5 max-w-[110px] truncate font-mono">
+                    <option value="">Auto / Home</option>
+                    <option v-for="r in data.rooms" :key="r.id" :value="r.id">{{ r.name }}</option>
+                  </select>
+                </td>
+                <td class="px-2.5 py-1.5 text-right space-x-1.5 text-[11px] whitespace-nowrap">
                   <button @click="editSubject(c)" class="text-indigo-600 hover:text-indigo-800 font-semibold">Edit</button>
                   <button @click="deleteSubject(c.id)" class="text-rose-600 hover:text-rose-800 font-semibold">Delete</button>
                 </td>
@@ -431,6 +447,7 @@
                 <th class="p-3">Batch Code</th>
                 <th class="p-3">Academic Cycle</th>
                 <th class="p-3">Term</th>
+                <th class="p-3">Home Classroom</th>
                 <th class="p-3">Sub-Batches (Lab Groups)</th>
                 <th class="p-3">Curriculum Demand</th>
                 <th class="p-3">Class Blocked Hours</th>
@@ -452,6 +469,15 @@
                         class="border px-2 py-0.5 rounded font-semibold text-[10px]">
                     {{ b.semester_type || 'Even' }} Sem
                   </span>
+                </td>
+                <td class="p-3">
+                  <select v-model="b.default_room_id" @change="saveStateToServer"
+                          class="text-xs bg-slate-50 border border-slate-300 rounded-md px-2 py-1 font-semibold text-slate-800 focus:ring-1 focus:ring-indigo-500 font-mono">
+                    <option value="">Auto / Any Room</option>
+                    <option v-for="r in data.rooms.filter(rm => rm.type !== 'Laboratory')" :key="r.id" :value="r.id">
+                      {{ r.name }}
+                    </option>
+                  </select>
                 </td>
                 <td class="p-3">
                   <div class="flex flex-wrap items-center gap-1.5">
@@ -480,7 +506,7 @@
                 </td>
               </tr>
               <tr v-if="activeSemesterBatches.length === 0">
-                <td colspan="7" class="p-6 text-center text-slate-400 text-xs italic">
+                <td colspan="8" class="p-6 text-center text-slate-400 text-xs italic">
                   No batches found for {{ data.config.semester }}.
                 </td>
               </tr>
@@ -670,29 +696,89 @@
       
       <!-- Core Scheduling Rules -->
       <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-xs space-y-6">
-        <div class="border-b pb-2">
-          <h2 class="text-sm font-bold uppercase tracking-wider text-slate-800">Scheduling Constraints & Load Distribution</h2>
-          <p class="text-xs text-slate-500">Automated rules to enforce balanced student days and prevent faculty burnout.</p>
+        <div class="border-b pb-2 flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h2 class="text-sm font-bold uppercase tracking-wider text-slate-800">Scheduling Constraints & Load Distribution</h2>
+            <p class="text-xs text-slate-500">Automated rules to enforce balanced student days, optimal pedagogy, and prevent faculty burnout.</p>
+          </div>
+          <span class="text-xs font-semibold px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-emerald-500"></span> Active Solver Engine
+          </span>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
           <!-- Max Teaching Hours per Day -->
           <div class="space-y-1.5 bg-slate-50 p-4 rounded-lg border border-slate-200">
-            <label class="block font-bold text-slate-800">Max Faculty Teaching Hours per Day</label>
+            <div class="flex items-center justify-between">
+              <label class="block font-bold text-slate-800">Max Daily Teaching Hours</label>
+              <span class="text-[10px] bg-slate-200 text-slate-700 px-1.5 py-0.5 rounded font-mono font-bold">Hard Limit</span>
+            </div>
             <input v-model.number="data.config.advanced_constraints.faculty_max_hours_per_day" aria-label="Max daily hours" type="number" min="1" max="8" class="border rounded-md px-2.5 py-1.5 w-24 font-bold bg-white">
             <p class="text-[11px] text-slate-500">Prevents assigning any instructor more than this number of periods in a single day.</p>
           </div>
 
           <!-- Max Consecutive Teaching Hours -->
           <div class="space-y-1.5 bg-slate-50 p-4 rounded-lg border border-slate-200">
-            <label class="block font-bold text-slate-800">Max Consecutive Teaching Hours</label>
+            <div class="flex items-center justify-between">
+              <label class="block font-bold text-slate-800">Max Consecutive Hours</label>
+              <span class="text-[10px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded font-bold">Labs Only</span>
+            </div>
             <input v-model.number="data.config.advanced_constraints.faculty_max_consecutive_hours" aria-label="Max consecutive hours" type="number" min="1" max="5" class="border rounded-md px-2.5 py-1.5 w-24 font-bold bg-white">
-            <p class="text-[11px] text-slate-500">Prevents continuous back-to-back periods without a break.</p>
+            <p class="text-[11px] text-slate-500">Consecutive teaching is strictly restricted to 2-hour labs. All other sessions require a break of &ge;1 hour.</p>
+          </div>
+
+          <!-- Theory on 1st Hour Always -->
+          <div class="space-y-1.5 bg-slate-50 p-4 rounded-lg border border-slate-200">
+            <div class="flex items-center justify-between">
+              <label class="block font-bold text-slate-800">Theory on 1st Hour Always</label>
+              <span class="text-[10px] bg-indigo-100 text-indigo-800 px-1.5 py-0.5 rounded font-bold">Enforced</span>
+            </div>
+            <div class="text-xs font-semibold text-indigo-700 flex items-center gap-1.5 py-1">
+              <span class="text-base">🏛️</span> Period 1 (09:00 - 10:00)
+            </div>
+            <p class="text-[11px] text-slate-500">Laboratories are strictly barred from the first period of the day to maximize morning cognitive engagement.</p>
+          </div>
+
+          <!-- Prime Hours Priority (No Blank 1st, 4th, 5th) -->
+          <div class="space-y-1.5 bg-slate-50 p-4 rounded-lg border border-slate-200">
+            <div class="flex items-center justify-between">
+              <label class="block font-bold text-slate-800">Fill 1st, 4th & 5th Hours</label>
+              <span class="text-[10px] bg-indigo-100 text-indigo-800 px-1.5 py-0.5 rounded font-bold">Enforced</span>
+            </div>
+            <div class="text-xs font-semibold text-indigo-700 flex items-center gap-1.5 py-1">
+              <span class="text-base">⏰</span> 09:00, 12:00 & 14:00
+            </div>
+            <p class="text-[11px] text-slate-500">Ensures morning start (1st hr), pre-lunch (4th hr), and post-lunch (5th hr) periods are filled on active class days.</p>
+          </div>
+
+          <!-- Faculty Guaranteed Free Day -->
+          <div class="space-y-1.5 bg-slate-50 p-4 rounded-lg border border-slate-200">
+            <div class="flex items-center justify-between">
+              <label class="block font-bold text-slate-800">Faculty Free Day</label>
+              <span class="text-[10px] bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded font-bold">&ge; 1 Day / Wk</span>
+            </div>
+            <div class="text-xs font-semibold text-emerald-700 flex items-center gap-1.5 py-1">
+              <span class="text-base">🌿</span> 100% Free Day Guaranteed
+            </div>
+            <p class="text-[11px] text-slate-500">Guarantees every faculty member at least one complete teaching-free weekday for research, grading, and prep.</p>
+          </div>
+
+          <!-- Even Weekly Distribution -->
+          <div class="space-y-1.5 bg-slate-50 p-4 rounded-lg border border-slate-200">
+            <div class="flex items-center justify-between">
+              <label class="block font-bold text-slate-800">Balanced Weekly Spread</label>
+              <span class="text-[10px] bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded font-bold">Harmonized</span>
+            </div>
+            <div class="text-xs font-semibold text-slate-700 flex items-center gap-1.5 py-1">
+              <span class="text-base">📅</span> Mon &ndash; Sat Even Load
+            </div>
+            <p class="text-[11px] text-slate-500">Spreads theory lectures across distinct non-consecutive days, avoiding course clustering or uneven daily workloads.</p>
           </div>
         </div>
 
-        <div class="pt-2">
-          <button @click="saveStateToServer" class="px-4 py-2 bg-indigo-600 text-white rounded-lg text-xs font-bold shadow-xs">
+        <div class="pt-2 flex items-center justify-between border-t border-slate-100">
+          <p class="text-[11px] text-slate-500">All constraints are validated natively during the CSP backtracking schedule generation.</p>
+          <button @click="saveStateToServer" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-bold shadow-xs transition">
             Save Constraint Settings
           </button>
         </div>
@@ -1371,6 +1457,95 @@
     </div>
   </div>
 
+  <!-- MODAL: PINNED / FIXED SESSIONS FOR COURSE -->
+  <div v-if="pinnedSlotsModal.open" 
+       role="dialog" aria-modal="true" aria-labelledby="pinned-modal-title"
+       class="fixed inset-0 bg-slate-900/60 backdrop-blur-2xs flex items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-xl shadow-xl border border-slate-200 max-w-lg w-full p-5 space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+        <div>
+          <h3 id="pinned-modal-title" class="font-bold text-sm text-slate-900 flex items-center gap-1.5">
+            <span>📌 Fixed / Pinned Schedule</span>
+          </h3>
+          <p class="text-xs text-slate-500">
+            Lock specific days & periods for <strong>{{ pinnedSlotsModal.course.code }} — {{ pinnedSlotsModal.course.name }}</strong> ({{ getBatchName(pinnedSlotsModal.course.batch_id) }}).
+          </p>
+        </div>
+        <button @click="pinnedSlotsModal.open = false" aria-label="Close dialog" class="text-slate-400 hover:text-slate-600 font-bold">✕</button>
+      </div>
+
+      <!-- Pinned Slots List -->
+      <div class="space-y-2">
+        <div class="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center justify-between">
+          <span>Locked Sessions ({{ (pinnedSlotsModal.course.fixed_slots || []).length }})</span>
+          <span class="text-[10px] text-slate-400 font-normal">Automatically locked in timetable</span>
+        </div>
+        <div v-if="!pinnedSlotsModal.course.fixed_slots || pinnedSlotsModal.course.fixed_slots.length === 0" 
+             class="text-xs text-slate-400 italic p-4 bg-slate-50 border border-slate-200 rounded-lg text-center">
+          No sessions pinned yet. The solver will place all weekly periods dynamically.
+        </div>
+        <div v-else class="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+          <div v-for="(slot, sIdx) in pinnedSlotsModal.course.fixed_slots" :key="sIdx"
+               class="flex items-center justify-between p-2.5 bg-indigo-50/70 border border-indigo-200 rounded-lg text-xs text-indigo-950 shadow-2xs">
+            <div class="flex items-center gap-2">
+              <span class="font-bold bg-indigo-600 text-white px-2 py-0.5 rounded text-[10px]">
+                {{ getDayName(slot.day) }}
+              </span>
+              <span class="font-semibold text-slate-800">
+                {{ data.config.periods[slot.period]?.name || ('Period ' + (slot.period + 1)) }}
+                <span class="text-slate-500 font-normal text-[10px]">({{ data.config.periods[slot.period]?.time }})</span>
+              </span>
+              <span v-if="slot.room_id" class="text-slate-500 font-mono text-[10px] bg-white border border-slate-200 px-1.5 py-0.5 rounded">
+                🏛️ {{ getRoomName(slot.room_id) }}
+              </span>
+            </div>
+            <button @click="removePinnedSlot(sIdx)" class="text-rose-600 hover:text-rose-800 font-bold text-sm px-1.5 py-0.5 hover:bg-rose-100 rounded" title="Unpin session">✕</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Add Pinned Session Form -->
+      <div class="bg-slate-50 p-3.5 rounded-lg border border-slate-200 space-y-3">
+        <div class="text-xs font-bold text-slate-800 flex items-center justify-between">
+          <span>+ Add Pinned Weekly Session</span>
+          <span class="text-[10px] text-indigo-600 font-normal">Deducts 1hr from dynamic solver</span>
+        </div>
+        <div class="grid grid-cols-3 gap-2 text-xs">
+          <div>
+            <label class="block font-medium text-slate-600 mb-1 text-[11px]">Day</label>
+            <select v-model.number="pinnedSlotsModal.newSlot.day" class="w-full border rounded-md p-1.5 bg-white text-xs font-semibold">
+              <option v-for="(day, dIdx) in data.config.days" :key="dIdx" :value="dIdx">{{ day }}</option>
+            </select>
+          </div>
+          <div>
+            <label class="block font-medium text-slate-600 mb-1 text-[11px]">Period</label>
+            <select v-model.number="pinnedSlotsModal.newSlot.period" class="w-full border rounded-md p-1.5 bg-white text-xs font-semibold">
+              <option v-for="(p, pIdx) in data.config.periods.filter(p => !p.is_break)" :key="p.id" :value="data.config.periods.indexOf(p)">
+                {{ p.name }} ({{ p.time }})
+              </option>
+            </select>
+          </div>
+          <div>
+            <label class="block font-medium text-slate-600 mb-1 text-[11px]">Room (Optional)</label>
+            <select v-model="pinnedSlotsModal.newSlot.room_id" class="w-full border rounded-md p-1.5 bg-white text-xs font-semibold">
+              <option value="">Default Room</option>
+              <option v-for="r in data.rooms" :key="r.id" :value="r.id">{{ r.name }}</option>
+            </select>
+          </div>
+        </div>
+        <div class="flex justify-end pt-1">
+          <button @click="addPinnedSlot" class="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-md text-xs font-bold transition flex items-center gap-1 shadow-xs">
+            <span>📌</span> Pin Session
+          </button>
+        </div>
+      </div>
+
+      <div class="flex justify-end pt-2 border-t border-slate-100">
+        <button @click="pinnedSlotsModal.open = false" class="px-4 py-1.5 bg-slate-900 text-white rounded-lg text-xs font-bold shadow-xs">Done</button>
+      </div>
+    </div>
+  </div>
+
 </div>
 
 <!-- VUE 3 APPLICATION SCRIPT -->
@@ -1639,6 +1814,14 @@ createApp({
         return f ? f.code : id;
       });
       return codes.join(', ');
+    };
+
+    const getAssignedFacultyCodes = c => {
+      const ids = c.teacher_ids && c.teacher_ids.length > 0 ? c.teacher_ids : (c.teacher_id ? [c.teacher_id] : []);
+      return ids.map(id => {
+        const f = data.value.faculty.find(x => x.id === id);
+        return f ? f.code : id;
+      });
     };
 
     const getFacultyWorkload = teacherId => {
@@ -2022,6 +2205,45 @@ createApp({
       }
     };
 
+    // Course Pinned / Fixed Slots Modal
+    const pinnedSlotsModal = ref({
+      open: false,
+      course: {},
+      newSlot: { day: 0, period: 0, room_id: '' }
+    });
+
+    const openPinnedSlotsModal = c => {
+      if (!c.fixed_slots) c.fixed_slots = [];
+      pinnedSlotsModal.value = {
+        open: true,
+        course: c,
+        newSlot: { day: 0, period: 0, room_id: c.preferred_room_id || '' }
+      };
+    };
+
+    const addPinnedSlot = () => {
+      if (!pinnedSlotsModal.value.course.fixed_slots) {
+        pinnedSlotsModal.value.course.fixed_slots = [];
+      }
+      const day = Number(pinnedSlotsModal.value.newSlot.day);
+      const period = Number(pinnedSlotsModal.value.newSlot.period);
+      const room_id = pinnedSlotsModal.value.newSlot.room_id || pinnedSlotsModal.value.course.preferred_room_id || '';
+      const exists = pinnedSlotsModal.value.course.fixed_slots.some(s => s.day === day && s.period === period);
+      if (!exists) {
+        pinnedSlotsModal.value.course.fixed_slots.push({ day, period, room_id });
+        saveStateToServer();
+        showToast(`Pinned session on ${getDayName(day)} to ${pinnedSlotsModal.value.course.code}`, 'success');
+      } else {
+        showToast("This slot is already pinned for this course.", "error");
+      }
+    };
+
+    const removePinnedSlot = idx => {
+      pinnedSlotsModal.value.course.fixed_slots.splice(idx, 1);
+      saveStateToServer();
+      showToast("Pinned session removed.", "info");
+    };
+
     const closeAllModals = () => {
       multiFacultyModal.value.open = false;
       facultyModal.value.open = false;
@@ -2034,6 +2256,7 @@ createApp({
       unavailModal.value.open = false;
       batchUnavailModal.value.open = false;
       courseUnavailModal.value.open = false;
+      pinnedSlotsModal.value.open = false;
     };
 
     // Cascading Timetable Filters (Group -> Batch)
@@ -2334,6 +2557,11 @@ createApp({
       selectableTimetableBatches,
       getCourseColorClasses,
       getCourseBadgeClass,
+      getAssignedFacultyCodes,
+      pinnedSlotsModal,
+      openPinnedSlotsModal,
+      addPinnedSlot,
+      removePinnedSlot,
       closeAllModals,
       generateTimetable,
       saveStateToServer,
