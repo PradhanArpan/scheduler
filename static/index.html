@@ -2414,7 +2414,16 @@ createApp({
     const getBatchesForCycle = cycleId => {
       return activeSemesterBatches.value.filter(b => b.cycle_id === cycleId);
     };
-    const getSubBatchesForBatch = batchId => data.value.sub_batches.filter(sb => sb.batch_id === batchId);
+    const getSubBatchesForBatch = batchId => (data.value.sub_batches || []).filter(sb => sb.batch_id === batchId);
+    const getBatchName = (batchId) => {
+      if (!batchId) return '';
+      const b = (data.value.batches || []).find(x => x.id === batchId);
+      return b ? b.name : batchId;
+    };
+    const getDayName = (dayIdx) => {
+      const days = data.value.config?.days || ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      return days[dayIdx] || `Day ${dayIdx + 1}`;
+    };
     const getCycleName = cycleId => (data.value.cycles || []).find(c => c.id === cycleId)?.name || cycleId;
 
     const getBatchDemandHours = batchId => {
