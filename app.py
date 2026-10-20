@@ -267,6 +267,17 @@ def update_state():
 def precheck():
     data = load_data()
     req_body = request.get_json(silent=True) or {}
+    if "unmapped_subjects" in req_body:
+        data["unmapped_subjects"] = req_body["unmapped_subjects"]
+    if "faculty" in req_body:
+        data["faculty"] = req_body["faculty"]
+    if "batches" in req_body:
+        data["batches"] = req_body["batches"]
+    if "rooms" in req_body:
+        data["rooms"] = req_body["rooms"]
+    if "config" in req_body:
+        data["config"] = req_body["config"]
+
     sem_type = req_body.get("semester", data.get("config", {}).get("semester", "Even Semester"))
     sync_fixed_schedule_teachers(data, sem_type)
     
@@ -294,6 +305,14 @@ def generate():
     req_body = request.get_json(silent=True) or {}
     if "unmapped_subjects" in req_body:
         data["unmapped_subjects"] = req_body["unmapped_subjects"]
+    if "faculty" in req_body:
+        data["faculty"] = req_body["faculty"]
+    if "batches" in req_body:
+        data["batches"] = req_body["batches"]
+    if "rooms" in req_body:
+        data["rooms"] = req_body["rooms"]
+    if "config" in req_body:
+        data["config"] = req_body["config"]
 
     config = data.get("config", {})
     teachers = data.get("faculty", [])

@@ -209,21 +209,63 @@ class TimetableScheduler:
             elif demand > available - 2:
                 warnings.append(f"Batch '{b_name}' has very high load: {demand}/{available} periods booked. Very tight scheduling.")
 
-        # 2. Faculty workload & availability check
+        # 2. Faculty workload & availability check (including institutional responsibility relief)
         faculty_demand = {}
+        faculty_workload_hours = {}
         for c in self.courses:
             t_ids = c.get("teacher_ids") or ([c["teacher_id"]] if c.get("teacher_id") else [])
+            periods = c.get("weekly_periods", 0)
+            is_lab = c.get("is_lab", False) or "-LAB" in str(c.get("code", "")).upper() or "lab" in str(c.get("name", "")).lower()
+            workload_val = periods / 2.0 if is_lab else float(periods)
             for tid in t_ids:
                 if tid:
-                    faculty_demand[tid] = faculty_demand.get(tid, 0) + c.get("weekly_periods", 0)
+                    faculty_demand[tid] = faculty_demand.get(tid, 0) + periods
+                    faculty_workload_hours[tid] = faculty_workload_hours.get(tid, 0.0) + workload_val
 
         for tid, demand in faculty_demand.items():
             t_obj = self.teachers.get(tid, {})
             t_name = t_obj.get("name", tid)
+            desig = t_obj.get("designation", "Assistant Professor")
             unavail_count = len(t_obj.get("unavailable_slots", []))
             available = total_week_slots - unavail_count - len(self.meeting_slots)
+            
+            # Physical slot capacity check
             if demand > available:
                 errors.append(f"Faculty '{t_name}' assigned {demand} periods/week, but has only {available} open teaching slots (Overallocated by {demand - available}).")
+
+            # Hierarchy base target & institutional portfolio responsibility relief
+            base_target = t_obj.get("target_hours")
+            if not base_target:
+                lower_desig = str(desig).lower()
+                if "associate" in lower_desig:
+                    base_target = 14
+                elif "professor" in lower_desig and "assistant" not in lower_desig:
+                    base_target = 12
+                elif "visiting" in lower_desig or "adjunct" in lower_desig:
+                    base_target = 8
+                else:
+                    base_target = 16
+
+            relief_hours = 0
+            roles = t_obj.get("roles", [])
+            if isinstance(roles, list):
+                for r in roles:
+                    if isinstance(r, dict):
+                        relief_hours += int(r.get("relief_hours", 2))
+                    elif isinstance(r, str):
+                        relief_hours += 6 if ("hod" in r.lower() or "head of department" in r.lower()) else 2
+            if "hod" in str(desig).lower() or "head of department" in str(desig).lower():
+                if not any("hod" in (r.get("name", "").lower() if isinstance(r, dict) else str(r).lower()) for r in (roles or [])):
+                    relief_hours += 6
+
+            net_target = max(0, base_target - relief_hours)
+            actual_workload = faculty_workload_hours.get(tid, float(demand))
+
+            if actual_workload > net_target:
+                over = actual_workload - net_target
+                formatted_over = int(over) if over.is_integer() else f"{over:.1f}"
+                formatted_load = int(actual_workload) if actual_workload.is_integer() else f"{actual_workload:.1f}"
+                warnings.append(f"Faculty '{t_name}' ({desig}) assigned {formatted_load}h teaching workload, exceeding net target ({net_target}h after -{relief_hours}h portfolio relief) by {formatted_over}h.")
             elif demand > 22:
                 warnings.append(f"Faculty '{t_name}' has heavy teaching workload: {demand} hours/week.")
 

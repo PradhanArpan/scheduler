@@ -3326,11 +3326,199 @@ createApp({
             if (json.timetable) json.timetable = json.timetable.filter(filterFn);
             if (json.fixed_ce234p_schedule) json.fixed_ce234p_schedule = json.fixed_ce234p_schedule.filter(filterFn);
             if (json.fixed_physics_schedule) json.fixed_physics_schedule = json.fixed_physics_schedule.filter(filterFn);
+
+            // Ensure every fixed slot is present in json.timetable & fixed_ce234p_schedule
+            s.fixed_slots.forEach(fs => {
+              if (fs.day === undefined || fs.period === undefined) return;
+              if (!json.timetable) json.timetable = [];
+              const exists = json.timetable.some(e => (e.course_id === cId || (e.course_code === cCode && (!bId || !e.batch_id || e.batch_id === bId))) && e.day === fs.day && e.period === fs.period);
+              if (!exists) {
+                const dayName = (json.config?.days || [])[fs.day] || `Day ${fs.day + 1}`;
+                const periodObj = (json.config?.periods || [])[fs.period] || { name: `Period ${fs.period + 1}`, time: '' };
+                const tIds = s.teacher_ids || (s.teacher_id ? [s.teacher_id] : []);
+                const tNames = tIds.map(tid => {
+                  const f = (json.faculty || []).find(fac => fac.id === tid);
+                  return f ? f.name : tid;
+                }).join(' & ') || 'TBD';
+                const tCodes = tIds.map(tid => {
+                  const f = (json.faculty || []).find(fac => fac.id === tid);
+                  return f ? f.code : '';
+                }).join('/');
+                const rId = fs.room_id || s.preferred_room_id || (json.batches || []).find(b => b.id === bId)?.default_room_id || '';
+                const rName = roomsMap[rId] || rId;
+                const fixedEntry = {
+                  id: `pinned_${s.id}_d${fs.day}_p${fs.period}`,
+                  day: fs.day,
+                  day_name: dayName,
+                  period: fs.period,
+                  period_name: periodObj.name,
+                  period_time: periodObj.time,
+                  course_id: s.id,
+                  course_code: s.code,
+                  course_name: s.name,
+                  batch_id: bId,
+                  batch_name: (json.batches || []).find(b => b.id === bId)?.name || bId,
+                  teacher_id: tIds[0] || '',
+                  teacher_ids: tIds,
+                  teacher_name: tNames,
+                  teacher_code: tCodes,
+                  room_id: rId,
+                  room_name: rName,
+                  is_lab: !!s.is_lab,
+                  is_pinned: true
+                };
+                json.timetable = json.timetable.filter(e => !(e.batch_id === bId && e.day === fs.day && e.period === fs.period));
+                json.timetable.push(fixedEntry);
+                if (json.fixed_ce234p_schedule) {
+                  json.fixed_ce234p_schedule = json.fixed_ce234p_schedule.filter(e => !(e.batch_id === bId && e.day === fs.day && e.period === fs.period));
+                  json.fixed_ce234p_schedule.push({ ...fixedEntry, id: `fix_${bId}_d${fs.day}_p${fs.period}` });
+                }
+              }
+            });
           }
         });
       }
 
       return json;
+    };
+
+    const mergeLocalAndServerData = (localData, serverData) => {
+      if (!localData || typeof localData !== 'object') return serverData;
+      if (!serverData || typeof serverData !== 'object') return localData;
+
+      const merged = JSON.parse(JSON.stringify(serverData));
+
+      // 1. Merge Unmapped Subjects / Courses (preserve user-added courses & specific hour constraints)
+      const serverCourses = merged.unmapped_subjects || [];
+      const localCourses = localData.unmapped_subjects || [];
+      const seenCourseIds = new Set();
+      const seenCourseKeys = new Set();
+
+      serverCourses.forEach(sc => {
+        seenCourseIds.add(sc.id);
+        if (sc.code) seenCourseKeys.add(`${sc.code}___${sc.batch_id || ''}`);
+
+        const lc = localCourses.find(c => c.id === sc.id || (c.code === sc.code && (c.batch_id || '') === (sc.batch_id || '')));
+        if (lc) {
+          // Preserve user-configured specific hour constraints (fixed_slots)
+          if (Array.isArray(lc.fixed_slots)) {
+            sc.fixed_slots = JSON.parse(JSON.stringify(lc.fixed_slots));
+          }
+          // Preserve user-assigned faculty
+          if (Array.isArray(lc.teacher_ids) && lc.teacher_ids.length > 0) {
+            sc.teacher_ids = [...lc.teacher_ids];
+            sc.teacher_id = lc.teacher_ids[0];
+          } else if (lc.teacher_id) {
+            sc.teacher_id = lc.teacher_id;
+            sc.teacher_ids = [lc.teacher_id];
+          }
+          // Preserve weekly periods
+          if (lc.weekly_periods !== undefined && lc.weekly_periods !== null) {
+            sc.weekly_periods = Number(lc.weekly_periods);
+          }
+          if (lc.preferred_room_id) sc.preferred_room_id = lc.preferred_room_id;
+          if (lc.is_lab !== undefined) sc.is_lab = lc.is_lab;
+          if (Array.isArray(lc.unavailable_slots)) sc.unavailable_slots = JSON.parse(JSON.stringify(lc.unavailable_slots));
+          if (lc.name) sc.name = lc.name;
+        }
+      });
+
+      // Preserve all user-added courses from localData
+      localCourses.forEach(lc => {
+        const key = `${lc.code}___${lc.batch_id || ''}`;
+        if (!seenCourseIds.has(lc.id) && !seenCourseKeys.has(key)) {
+          serverCourses.push(JSON.parse(JSON.stringify(lc)));
+          seenCourseIds.add(lc.id);
+          seenCourseKeys.add(key);
+        }
+      });
+      merged.unmapped_subjects = serverCourses;
+
+      // 2. Merge Faculty (roles, responsibility hour reductions, custom roles)
+      const serverFaculty = merged.faculty || [];
+      const localFaculty = localData.faculty || [];
+      const seenFacIds = new Set();
+      const seenFacCodes = new Set();
+      const seenFacNames = new Set();
+
+      serverFaculty.forEach(sf => {
+        seenFacIds.add(sf.id);
+        if (sf.code) seenFacCodes.add(sf.code.toUpperCase());
+        if (sf.name) seenFacNames.add(sf.name.toLowerCase().trim());
+
+        const lf = localFaculty.find(f => 
+          f.id === sf.id || 
+          (f.code && sf.code && f.code.toUpperCase() === sf.code.toUpperCase()) || 
+          (f.name && sf.name && f.name.toLowerCase().trim() === sf.name.toLowerCase().trim())
+        );
+        if (lf) {
+          // If user assigned roles / relief hours, preserve them!
+          if (Array.isArray(lf.roles) && lf.roles.length > 0) {
+            sf.roles = JSON.parse(JSON.stringify(lf.roles));
+          }
+          if (lf.designation && lf.designation !== sf.designation) {
+            sf.designation = lf.designation;
+          }
+          if (lf.target_hours !== undefined && lf.target_hours !== null) {
+            sf.target_hours = Number(lf.target_hours);
+          }
+          if (Array.isArray(lf.unavailable_slots) && lf.unavailable_slots.length > 0) {
+            sf.unavailable_slots = JSON.parse(JSON.stringify(lf.unavailable_slots));
+          }
+        }
+      });
+
+      // Preserve user-added faculty members
+      localFaculty.forEach(lf => {
+        const codeKey = lf.code ? lf.code.toUpperCase() : '';
+        const nameKey = lf.name ? lf.name.toLowerCase().trim() : '';
+        if (!seenFacIds.has(lf.id) && (!codeKey || !seenFacCodes.has(codeKey)) && (!nameKey || !seenFacNames.has(nameKey))) {
+          serverFaculty.push(JSON.parse(JSON.stringify(lf)));
+          seenFacIds.add(lf.id);
+          if (codeKey) seenFacCodes.add(codeKey);
+          if (nameKey) seenFacNames.add(nameKey);
+        }
+      });
+      merged.faculty = serverFaculty;
+
+      // 3. Batches & Rooms
+      if (Array.isArray(localData.batches)) {
+        const existingBIds = new Set((merged.batches || []).map(b => b.id));
+        localData.batches.forEach(lb => {
+          if (!existingBIds.has(lb.id)) {
+            if (!merged.batches) merged.batches = [];
+            merged.batches.push(JSON.parse(JSON.stringify(lb)));
+            existingBIds.add(lb.id);
+          }
+        });
+      }
+      if (Array.isArray(localData.rooms)) {
+        const existingRIds = new Set((merged.rooms || []).map(r => r.id));
+        localData.rooms.forEach(lr => {
+          if (!existingRIds.has(lr.id)) {
+            if (!merged.rooms) merged.rooms = [];
+            merged.rooms.push(JSON.parse(JSON.stringify(lr)));
+            existingRIds.add(lr.id);
+          }
+        });
+      }
+
+      // 4. Timetable sessions preservation
+      if (Array.isArray(localData.timetable)) {
+        const currentTT = merged.timetable || [];
+        const currentKeys = new Set(currentTT.map(e => `${e.batch_id}_${e.day}_${e.period}`));
+        localData.timetable.forEach(le => {
+          const key = `${le.batch_id}_${le.day}_${le.period}`;
+          if (!currentKeys.has(key)) {
+            currentTT.push(JSON.parse(JSON.stringify(le)));
+            currentKeys.add(key);
+          }
+        });
+        merged.timetable = currentTT;
+      }
+
+      merged._last_modified = Math.max(serverData._last_modified || 0, localData._last_modified || 0, Date.now());
+      return merged;
     };
 
     const syncDefaultSelectedBatch = () => {
@@ -3357,26 +3545,23 @@ createApp({
         const res = await fetch('/api/state');
         if (res.ok) {
           let serverData = await res.json();
-          serverData = sanitizeLoadedData(serverData);
+          // Non-destructive smart merge: preserves user-added courses, specific hour constraints,
+          // and faculty responsibility hour reductions across portal updates!
+          let mergedData = mergeLocalAndServerData(localData, serverData);
+          mergedData = sanitizeLoadedData(mergedData);
+          data.value = mergedData;
 
-          // If localData exists and user made modifications newer than server
-          if (localData && localData._last_modified) {
-            const serverMod = serverData._last_modified || 0;
-            if (localData._last_modified > serverMod) {
-              console.log("Loading newer edits from browser localStorage:", localData._last_modified, "vs server:", serverMod);
-              data.value = sanitizeLoadedData(localData);
-              // Push local updates to server to synchronize
-              fetch('/api/state', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data.value)
-              }).catch(() => {});
-              syncDefaultSelectedBatch();
-              return;
-            }
-          }
+          // Save merged data back to localStorage and server immediately
+          try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(data.value));
+          } catch (e) {}
 
-          data.value = serverData;
+          fetch('/api/state', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data.value)
+          }).catch(() => {});
+
           syncDefaultSelectedBatch();
           return;
         }
@@ -4616,10 +4801,18 @@ createApp({
     const runPreCheck = async () => {
       analyzing.value = true;
       try {
+        await saveStateToServer();
         const res = await fetch('/api/precheck', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ semester: data.value.config.semester })
+          body: JSON.stringify({ 
+            semester: data.value.config.semester,
+            unmapped_subjects: data.value.unmapped_subjects,
+            faculty: data.value.faculty,
+            batches: data.value.batches,
+            rooms: data.value.rooms,
+            config: data.value.config
+          })
         });
         const json = await res.json();
         diagnosticModal.value = {
@@ -5414,7 +5607,11 @@ createApp({
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             semester: data.value.config.semester,
-            unmapped_subjects: data.value.unmapped_subjects
+            unmapped_subjects: data.value.unmapped_subjects,
+            faculty: data.value.faculty,
+            batches: data.value.batches,
+            rooms: data.value.rooms,
+            config: data.value.config
           })
         });
         const json = await res.json();
