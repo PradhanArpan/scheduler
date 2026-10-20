@@ -8,6 +8,8 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Vue 3 -->
   <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  <!-- SheetJS (Client-Side Excel Export) -->
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
     
@@ -131,6 +133,17 @@
           Print
         </button>
 
+        <!-- Snapshots Version Manager Button -->
+        <button @click="openSnapshotModal" 
+                title="Manage named snapshots, revert to previous versions, and backup locally"
+                class="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg text-xs font-semibold shadow-xs transition flex items-center gap-1.5 focus-visible:ring-2 focus-visible:ring-indigo-400">
+          <span class="text-sm">📸</span>
+          <span>Snapshots</span>
+          <span class="px-1.5 py-0.2 rounded-full text-[10px] bg-indigo-500/20 text-indigo-300 font-mono font-bold border border-indigo-400/30">
+            {{ (data.snapshots || []).length }}
+          </span>
+        </button>
+
         <!-- Manual Save Button -->
         <button @click="saveStateToServer" 
                 title="Immediately save all changes in browser and sync to server"
@@ -160,24 +173,23 @@
 
           <!-- Dropdown Menu -->
           <div v-if="exportDropdownOpen"
-               class="absolute right-0 mt-1.5 w-64 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl py-1 z-50 text-xs divide-y divide-slate-800">
+               class="absolute right-0 mt-1.5 w-72 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl py-1 z-50 text-xs divide-y divide-slate-800">
             <div class="px-3 py-2 text-[10px] uppercase tracking-wider font-semibold text-slate-400 flex items-center justify-between">
-              <span>Export Options</span>
+              <span>Export &amp; Downloads</span>
               <span class="px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 font-mono">{{ activeSemesterFilter }} Sem</span>
             </div>
             <div class="py-1">
-              <!-- Excel Option -->
-              <a :href="'/api/export/excel?semester=' + encodeURIComponent(activeSemesterFilter)"
-                 @click="exportDropdownOpen = false"
-                 class="flex items-center gap-2.5 px-3 py-2 text-slate-200 hover:bg-slate-800/80 hover:text-emerald-400 transition group">
+              <!-- SheetJS Multi-Tab Excel (5 Sheets) -->
+              <button @click="exportMultiTabExcel(); exportDropdownOpen = false"
+                      class="w-full text-left flex items-center gap-2.5 px-3 py-2 text-slate-200 hover:bg-slate-800/80 hover:text-emerald-400 transition group">
                 <div class="w-7 h-7 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center shrink-0 group-hover:bg-emerald-500/20">
                   <svg class="w-4 h-4 text-emerald-400" fill="currentColor" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zM6 4h7v5h5v11H6V4zm2.8 14.5l2.2-3.4 2.2 3.4h2l-3.2-4.7 3-4.3h-2l-2 3.1-2-3.1h-2l3 4.3-3.2 4.7h2z"/></svg>
                 </div>
                 <div class="flex flex-col text-left">
-                  <span class="font-semibold text-slate-100 group-hover:text-emerald-300">Excel Workbook (.xlsx)</span>
-                  <span class="text-[10px] text-slate-400">Class TT, Faculty TT & Lab sheets</span>
+                  <span class="font-semibold text-slate-100 group-hover:text-emerald-300">5-Sheet Excel Workbook (.xlsx)</span>
+                  <span class="text-[10px] text-slate-400">Master, Batches, Faculty, Venues &amp; Workload</span>
                 </div>
-              </a>
+              </button>
 
               <!-- Class TT PDF -->
               <a :href="'/api/export/pdf/class?semester=' + encodeURIComponent(activeSemesterFilter)"
@@ -201,9 +213,35 @@
                 </div>
                 <div class="flex flex-col text-left">
                   <span class="font-semibold text-slate-100 group-hover:text-indigo-300">Faculty Timetables (PDF)</span>
-                  <span class="text-[10px] text-slate-400">Individual schedules & workload</span>
+                  <span class="text-[10px] text-slate-400">Individual schedules &amp; workload</span>
                 </div>
               </a>
+            </div>
+
+            <div class="py-1">
+              <!-- Print Faculty Timetable Slips -->
+              <button @click="printFacultySlips(); exportDropdownOpen = false"
+                      class="w-full text-left flex items-center gap-2.5 px-3 py-2 text-slate-200 hover:bg-slate-800/80 hover:text-indigo-300 transition group">
+                <div class="w-7 h-7 rounded-lg bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center shrink-0 group-hover:bg-indigo-500/20">
+                  <svg class="w-4 h-4 text-indigo-300" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+                </div>
+                <div class="flex flex-col text-left">
+                  <span class="font-semibold text-slate-100 group-hover:text-indigo-200">Print Faculty Slips</span>
+                  <span class="text-[10px] text-slate-400">Individual faculty timetable slips with workload</span>
+                </div>
+              </button>
+
+              <!-- Print Batch Noticeboard Sheets -->
+              <button @click="printBatchNoticeboard(); exportDropdownOpen = false"
+                      class="w-full text-left flex items-center gap-2.5 px-3 py-2 text-slate-200 hover:bg-slate-800/80 hover:text-cyan-300 transition group">
+                <div class="w-7 h-7 rounded-lg bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center shrink-0 group-hover:bg-cyan-500/20">
+                  <svg class="w-4 h-4 text-cyan-300" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                </div>
+                <div class="flex flex-col text-left">
+                  <span class="font-semibold text-slate-100 group-hover:text-cyan-200">Print Noticeboard Sheets</span>
+                  <span class="text-[10px] text-slate-400">Class noticeboard landscape sheets</span>
+                </div>
+              </button>
             </div>
 
             <div class="py-1">
@@ -284,7 +322,7 @@
   </div>
 
   <!-- MAIN CONTAINER -->
-  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1 w-full" role="main">
+  <main :class="printMode !== 'default' ? 'no-print' : ''" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1 w-full" role="main">
 
     <!-- ========================================================================= -->
     <!-- TAB 1: COURSE & SUBJECT CATALOG -->
@@ -553,34 +591,156 @@
     </section>
 
     <!-- ========================================================================= -->
-    <!-- TAB 3: FACULTY DIRECTORY (TABLE ROWS) -->
+    <!-- TAB 3: FACULTY DIRECTORY & ROLE-BASED WORKLOAD MANAGEMENT -->
     <!-- ========================================================================= -->
     <section v-if="currentTab === 'teachers'" class="space-y-6">
-      <div class="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
-            <span>Faculty Directory & Teaching Load</span>
-            <span class="text-xs bg-indigo-50 text-indigo-700 font-bold px-2.5 py-0.5 rounded-full border border-indigo-200">
-              {{ data.config.semester }}
-            </span>
-            <span class="text-xs bg-slate-100 text-slate-700 font-semibold px-2 py-0.5 rounded border border-slate-200">
-              {{ data.faculty.length }} Faculty Members
-            </span>
-          </h2>
-          <p class="text-xs text-slate-500 mt-0.5">Faculty profiles, designated weekly teaching hours for {{ data.config.semester }}, and availability matrices.</p>
+      
+      <!-- Top Metric Summary Cards -->
+      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+        <!-- Total Faculty Card -->
+        <div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-2xs">
+          <div class="flex items-center justify-between text-slate-500">
+            <span class="text-[11px] font-semibold uppercase tracking-wider">Total Faculty</span>
+            <span class="text-base">👥</span>
+          </div>
+          <div class="mt-1 flex items-baseline gap-2">
+            <span class="text-2xl font-black text-slate-900">{{ facultyStats.total }}</span>
+            <span class="text-[11px] text-slate-400 font-medium">Christ Univ</span>
+          </div>
         </div>
 
-        <div class="flex flex-wrap items-center gap-2.5">
-          <!-- Search Filter -->
-          <div class="relative min-w-[220px]">
-            <input v-model="facultySearchQuery" type="text" placeholder="Search faculty name, code, designation..." class="w-full pl-7 pr-3 py-1.5 text-xs bg-white border border-slate-300 rounded-lg text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500">
-            <svg class="w-3.5 h-3.5 text-slate-400 absolute left-2 top-2" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-            <button v-if="facultySearchQuery" @click="facultySearchQuery = ''" class="absolute right-2 top-1.5 text-slate-400 hover:text-slate-600 text-xs">✕</button>
+        <!-- Average Workload Card -->
+        <div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-2xs">
+          <div class="flex items-center justify-between text-slate-500">
+            <span class="text-[11px] font-semibold uppercase tracking-wider">Avg Workload</span>
+            <span class="text-base">⚖️</span>
+          </div>
+          <div class="mt-1 flex items-baseline gap-1.5">
+            <span class="text-2xl font-black text-indigo-700">{{ facultyStats.avgWorkload }}</span>
+            <span class="text-[11px] text-slate-500 font-medium">hrs / week</span>
+          </div>
+        </div>
+
+        <!-- On Target Card -->
+        <div class="bg-white p-3.5 rounded-xl border border-emerald-200/80 shadow-2xs bg-emerald-50/20">
+          <div class="flex items-center justify-between text-emerald-800">
+            <span class="text-[11px] font-bold uppercase tracking-wider">Target Met</span>
+            <span class="text-base">✓</span>
+          </div>
+          <div class="mt-1 flex items-baseline gap-1.5">
+            <span class="text-2xl font-black text-emerald-700">{{ facultyStats.onTarget }}</span>
+            <span class="text-[11px] text-emerald-600 font-medium">compliant</span>
+          </div>
+        </div>
+
+        <!-- Over Target Card -->
+        <div class="bg-white p-3.5 rounded-xl border border-rose-200/80 shadow-2xs bg-rose-50/20">
+          <div class="flex items-center justify-between text-rose-800">
+            <span class="text-[11px] font-bold uppercase tracking-wider">Overloaded</span>
+            <span class="text-base">⚠️</span>
+          </div>
+          <div class="mt-1 flex items-baseline gap-1.5">
+            <span class="text-2xl font-black text-rose-700">{{ facultyStats.overTarget }}</span>
+            <span class="text-[11px] text-rose-600 font-medium">over target</span>
+          </div>
+        </div>
+
+        <!-- Under Target Card -->
+        <div class="bg-white p-3.5 rounded-xl border border-amber-200/80 shadow-2xs bg-amber-50/20">
+          <div class="flex items-center justify-between text-amber-800">
+            <span class="text-[11px] font-bold uppercase tracking-wider">Under Target</span>
+            <span class="text-base">📉</span>
+          </div>
+          <div class="mt-1 flex items-baseline gap-1.5">
+            <span class="text-2xl font-black text-amber-700">{{ facultyStats.underTarget }}</span>
+            <span class="text-[11px] text-amber-600 font-medium">capacity free</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Controls & Multi-Filter Bar -->
+      <div class="bg-white p-4 rounded-xl shadow-xs border border-slate-200 space-y-3">
+        <div class="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
+              <span>Faculty Directory &amp; Role Workload Management</span>
+              <span class="text-xs bg-indigo-50 text-indigo-700 font-bold px-2.5 py-0.5 rounded-full border border-indigo-200">
+                {{ data.config.semester }}
+              </span>
+            </h2>
+            <p class="text-xs text-slate-500 mt-0.5">Faculty hierarchy levels, base limits, institutional portfolio relief credits (IQAC, NBA, HoD), and live workload audit.</p>
           </div>
 
-          <button @click="openAddTeacherModal" class="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold shadow-xs transition flex items-center gap-1.5 focus-visible:ring-2 focus-visible:ring-indigo-400">
-            <span>+</span> Add Faculty
-          </button>
+          <div class="flex flex-wrap items-center gap-2.5">
+            <!-- Search Filter -->
+            <div class="relative min-w-[220px]">
+              <input v-model="facultySearchQuery" type="text" placeholder="Search faculty name, code, role..." class="w-full pl-7 pr-3 py-1.5 text-xs bg-white border border-slate-300 rounded-lg text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+              <svg class="w-3.5 h-3.5 text-slate-400 absolute left-2 top-2" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+              <button v-if="facultySearchQuery" @click="facultySearchQuery = ''" class="absolute right-2 top-1.5 text-slate-400 hover:text-slate-600 text-xs">✕</button>
+            </div>
+
+            <button @click="openAddTeacherModal" class="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold shadow-xs transition flex items-center gap-1.5 focus-visible:ring-2 focus-visible:ring-indigo-400">
+              <span>+</span> Add Faculty Member
+            </button>
+          </div>
+        </div>
+
+        <!-- Filter Pill Selectors -->
+        <div class="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-slate-100 text-xs">
+          <!-- Designation Filter -->
+          <div class="flex flex-wrap items-center gap-1.5">
+            <span class="text-[11px] font-semibold text-slate-400 mr-1">Level:</span>
+            <button @click="facultyDesignationFilter = 'ALL'" 
+                    :class="facultyDesignationFilter === 'ALL' ? 'bg-indigo-600 text-white font-bold' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'"
+                    class="px-2.5 py-1 rounded-md text-[11px] transition">
+              All Levels
+            </button>
+            <button @click="facultyDesignationFilter = 'Professor'" 
+                    :class="facultyDesignationFilter === 'Professor' ? 'bg-purple-600 text-white font-bold' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'"
+                    class="px-2.5 py-1 rounded-md text-[11px] transition">
+              Professor (12h)
+            </button>
+            <button @click="facultyDesignationFilter = 'Associate Professor'" 
+                    :class="facultyDesignationFilter === 'Associate Professor' ? 'bg-blue-600 text-white font-bold' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'"
+                    class="px-2.5 py-1 rounded-md text-[11px] transition">
+              Associate Prof (14h)
+            </button>
+            <button @click="facultyDesignationFilter = 'Assistant Professor'" 
+                    :class="facultyDesignationFilter === 'Assistant Professor' ? 'bg-indigo-600 text-white font-bold' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'"
+                    class="px-2.5 py-1 rounded-md text-[11px] transition">
+              Assistant Prof (16h)
+            </button>
+            <button @click="facultyDesignationFilter = 'Visiting'" 
+                    :class="facultyDesignationFilter === 'Visiting' ? 'bg-amber-600 text-white font-bold' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'"
+                    class="px-2.5 py-1 rounded-md text-[11px] transition">
+              Visiting / Adjunct (8h)
+            </button>
+          </div>
+
+          <!-- Compliance Filter -->
+          <div class="flex items-center gap-1.5">
+            <span class="text-[11px] font-semibold text-slate-400 mr-1">Compliance:</span>
+            <button @click="facultyComplianceFilter = 'ALL'" 
+                    :class="facultyComplianceFilter === 'ALL' ? 'bg-slate-800 text-white font-bold' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'"
+                    class="px-2.5 py-1 rounded-md text-[11px] transition">
+              All
+            </button>
+            <button @click="facultyComplianceFilter = 'balanced'" 
+                    :class="facultyComplianceFilter === 'balanced' ? 'bg-emerald-600 text-white font-bold' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'"
+                    class="px-2.5 py-1 rounded-md text-[11px] transition">
+              On Target
+            </button>
+            <button @click="facultyComplianceFilter = 'over'" 
+                    :class="facultyComplianceFilter === 'over' ? 'bg-rose-600 text-white font-bold' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'"
+                    class="px-2.5 py-1 rounded-md text-[11px] transition">
+              Over Target
+            </button>
+            <button @click="facultyComplianceFilter = 'under'" 
+                    :class="facultyComplianceFilter === 'under' ? 'bg-amber-600 text-white font-bold' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'"
+                    class="px-2.5 py-1 rounded-md text-[11px] transition">
+              Under Target
+            </button>
+          </div>
         </div>
       </div>
 
@@ -591,46 +751,112 @@
             <thead>
               <tr class="bg-slate-100 text-slate-700 font-semibold border-b border-slate-200">
                 <th class="p-3">Faculty Member</th>
-                <th class="p-3">Initials</th>
-                <th class="p-3">Designation</th>
-                <th class="p-3">Department</th>
-                <th class="p-3">Email</th>
-                <th class="p-3">Active Teaching Load</th>
-                <th class="p-3">Total Workload</th>
+                <th class="p-3">Level / Designation</th>
+                <th class="p-3">Institutional Portfolios &amp; Relief</th>
+                <th class="p-3">Teaching Load (Th + Lab)</th>
+                <th class="p-3 w-48">Target &amp; Workload Balance</th>
                 <th class="p-3">Availability</th>
                 <th class="p-3 text-right">Actions</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-200">
               <tr v-for="f in filteredFaculty" :key="f.id" class="hover:bg-slate-50/70 transition">
-                <td class="p-3 font-bold text-slate-900 text-sm">
-                  {{ f.name }}
-                </td>
+                <!-- Faculty Name, Code & Department -->
                 <td class="p-3">
-                  <span class="font-mono font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 px-2 py-0.5 rounded text-[11px]">
-                    {{ f.code }}
-                  </span>
-                </td>
-                <td class="p-3 text-slate-600 font-medium">
-                  {{ f.designation }}
-                </td>
-                <td class="p-3 text-slate-500">
-                  {{ f.department || 'Civil Engineering' }}
-                </td>
-                <td class="p-3 font-mono text-[11px] text-slate-500">
-                  {{ f.email || '—' }}
-                </td>
-                <td class="p-3">
-                  <div class="inline-flex items-center gap-1 font-mono text-xs">
-                    <span class="font-bold text-slate-900" title="Theory Teaching Hours">{{ getFacultyWorkload(f.id).theoryHours }}</span>
-                    <span class="text-slate-400">+</span>
-                    <span class="font-bold text-emerald-700" title="Lab Workload (2hrs lab = 1hr load)">{{ getFacultyWorkload(f.id).labWorkloadHours }}</span>
-                    <span class="text-slate-400 text-[10px] font-sans ml-0.5">(Th+Lab)</span>
+                  <div class="flex items-center gap-2">
+                    <div>
+                      <div class="font-bold text-slate-900 text-sm flex items-center gap-1.5">
+                        <span>{{ f.name }}</span>
+                        <span class="font-mono font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 px-1.5 py-0.2 rounded text-[10px]">
+                          {{ f.code }}
+                        </span>
+                      </div>
+                      <div class="text-[11px] text-slate-500 font-mono mt-0.5">
+                        {{ f.email || '—' }} &bull; <span class="font-sans">{{ f.department || 'Civil Engineering' }}</span>
+                      </div>
+                    </div>
                   </div>
                 </td>
+
+                <!-- Level / Designation Badge -->
                 <td class="p-3">
-                  <span class="font-bold text-indigo-700 text-sm">{{ getFacultyWorkload(f.id).totalWorkloadHours }}</span> <span class="text-slate-500 text-[11px] font-medium">hrs</span>
+                  <span v-if="f.designation === 'Professor'" class="px-2 py-0.5 rounded-full font-bold text-[10px] bg-purple-50 text-purple-800 border border-purple-200">
+                    Professor (12h)
+                  </span>
+                  <span v-else-if="f.designation === 'Associate Professor'" class="px-2 py-0.5 rounded-full font-bold text-[10px] bg-blue-50 text-blue-800 border border-blue-200">
+                    Associate Prof (14h)
+                  </span>
+                  <span v-else-if="f.designation === 'Visiting' || f.designation === 'Visiting / Adjunct Faculty'" class="px-2 py-0.5 rounded-full font-bold text-[10px] bg-amber-50 text-amber-800 border border-amber-200">
+                    Visiting (8h)
+                  </span>
+                  <span v-else class="px-2 py-0.5 rounded-full font-bold text-[10px] bg-indigo-50 text-indigo-800 border border-indigo-200">
+                    {{ f.designation || 'Assistant Professor' }} (16h)
+                  </span>
                 </td>
+
+                <!-- Institutional Portfolios & Relief Badges -->
+                <td class="p-3">
+                  <div class="flex flex-wrap gap-1 max-w-xs">
+                    <span v-for="role in (f.roles || [])" :key="typeof role === 'string' ? role : role.name"
+                          class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-100 text-slate-700 border border-slate-200 shadow-2xs">
+                      <span>{{ typeof role === 'string' ? role : role.name }}</span>
+                      <span class="text-rose-600 font-bold font-mono text-[9px] bg-white px-1 rounded border border-rose-200">-{{ typeof role === 'string' ? 2 : (role.relief_hours || 2) }}h</span>
+                    </span>
+                    <span v-if="(!f.roles || f.roles.length === 0)" class="text-slate-400 italic text-[11px]">
+                      None (0h relief)
+                    </span>
+                  </div>
+                </td>
+
+                <!-- Teaching Load Breakdown (Th + Lab) -->
+                <td class="p-3">
+                  <div class="inline-flex items-center gap-1 font-mono text-xs">
+                    <span class="font-bold text-slate-900" title="Theory Teaching Hours">{{ getFacultyWorkload(f.id).theoryHours }}h</span>
+                    <span class="text-slate-400">+</span>
+                    <span class="font-bold text-emerald-700" title="Lab Workload (2 contact hrs = 1 workload hr)">{{ getFacultyWorkload(f.id).labWorkloadHours }}h</span>
+                    <span class="text-slate-400 text-[10px] font-sans ml-1">=</span>
+                    <span class="font-bold text-indigo-700 text-sm ml-0.5">{{ getFacultyWorkload(f.id).teachingWorkloadHours }}h</span>
+                  </div>
+                  <div class="text-[10px] text-slate-400 font-sans mt-0.5">
+                    Lab contact: {{ getFacultyWorkload(f.id).labContactHours }}h (2:1 load)
+                  </div>
+                </td>
+
+                <!-- Target & Workload Balance Progress Bar -->
+                <td class="p-3">
+                  <div class="space-y-1.5 w-44">
+                    <div class="flex items-center justify-between text-[11px]">
+                      <span class="font-bold text-slate-800 font-mono">
+                        {{ getFacultyWorkload(f.id).teachingWorkloadHours }} / {{ getFacultyWorkload(f.id).netTeachingTarget }}h
+                      </span>
+                      <span :class="[
+                        getFacultyWorkload(f.id).status === 'balanced' ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : '',
+                        getFacultyWorkload(f.id).status === 'over' ? 'bg-rose-100 text-rose-800 border-rose-300' : '',
+                        getFacultyWorkload(f.id).status === 'under' ? 'bg-amber-100 text-amber-800 border-amber-300' : ''
+                      ]" class="px-1.5 py-0.2 rounded text-[9px] font-bold border">
+                        {{ getFacultyWorkload(f.id).statusBadge }}
+                      </span>
+                    </div>
+
+                    <!-- Visual Progress Bar -->
+                    <div class="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                      <div class="h-1.5 rounded-full transition-all duration-300"
+                           :class="[
+                             getFacultyWorkload(f.id).status === 'over' ? 'bg-rose-500' : (getFacultyWorkload(f.id).status === 'under' ? 'bg-amber-500' : 'bg-emerald-500')
+                           ]"
+                           :style="{ width: Math.min(100, (getFacultyWorkload(f.id).teachingWorkloadHours / (getFacultyWorkload(f.id).netTeachingTarget || 1)) * 100) + '%' }">
+                      </div>
+                    </div>
+
+                    <div class="text-[10px] text-slate-400 flex justify-between">
+                      <span>Base: {{ getFacultyWorkload(f.id).baseTargetHours }}h</span>
+                      <span v-if="getFacultyWorkload(f.id).reliefHours > 0" class="text-rose-600 font-medium">-{{ getFacultyWorkload(f.id).reliefHours }}h relief</span>
+                      <span class="font-medium text-slate-600">Net: {{ getFacultyWorkload(f.id).netTeachingTarget }}h</span>
+                    </div>
+                  </div>
+                </td>
+
+                <!-- Unavailability Button -->
                 <td class="p-3">
                   <button @click="openUnavailabilityModal(f)" 
                           class="text-[11px] bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 px-2.5 py-1 rounded-md font-semibold transition flex items-center gap-1 shadow-2xs">
@@ -638,14 +864,16 @@
                     Unavailable ({{ (f.unavailable_slots||[]).length }})
                   </button>
                 </td>
+
+                <!-- Actions -->
                 <td class="p-3 text-right space-x-2">
-                  <button @click="editTeacher(f)" class="text-slate-600 hover:text-slate-900 font-semibold">Edit</button>
-                  <button @click="deleteTeacher(f.id)" class="text-rose-600 hover:text-rose-800 font-semibold">Delete</button>
+                  <button @click="editTeacher(f)" class="text-slate-600 hover:text-indigo-600 font-semibold transition">Edit Profile</button>
+                  <button @click="deleteTeacher(f.id)" class="text-rose-600 hover:text-rose-800 font-semibold transition">Delete</button>
                 </td>
               </tr>
               <tr v-if="filteredFaculty.length === 0">
-                <td colspan="9" class="p-6 text-center text-slate-400 text-xs italic">
-                  No faculty found matching search.
+                <td colspan="7" class="p-8 text-center text-slate-400 text-xs italic">
+                  No faculty found matching the active filters.
                 </td>
               </tr>
             </tbody>
@@ -1069,6 +1297,9 @@
             <button @click="viewMode = 'batch'" :class="viewMode === 'batch' ? 'bg-white shadow-xs text-indigo-700 font-bold' : 'text-slate-600 hover:text-slate-900 font-medium'" class="px-3 py-1 rounded-md transition">Class / Batch</button>
             <button @click="viewMode = 'teacher'" :class="viewMode === 'teacher' ? 'bg-white shadow-xs text-indigo-700 font-bold' : 'text-slate-600 hover:text-slate-900 font-medium'" class="px-3 py-1 rounded-md transition">Faculty Matrix</button>
             <button @click="viewMode = 'room'" :class="viewMode === 'room' ? 'bg-white shadow-xs text-indigo-700 font-bold' : 'text-slate-600 hover:text-slate-900 font-medium'" class="px-3 py-1 rounded-md transition">Venue / Lab</button>
+            <button @click="viewMode = 'daily'" :class="viewMode === 'daily' ? 'bg-white shadow-xs text-indigo-700 font-bold' : 'text-slate-600 hover:text-slate-900 font-medium'" class="px-3 py-1 rounded-md transition flex items-center gap-1">
+              <span>📱</span> Today's Schedule
+            </button>
           </div>
 
           <!-- Cascading Batch Selector (Academic Group -> Batch) -->
@@ -1107,16 +1338,34 @@
           </div>
         </div>
 
+        <!-- History & Undo Actions -->
+        <div class="flex items-center gap-2">
+          <button @click="historyModalOpen = true" 
+                  title="View activity history log of all moves and swaps"
+                  class="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold border border-slate-300 transition flex items-center gap-1.5 shadow-2xs">
+            <span>🕒 History</span>
+            <span v-if="changeHistory.length > 0" class="px-1.5 py-0.2 rounded-full text-[10px] bg-amber-200 text-amber-900 font-mono font-bold">
+              {{ changeHistory.length }}
+            </span>
+          </button>
+          <button @click="undoLastAction" :disabled="changeHistory.length === 0" 
+                  title="Undo last drag-and-drop slot adjustment"
+                  class="px-2.5 py-1.5 bg-amber-500 hover:bg-amber-600 disabled:opacity-40 text-white rounded-lg text-xs font-bold transition flex items-center gap-1 shadow-2xs">
+            <span>↩️</span> Undo
+          </button>
+        </div>
+
         <!-- Legend & Drag-and-Drop Hint -->
-        <div class="flex flex-wrap items-center justify-between gap-3 text-xs text-slate-500 font-medium">
+        <div class="w-full flex flex-wrap items-center justify-between gap-3 text-xs text-slate-500 font-medium pt-2 border-t border-slate-100">
           <div class="flex items-center gap-3">
             <span class="inline-flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded bg-indigo-500 inline-block"></span> Theory (Color-coded)</span>
             <span class="inline-flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded bg-indigo-600 inline-block ring-1 ring-indigo-300"></span> Lab (Matching Hue + LAB)</span>
             <span class="inline-flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded bg-amber-400 inline-block"></span> Lunch / Break</span>
             <span class="inline-flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded bg-rose-500 inline-block"></span> Blocked</span>
+            <span class="inline-flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded bg-emerald-500 inline-block"></span> ✨ Ideal Target</span>
           </div>
           <div class="text-[11px] text-indigo-700 bg-indigo-50 border border-indigo-200 px-2.5 py-1 rounded-md flex items-center gap-1.5 shadow-2xs">
-            <span>✨</span> <span><strong>Drag &amp; Drop Enabled:</strong> Drag any class to an open slot to move, or onto another class to swap with instant constraint validation.</span>
+            <span>✨</span> <span><strong>Live Heatmap Active:</strong> Dragging any class highlights Ideal slots (<span class="text-emerald-700 font-bold">Emerald</span>), Swap candidates (<span class="text-indigo-700 font-bold">Indigo</span>), and Conflict areas (<span class="text-rose-700 font-bold">Rose</span>).</span>
           </div>
         </div>
       </div>
@@ -1151,8 +1400,118 @@
         </div>
       </div>
 
+      <!-- ========================================================================= -->
+      <!-- QUICK DAILY SCHEDULE VIEW (STUDENT & FACULTY CHRONOLOGICAL AGENDA) -->
+      <!-- ========================================================================= -->
+      <div v-if="viewMode === 'daily'" class="space-y-4">
+        <!-- Daily Selector Bar -->
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex flex-wrap items-center justify-between gap-4">
+          <!-- Day Tabs -->
+          <div class="flex items-center gap-1.5 overflow-x-auto">
+            <button v-for="(day, dIdx) in data.config.days" :key="dIdx"
+                    @click="selectedDailyDayIdx = dIdx"
+                    :class="selectedDailyDayIdx === dIdx ? 'bg-indigo-600 text-white font-bold shadow-xs' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'"
+                    class="px-3.5 py-1.5 rounded-lg text-xs transition whitespace-nowrap">
+              {{ day }}
+            </button>
+          </div>
+
+          <!-- Audience Filter: Batch vs Teacher -->
+          <div class="flex items-center gap-3">
+            <div class="inline-flex rounded-lg bg-slate-100 p-1 border border-slate-200 text-xs">
+              <button @click="dailyViewRole = 'batch'" :class="dailyViewRole === 'batch' ? 'bg-white shadow-xs text-indigo-700 font-bold' : 'text-slate-600 hover:text-slate-900 font-medium'" class="px-3 py-1 rounded-md transition">Class Cohort</button>
+              <button @click="dailyViewRole = 'teacher'" :class="dailyViewRole === 'teacher' ? 'bg-white shadow-xs text-indigo-700 font-bold' : 'text-slate-600 hover:text-slate-900 font-medium'" class="px-3 py-1 rounded-md transition">Faculty Member</button>
+            </div>
+
+            <!-- Batch selector -->
+            <select v-if="dailyViewRole === 'batch'" v-model="selectedDailyBatchId" class="text-xs bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 font-bold text-slate-800 focus:ring-2 focus:ring-indigo-500">
+              <option v-for="b in activeSemesterBatches" :key="b.id" :value="b.id">{{ b.name }}</option>
+            </select>
+
+            <!-- Faculty selector -->
+            <select v-if="dailyViewRole === 'teacher'" v-model="selectedDailyTeacherId" class="text-xs bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 font-bold text-slate-800 focus:ring-2 focus:ring-indigo-500">
+              <option v-for="t in data.faculty" :key="t.id" :value="t.id">{{ t.name }} ({{ t.code }})</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Chronological Timeline Cards -->
+        <div class="bg-white rounded-xl border border-slate-200 shadow-xs p-6 space-y-4">
+          <div class="border-b border-slate-100 pb-3 flex items-center justify-between">
+            <h3 class="font-bold text-slate-900 text-sm flex items-center gap-2">
+              <span>📅 {{ data.config.days[selectedDailyDayIdx] }} Schedule</span>
+              <span class="text-xs bg-indigo-50 text-indigo-700 font-semibold px-2 py-0.5 rounded border border-indigo-200">
+                {{ dailyViewRole === 'batch' ? getBatchName(selectedDailyBatchId) : (data.faculty.find(f => f.id === selectedDailyTeacherId)?.name || 'Faculty') }}
+              </span>
+            </h3>
+            <span class="text-xs text-slate-400">Chronological Daily Periods</span>
+          </div>
+
+          <div class="space-y-3">
+            <div v-for="slot in dailyScheduleEntries" :key="slot.periodIndex" 
+                 class="p-4 rounded-xl border transition flex flex-wrap items-center justify-between gap-4"
+                 :class="[
+                   slot.isBreak ? 'bg-amber-50/70 border-amber-200 text-amber-900' : (slot.isClosed ? 'bg-slate-50 border-slate-200 text-slate-400' : (slot.hasSession ? 'bg-white border-slate-200 shadow-2xs hover:border-indigo-300' : 'bg-slate-50/50 border-dashed border-slate-200 text-slate-400'))
+                 ]">
+              
+              <!-- Left: Time & Period Label -->
+              <div class="flex items-center gap-4 min-w-[180px]">
+                <div class="w-12 h-12 rounded-xl flex flex-col items-center justify-center font-bold"
+                     :class="slot.isBreak ? 'bg-amber-200 text-amber-900' : (slot.hasSession ? 'bg-indigo-600 text-white' : 'bg-slate-200 text-slate-600')">
+                  <span class="text-[10px] uppercase font-mono">P{{ slot.periodIndex + 1 }}</span>
+                  <span class="text-[9px] font-normal">{{ slot.periodName.slice(0, 4) }}</span>
+                </div>
+                <div>
+                  <div class="font-mono font-bold text-slate-900 text-xs">{{ slot.time }}</div>
+                  <div class="text-[11px] text-slate-500 font-medium">{{ slot.periodName }}</div>
+                </div>
+              </div>
+
+              <!-- Center: Course & Details -->
+              <div class="flex-1 min-w-[240px]">
+                <div v-if="slot.isBreak" class="font-bold text-amber-800 text-xs uppercase tracking-wider flex items-center gap-2">
+                  <span>☕</span> {{ slot.periodName }}
+                </div>
+                <div v-else-if="slot.isClosed" class="text-xs text-slate-400 italic">
+                  Closed Period (Non-working)
+                </div>
+                <div v-else-if="slot.hasSession" class="space-y-1">
+                  <div v-for="entry in slot.entries" :key="entry.id" class="flex flex-wrap items-center gap-2">
+                    <span class="font-mono font-bold text-xs bg-indigo-50 text-indigo-700 border border-indigo-200 px-2 py-0.5 rounded">
+                      {{ entry.course_code }}
+                    </span>
+                    <span class="font-bold text-slate-900 text-xs">{{ entry.course_name }}</span>
+                    <span v-if="entry.is_lab" class="px-1.5 py-0.2 rounded text-[9px] font-black uppercase bg-emerald-100 text-emerald-800 border border-emerald-300">
+                      LAB
+                    </span>
+                  </div>
+                </div>
+                <div v-else class="text-xs text-slate-400 italic">
+                  No classes scheduled &bull; Free Period
+                </div>
+              </div>
+
+              <!-- Right: Faculty / Batch / Room Details -->
+              <div v-if="slot.hasSession" class="flex items-center gap-3 text-xs text-slate-600">
+                <div v-for="entry in slot.entries" :key="entry.id" class="flex items-center gap-3">
+                  <span v-if="dailyViewRole === 'batch'" class="font-semibold text-slate-700 bg-slate-100 px-2 py-1 rounded">
+                    👨‍🏫 {{ entry.teacher_name }}
+                  </span>
+                  <span v-else class="font-semibold text-slate-700 bg-slate-100 px-2 py-1 rounded">
+                    🎓 {{ entry.batch_name }}
+                  </span>
+                  <span class="font-mono text-[11px] text-indigo-700 bg-indigo-50 border border-indigo-200 px-2 py-1 rounded font-semibold">
+                    🏛️ {{ resolveEntryRoomName(entry) || 'Home Venue' }}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Timetable Grids (Fit 100% On Page Without Scrolling) -->
-      <div class="space-y-8">
+      <div v-if="viewMode !== 'daily'" class="space-y-8">
         <div v-for="target in activeGridTargets" :key="target.id" class="bg-white rounded-xl shadow-xs border border-slate-200 overflow-hidden page-break">
           
           <div class="bg-slate-900 text-white px-4 py-2.5 flex flex-wrap items-center justify-between gap-2 border-b border-slate-800">
@@ -1198,9 +1557,24 @@
                         p.is_break ? 'bg-amber-50/70 text-amber-900 font-medium' : (isSlotClosed(dayIdx, pIdx) ? 'bg-slate-100/60 text-slate-400' : ''),
                         isDropTarget(target, dayIdx, pIdx) ? 'ring-2 ring-indigo-500 bg-indigo-50/50' : '',
                         isCellClashing(target, dayIdx, pIdx) ? 'ring-2 ring-rose-500 bg-rose-50/80 border-rose-400' : '',
-                        'p-1 border-r border-slate-200 align-top h-20 transition-all'
+                        draggedSession && getSlotHeatmap(target, dayIdx, pIdx).type === 'ideal' ? 'ring-2 ring-emerald-500 bg-emerald-50/70' : '',
+                        draggedSession && getSlotHeatmap(target, dayIdx, pIdx).type === 'swap' ? 'ring-2 ring-indigo-500 bg-indigo-50/70' : '',
+                        draggedSession && getSlotHeatmap(target, dayIdx, pIdx).type === 'conflict' ? 'ring-2 ring-rose-500 bg-rose-50/80 opacity-90' : '',
+                        'p-1 border-r border-slate-200 align-top h-20 transition-all relative'
                       ]">
                     
+                    <!-- Real-Time Drag Heatmap Pill Indicator -->
+                    <div v-if="draggedSession && !p.is_break && !isSlotClosed(dayIdx, pIdx)" 
+                         class="mb-1 px-1 py-0.5 rounded text-[8px] font-bold text-center border shadow-2xs transition-all pointer-events-none select-none"
+                         :class="[
+                           getSlotHeatmap(target, dayIdx, pIdx).type === 'ideal' ? 'bg-emerald-100 text-emerald-800 border-emerald-300 animate-pulse' : '',
+                           getSlotHeatmap(target, dayIdx, pIdx).type === 'swap' ? 'bg-indigo-100 text-indigo-800 border-indigo-300' : '',
+                           getSlotHeatmap(target, dayIdx, pIdx).type === 'conflict' ? 'bg-rose-100 text-rose-800 border-rose-300' : ''
+                         ]"
+                         :title="getSlotHeatmap(target, dayIdx, pIdx).label">
+                      {{ getSlotHeatmap(target, dayIdx, pIdx).badge }}
+                    </div>
+
                     <!-- Break period cell -->
                     <div v-if="p.is_break" class="h-full flex flex-col items-center justify-center text-amber-800">
                       <span class="text-[9px] font-bold tracking-wider uppercase">{{ p.break_name || 'LUNCH' }}</span>
@@ -1357,6 +1731,157 @@
             <span>Auto-Resolve via Optimizer</span>
           </button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL: TIMETABLE SNAPSHOT MANAGER (LOCAL & PORTABLE) -->
+  <!-- ========================================================================= -->
+  <div v-if="snapshotModal.open" 
+       role="dialog" aria-modal="true" aria-labelledby="snap-modal-title"
+       class="fixed inset-0 bg-slate-900/60 backdrop-blur-2xs flex items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-xl shadow-2xl border border-slate-200 max-w-2xl w-full p-6 space-y-5">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <div class="flex items-center gap-3">
+          <div class="p-2 rounded-lg bg-indigo-100 text-indigo-700 text-xl">
+            📸
+          </div>
+          <div>
+            <h3 id="snap-modal-title" class="font-bold text-base text-slate-900">Timetable Version Snapshots</h3>
+            <p class="text-xs text-slate-500">Capture named iterations, switch between scenarios, and export standalone JSON snapshots</p>
+          </div>
+        </div>
+        <button @click="snapshotModal.open = false" aria-label="Close dialog" class="text-slate-400 hover:text-slate-600 font-bold p-1">✕</button>
+      </div>
+
+      <!-- Create New Snapshot Form -->
+      <div class="bg-slate-50 border border-slate-200 rounded-xl p-3.5 space-y-2">
+        <label class="block text-xs font-bold text-slate-800">Create New Named Snapshot</label>
+        <div class="flex items-center gap-2">
+          <input v-model="snapshotModal.newName" 
+                 @keydown.enter.prevent="createSnapshot"
+                 placeholder="e.g. Draft 1 - Post Mid-Sem Review / Lab Swaps Done" 
+                 class="flex-1 border border-slate-300 rounded-lg px-3 py-1.5 text-xs bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+          <button @click="createSnapshot" 
+                  class="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-bold shadow-xs transition flex items-center gap-1.5">
+            <span>📸</span> Save Snapshot
+          </button>
+        </div>
+        <p class="text-[11px] text-slate-400">Captures all current courses, faculty allotments, room preferences, and scheduled timetable matrices.</p>
+      </div>
+
+      <!-- Existing Snapshots List -->
+      <div class="space-y-2 max-h-[50vh] overflow-y-auto pr-1">
+        <div class="text-xs font-bold text-slate-700 flex items-center justify-between">
+          <span>Saved Snapshots ({{ (data.snapshots || []).length }})</span>
+          <span class="text-[10px] text-slate-400">Stored locally in your browser workspace</span>
+        </div>
+
+        <div v-if="!data.snapshots || data.snapshots.length === 0" class="p-8 text-center bg-slate-50 border border-slate-200 rounded-xl space-y-2 text-slate-400 text-xs italic">
+          <div class="text-2xl">🗂️</div>
+          <div>No snapshots created yet.</div>
+          <p class="text-[11px] text-slate-400">Type a name above and click "Save Snapshot" to create a recovery point.</p>
+        </div>
+
+        <div v-for="snap in (data.snapshots || [])" :key="snap.id" 
+             class="p-3 bg-white hover:bg-slate-50/80 border border-slate-200 rounded-xl transition flex flex-wrap items-center justify-between gap-3 shadow-2xs">
+          <div class="space-y-0.5">
+            <div class="font-bold text-slate-900 text-xs flex items-center gap-2">
+              <span>{{ snap.name }}</span>
+              <span class="px-1.5 py-0.2 rounded text-[9px] font-mono bg-indigo-50 text-indigo-700 border border-indigo-200">
+                {{ snap.academic_year }} &bull; {{ snap.semester }}
+              </span>
+            </div>
+            <div class="text-[10px] text-slate-500 flex items-center gap-3">
+              <span>🕒 {{ snap.timestamp }}</span>
+              <span>&bull;</span>
+              <span>📅 {{ snap.sessions_count || (snap.timetable || []).length }} Sessions</span>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-1.5">
+            <button @click="restoreSnapshot(snap)" 
+                    class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-md text-[11px] font-bold shadow-2xs transition flex items-center gap-1">
+              <span>↺</span> Revert to this
+            </button>
+            <button @click="exportSpecificSnapshot(snap)" 
+                    title="Export this snapshot as standalone JSON" 
+                    class="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 rounded-md text-[11px] font-semibold transition">
+              💾 Export
+            </button>
+            <button @click="deleteSnapshot(snap.id)" 
+                    title="Delete snapshot" 
+                    class="px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-md text-[11px] font-semibold transition">
+              ✕
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-between pt-3 border-t border-slate-100">
+        <p class="text-[11px] text-slate-400">Snapshots are completely local and persist automatically across browser reloads.</p>
+        <button @click="snapshotModal.open = false" class="px-4 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold">
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL: TIMETABLE ACTIVITY LOG & REVERSIBLE UNDO -->
+  <!-- ========================================================================= -->
+  <div v-if="historyModalOpen" 
+       role="dialog" aria-modal="true" aria-labelledby="hist-modal-title"
+       class="fixed inset-0 bg-slate-900/60 backdrop-blur-2xs flex items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-xl shadow-2xl border border-slate-200 max-w-xl w-full p-6 space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <div class="flex items-center gap-3">
+          <div class="p-2 rounded-lg bg-amber-100 text-amber-700 text-xl">
+            🕒
+          </div>
+          <div>
+            <h3 id="hist-modal-title" class="font-bold text-base text-slate-900">Timetable Activity History</h3>
+            <p class="text-xs text-slate-500">Audit trail of drag-and-drop moves, swaps, and slot modifications</p>
+          </div>
+        </div>
+        <button @click="historyModalOpen = false" aria-label="Close dialog" class="text-slate-400 hover:text-slate-600 font-bold p-1">✕</button>
+      </div>
+
+      <div v-if="changeHistory.length === 0" class="p-8 text-center bg-slate-50 border border-slate-200 rounded-xl space-y-2 text-slate-400 text-xs italic">
+        <div class="text-2xl">📋</div>
+        <div>No manual timetable modifications made in this session yet.</div>
+        <p class="text-[11px] text-slate-400">Drag sessions in the Master Timetable to move or swap them; all adjustments are recorded here with 1-click Undo.</p>
+      </div>
+
+      <div v-else class="space-y-2 max-h-[50vh] overflow-y-auto pr-1">
+        <div v-for="(item, idx) in changeHistory" :key="item.id" 
+             class="p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs space-y-1">
+          <div class="flex items-center justify-between">
+            <span class="font-bold text-slate-900 flex items-center gap-1.5">
+              <span class="px-1.5 py-0.2 rounded text-[9px] font-mono" :class="item.type === 'swap' ? 'bg-indigo-100 text-indigo-800' : 'bg-emerald-100 text-emerald-800'">
+                {{ item.type === 'swap' ? '⚡ SWAP' : '➔ MOVE' }}
+              </span>
+              <span>{{ item.description }}</span>
+            </span>
+            <span class="text-[10px] text-slate-400 font-mono">{{ item.timestamp }}</span>
+          </div>
+          <div v-if="idx === 0" class="pt-1 flex justify-end">
+            <button @click="undoLastAction" class="px-2.5 py-1 bg-amber-600 hover:bg-amber-500 text-white rounded text-[11px] font-bold shadow-2xs transition flex items-center gap-1">
+              <span>↩️</span> Undo This Action
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-between pt-3 border-t border-slate-100">
+        <button @click="undoLastAction" :disabled="changeHistory.length === 0" 
+                class="px-3.5 py-1.5 bg-amber-600 hover:bg-amber-500 disabled:opacity-50 text-white rounded-lg text-xs font-bold transition flex items-center gap-1">
+          <span>↩️</span> Undo Last (Ctrl+Z)
+        </button>
+        <button @click="historyModalOpen = false" class="px-4 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold">
+          Close
+        </button>
       </div>
     </div>
   </div>
@@ -1520,35 +2045,160 @@
     </div>
   </div>
 
-  <!-- MODAL: ADD / EDIT FACULTY -->
+  <!-- ========================================================================= -->
+  <!-- MODAL: ADD / EDIT FACULTY (HIERARCHY & INSTITUTIONAL PORTFOLIOS) -->
+  <!-- ========================================================================= -->
   <div v-if="facultyModal.open" 
        role="dialog" aria-modal="true" aria-labelledby="f-modal-title"
        class="fixed inset-0 bg-slate-900/60 backdrop-blur-2xs flex items-center justify-center p-4 z-50">
-    <div class="bg-white rounded-xl shadow-xl border border-slate-200 max-w-sm w-full p-5 space-y-4">
-      <h3 id="f-modal-title" class="font-bold text-sm text-slate-900">{{ facultyModal.isEdit ? 'Edit Faculty' : 'Add Faculty Member' }}</h3>
-      <div class="space-y-3 text-xs">
+    <div class="bg-white rounded-xl shadow-2xl border border-slate-200 max-w-lg w-full max-h-[92vh] flex flex-col overflow-hidden">
+      <!-- Modal Header -->
+      <div class="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
         <div>
-          <label class="block font-bold text-slate-700 mb-1">Full Name</label>
-          <input v-model="facultyModal.form.name" placeholder="e.g. Dr. Jane Doe" class="w-full border rounded-lg p-2 bg-slate-50">
+          <h3 id="f-modal-title" class="font-bold text-sm text-slate-900">
+            {{ facultyModal.isEdit ? 'Edit Faculty Profile & Workload' : 'Add Faculty Member' }}
+          </h3>
+          <p class="text-[11px] text-slate-500">Designation hierarchy, base workload targets, and institutional administrative portfolios.</p>
         </div>
-        <div class="grid grid-cols-2 gap-2">
+        <button @click="facultyModal.open = false" aria-label="Close dialog" class="text-slate-400 hover:text-slate-600 font-bold p-1">✕</button>
+      </div>
+
+      <!-- Modal Body (Scrollable) -->
+      <div class="p-4 space-y-4 text-xs overflow-y-auto flex-1">
+        <!-- Basic Information -->
+        <div class="space-y-3 bg-slate-50 p-3 rounded-lg border border-slate-200">
           <div>
-            <label class="block font-bold text-slate-700 mb-1">Initials / Code</label>
-            <input v-model="facultyModal.form.code" placeholder="e.g. JD" class="w-full border rounded-lg p-2 bg-slate-50 font-mono">
+            <label class="block font-bold text-slate-700 mb-1">Full Name &amp; Title <span class="text-rose-500">*</span></label>
+            <input v-model="facultyModal.form.name" placeholder="e.g. Dr. Jane Doe / Prof. Jacob Thomas" class="w-full border rounded-lg p-2 bg-white text-xs">
           </div>
+          
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block font-bold text-slate-700 mb-1">Initials / Code</label>
+              <input v-model="facultyModal.form.code" placeholder="e.g. JD" class="w-full border rounded-lg p-2 bg-white text-xs font-mono font-bold">
+            </div>
+            <div>
+              <label class="block font-bold text-slate-700 mb-1">Department</label>
+              <input v-model="facultyModal.form.department" placeholder="Civil Engineering" class="w-full border rounded-lg p-2 bg-white text-xs">
+            </div>
+          </div>
+
           <div>
-            <label class="block font-bold text-slate-700 mb-1">Designation</label>
-            <input v-model="facultyModal.form.designation" placeholder="Assistant Professor" class="w-full border rounded-lg p-2 bg-slate-50">
+            <label class="block font-bold text-slate-700 mb-1">University Email</label>
+            <input v-model="facultyModal.form.email" placeholder="jane.doe@christuniversity.in" class="w-full border rounded-lg p-2 bg-white text-xs font-mono">
           </div>
         </div>
-        <div>
-          <label class="block font-bold text-slate-700 mb-1">Email</label>
-          <input v-model="facultyModal.form.email" placeholder="jane.doe@christuniversity.in" class="w-full border rounded-lg p-2 bg-slate-50 font-mono">
+
+        <!-- Academic Hierarchy Level & Workload Target -->
+        <div class="space-y-3 bg-slate-50 p-3 rounded-lg border border-slate-200">
+          <div class="font-bold text-slate-800 flex items-center justify-between">
+            <span>Academic Level &amp; Base Teaching Hours</span>
+            <span class="text-[10px] text-indigo-700 font-semibold bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200">Hierarchy Preset</span>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div>
+              <label class="block font-semibold text-slate-600 mb-1">Designation</label>
+              <select v-model="facultyModal.form.designation" @change="onDesignationChange" class="w-full border rounded-lg p-2 bg-white text-xs font-medium">
+                <option value="Professor">Professor (Base 12 hrs/wk)</option>
+                <option value="Associate Professor">Associate Professor (Base 14 hrs/wk)</option>
+                <option value="Assistant Professor">Assistant Professor (Base 16 hrs/wk)</option>
+                <option value="Visiting">Visiting / Adjunct (Base 8 hrs/wk)</option>
+                <option value="Other">Other / Custom</option>
+              </select>
+            </div>
+            <div>
+              <label class="block font-semibold text-slate-600 mb-1">Base Target (Hours / Week)</label>
+              <input v-model.number="facultyModal.form.target_hours" type="number" min="1" max="30" class="w-full border rounded-lg p-2 bg-white text-xs font-bold font-mono">
+            </div>
+          </div>
+          <p class="text-[10px] text-slate-400">Default teaching loads: Professor: 12h, Associate: 14h, Assistant: 16h, Visiting: 8h.</p>
+        </div>
+
+        <!-- Institutional Portfolios & Administrative Relief -->
+        <div class="space-y-3 bg-slate-50 p-3 rounded-lg border border-slate-200">
+          <div class="flex items-center justify-between">
+            <label class="font-bold text-slate-800">Institutional Portfolios &amp; Administrative Relief</label>
+            <span class="text-[10px] font-bold text-rose-700 bg-rose-50 px-2 py-0.5 rounded border border-rose-200">
+              -{{ getModalTotalRelief }} hrs relief
+            </span>
+          </div>
+          <p class="text-[11px] text-slate-500">Select institutional roles held by this faculty member. Relief hours reduce the mandatory weekly classroom contact hours.</p>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+            <div v-for="r in INSTITUTIONAL_ROLES" :key="r.name"
+                 @click="toggleFacultyRole(r)"
+                 :class="isFacultyRoleChecked(r.name) ? 'bg-indigo-50 border-indigo-300 ring-1 ring-indigo-400' : 'bg-white border-slate-200 hover:bg-slate-100/70'"
+                 class="p-2 border rounded-lg cursor-pointer transition flex items-center justify-between select-none">
+              <div class="flex items-center gap-2">
+                <input type="checkbox" :checked="isFacultyRoleChecked(r.name)" class="rounded text-indigo-600 pointer-events-none">
+                <span class="font-semibold text-slate-800 text-[11px]">{{ r.name }}</span>
+              </div>
+              <span class="font-mono font-bold text-rose-600 text-[10px] bg-rose-50 px-1.5 py-0.2 rounded border border-rose-200">
+                -{{ r.relief_hours }}h
+              </span>
+            </div>
+          </div>
+
+          <!-- Custom Institutional Role Adder -->
+          <div class="pt-2 border-t border-slate-200 space-y-1.5">
+            <span class="text-[11px] font-bold text-slate-700">Add Custom Institutional Portfolio</span>
+            <div class="flex items-center gap-2">
+              <input v-model="facultyModal.customRoleName" 
+                     placeholder="e.g. Incubation Center Head" 
+                     class="flex-1 border rounded-lg p-1.5 bg-white text-xs">
+              <input v-model.number="facultyModal.customRoleRelief" 
+                     type="number" min="1" max="10" 
+                     placeholder="Relief" title="Relief hours"
+                     class="w-16 border rounded-lg p-1.5 bg-white text-xs font-mono text-center font-bold">
+              <button @click="addCustomFacultyRole" 
+                      type="button"
+                      class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-bold transition">
+                + Add
+              </button>
+            </div>
+          </div>
+
+          <!-- Active Roles Summary List -->
+          <div v-if="(facultyModal.form.roles || []).length > 0" class="pt-2 flex flex-wrap gap-1.5">
+            <span v-for="(r, idx) in facultyModal.form.roles" :key="idx"
+                  class="bg-indigo-100 text-indigo-950 border border-indigo-200 px-2 py-1 rounded-md text-[10px] font-semibold flex items-center gap-1.5 shadow-2xs">
+              <span>{{ typeof r === 'string' ? r : r.name }}</span>
+              <span class="text-rose-700 font-bold font-mono">-{{ typeof r === 'string' ? 2 : (r.relief_hours || 2) }}h</span>
+              <button @click="removeFacultyRole(idx)" class="text-indigo-400 hover:text-rose-600 font-bold ml-0.5">✕</button>
+            </span>
+          </div>
+        </div>
+
+        <!-- Live Workload Calculation Box -->
+        <div class="bg-indigo-50/70 border border-indigo-200 rounded-xl p-3 text-xs space-y-1.5">
+          <div class="flex items-center justify-between text-indigo-950 font-bold">
+            <span class="uppercase tracking-wider text-[10px]">Net Teaching Target Formula:</span>
+            <span class="font-mono text-sm bg-white px-2 py-0.5 rounded border border-indigo-200 text-indigo-700">
+              {{ getModalNetTarget }} hrs / week
+            </span>
+          </div>
+          <div class="flex items-center justify-between text-[11px] text-indigo-900 pt-1 border-t border-indigo-100 font-mono">
+            <span>Base ({{ facultyModal.form.target_hours || 16 }}h)</span>
+            <span>&minus;</span>
+            <span class="text-rose-600">Relief ({{ getModalTotalRelief }}h)</span>
+            <span>=</span>
+            <span class="font-bold text-indigo-700">Net Target ({{ getModalNetTarget }}h)</span>
+          </div>
+          <p class="text-[10px] text-slate-500 font-sans mt-0.5">
+            Labs count at a 2:1 ratio (2 lab contact hours = 1 workload hour). Any hours assigned beyond {{ getModalNetTarget }}h will flag as workload overload.
+          </p>
         </div>
       </div>
-      <div class="flex justify-end gap-2 pt-2 border-t border-slate-100">
-        <button @click="facultyModal.open = false" class="px-3 py-1.5 border rounded-lg text-xs font-semibold text-slate-600">Cancel</button>
-        <button @click="saveFacultyModal" class="px-4 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-bold">Save</button>
+
+      <!-- Modal Footer -->
+      <div class="p-3 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-2">
+        <button @click="facultyModal.open = false" class="px-3.5 py-1.5 border border-slate-300 rounded-lg text-xs font-semibold text-slate-700 hover:bg-slate-100">
+          Cancel
+        </button>
+        <button @click="saveFacultyModal" class="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-bold shadow-xs transition">
+          Save Faculty Member
+        </button>
       </div>
     </div>
   </div>
@@ -2126,6 +2776,143 @@
     </div>
   </div>
 
+  <!-- ========================================================================= -->
+  <!-- DEDICATED PRINT TEMPLATES (PRINT-ONLY) -->
+  <!-- ========================================================================= -->
+
+  <!-- 1. Print View: Faculty Timetable Slips -->
+  <div v-if="printMode === 'faculty_slips'" class="print-only p-4 space-y-8 bg-white">
+    <div v-for="f in data.faculty" :key="f.id" class="page-break border border-slate-900 p-4 mb-6 text-slate-900">
+      <div class="border-b-2 border-slate-900 pb-2 mb-3 flex items-start justify-between">
+        <div>
+          <h2 class="text-sm font-bold uppercase tracking-wider text-slate-900">Christ University - School of Engineering</h2>
+          <h3 class="text-xs font-semibold text-slate-700">Department of Civil Engineering &bull; Faculty Workload &amp; Schedule Slip</h3>
+        </div>
+        <div class="text-right text-[10px]">
+          <div class="font-bold text-slate-900">{{ data.config.semester }} &bull; AY {{ data.config.academic_year }}</div>
+          <div class="text-slate-500 font-mono">Generated: {{ new Date().toLocaleDateString() }}</div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-3 gap-2 bg-slate-50 p-2.5 rounded border border-slate-200 text-xs mb-3">
+        <div>
+          <span class="text-slate-500 font-medium">Faculty Member:</span>
+          <span class="font-bold ml-1 text-slate-900">{{ f.name }} ({{ f.code }})</span>
+        </div>
+        <div>
+          <span class="text-slate-500 font-medium">Designation:</span>
+          <span class="font-bold ml-1 text-slate-900">{{ f.designation || 'Assistant Professor' }}</span>
+        </div>
+        <div>
+          <span class="text-slate-500 font-medium">Teaching Load:</span>
+          <span class="font-bold ml-1 text-indigo-700">{{ getFacultyWorkload(f.id).teachingWorkloadHours }}h / {{ getFacultyWorkload(f.id).netTeachingTarget }}h Net Target</span>
+        </div>
+      </div>
+
+      <!-- Compact 6-day timetable grid for this faculty member -->
+      <table class="w-full table-fixed border-collapse text-center text-[10px] mb-4">
+        <thead>
+          <tr class="bg-slate-100 border border-slate-800">
+            <th class="p-1 border border-slate-800 w-16 text-left">Day</th>
+            <th v-for="p in data.config.periods" :key="p.id" class="p-1 border border-slate-800">
+              <div class="font-bold">{{ p.name }}</div>
+              <div class="text-[8px] font-normal text-slate-500">{{ p.time }}</div>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="(day, dIdx) in data.config.days" :key="dIdx" class="border border-slate-800">
+            <td class="p-1 font-bold text-left bg-slate-50 border border-slate-800">{{ day }}</td>
+            <td v-for="(p, pIdx) in data.config.periods" :key="p.id" class="p-1 border border-slate-800 align-top h-14">
+              <div v-if="p.is_break" class="text-[9px] text-amber-800 font-bold flex items-center justify-center h-full">LUNCH</div>
+              <div v-else-if="isSlotClosed(dIdx, pIdx)" class="text-[8px] text-slate-400 italic flex items-center justify-center h-full">—</div>
+              <div v-else>
+                <div v-for="entry in getCellEntries({ type: 'teacher', teacher: f }, dIdx, pIdx)" :key="entry.id" class="space-y-0.5">
+                  <div class="font-bold font-mono text-[9px] text-indigo-900">{{ entry.course_code }}</div>
+                  <div class="text-[8px] font-semibold text-slate-700 truncate">{{ entry.batch_name }}</div>
+                  <div class="text-[7.5px] text-slate-500 font-mono">{{ resolveEntryRoomName(entry) }}</div>
+                </div>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Signatures Footer -->
+      <div class="grid grid-cols-3 gap-8 pt-8 mt-4 text-center text-[10px] border-t border-slate-300">
+        <div>
+          <div class="border-t border-slate-900 pt-1 font-bold">Faculty Signature</div>
+        </div>
+        <div>
+          <div class="border-t border-slate-900 pt-1 font-bold">Timetable Coordinator</div>
+        </div>
+        <div>
+          <div class="border-t border-slate-900 pt-1 font-bold">Head of Department (HoD)</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. Print View: Batch Noticeboard Sheets -->
+  <div v-if="printMode === 'batch_noticeboard'" class="print-only p-4 space-y-8 bg-white">
+    <div v-for="b in activeSemesterBatches" :key="b.id" class="page-break border-2 border-slate-900 p-5 mb-8 text-slate-900">
+      <div class="border-b-2 border-slate-900 pb-3 mb-3 text-center">
+        <h1 class="text-base font-extrabold uppercase tracking-wider text-slate-900">Christ University - School of Engineering</h1>
+        <h2 class="text-xs font-bold text-slate-700 uppercase">Department of Civil Engineering &bull; Class Timetable</h2>
+        <div class="mt-1 flex items-center justify-center gap-4 text-[11px] font-semibold text-slate-800">
+          <span class="bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded">Class: {{ b.name }}</span>
+          <span>&bull;</span>
+          <span>{{ data.config.semester }} &bull; AY {{ data.config.academic_year }}</span>
+          <span>&bull;</span>
+          <span v-if="b.default_room_id">Home Room: {{ getRoomName(b.default_room_id) }}</span>
+        </div>
+      </div>
+
+      <!-- 6-Day Grid Table -->
+      <table class="w-full table-fixed border-collapse text-center text-xs mb-4">
+        <thead>
+          <tr class="bg-slate-100 border border-slate-800">
+            <th class="p-1.5 border border-slate-800 w-20 text-left">Day</th>
+            <th v-for="p in data.config.periods" :key="p.id" class="p-1.5 border border-slate-800">
+              <div class="font-bold text-[11px]">{{ p.name }}</div>
+              <div class="text-[9px] text-slate-500 font-normal">{{ p.time }}</div>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="(day, dIdx) in data.config.days" :key="dIdx" class="border border-slate-800">
+            <td class="p-2 font-bold text-left bg-slate-50 border border-slate-800 text-xs">{{ day }}</td>
+            <td v-for="(p, pIdx) in data.config.periods" :key="p.id" class="p-1 border border-slate-800 align-top h-16">
+              <div v-if="p.is_break" class="text-[10px] text-amber-800 font-bold flex items-center justify-center h-full">LUNCH BREAK</div>
+              <div v-else-if="isSlotClosed(dIdx, pIdx)" class="text-[9px] text-slate-400 italic flex items-center justify-center h-full">—</div>
+              <div v-else>
+                <div v-for="entry in getCellEntries({ type: 'batch', batch: b }, dIdx, pIdx)" :key="entry.id" class="space-y-0.5">
+                  <div class="font-bold font-mono text-[10px] text-slate-900">{{ entry.course_code }}</div>
+                  <div class="text-[9px] font-semibold text-slate-800 truncate">{{ entry.course_name }}</div>
+                  <div class="text-[8.5px] text-slate-600 truncate">{{ entry.teacher_name }}</div>
+                  <div class="text-[8px] text-slate-500 font-mono">{{ resolveEntryRoomName(entry) }}</div>
+                </div>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Signatures Footer -->
+      <div class="grid grid-cols-3 gap-8 pt-10 mt-6 text-center text-xs border-t border-slate-300">
+        <div>
+          <div class="border-t border-slate-900 pt-1 font-bold">Class Coordinator</div>
+        </div>
+        <div>
+          <div class="border-t border-slate-900 pt-1 font-bold">Timetable Committee</div>
+        </div>
+        <div>
+          <div class="border-t border-slate-900 pt-1 font-bold">Head of Department (HoD)</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
 </div>
 
 <!-- VUE 3 APPLICATION SCRIPT -->
@@ -2379,6 +3166,274 @@ createApp({
       }
     };
 
+    // Workspace Snapshots & Version History
+    const snapshotModal = ref({ open: false, newName: '' });
+    const openSnapshotModal = () => {
+      const isEven = (data.value.config?.semester || 'Even Semester').includes('Even');
+      const now = new Date();
+      const timeStr = now.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) + ' ' + now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+      snapshotModal.value = {
+        open: true,
+        newName: `Snapshot - ${isEven ? 'Even' : 'Odd'} Sem (${timeStr})`
+      };
+    };
+
+    const createSnapshot = () => {
+      const name = (snapshotModal.value.newName || '').trim();
+      if (!name) {
+        showToast("Please enter a snapshot name.", "error");
+        return;
+      }
+      if (!data.value.snapshots) data.value.snapshots = [];
+      const snap = {
+        id: 'snap_' + Date.now(),
+        name: name,
+        timestamp: Date.now(),
+        dateStr: new Date().toLocaleString('en-GB'),
+        semester: data.value.config?.semester || 'Even Semester',
+        academic_year: data.value.config?.academic_year || '2026-2027',
+        timetableCount: (data.value.timetable || []).length,
+        facultyCount: (data.value.faculty || []).length,
+        batchCount: (data.value.batches || []).length,
+        snapshotData: JSON.parse(JSON.stringify({
+          config: data.value.config,
+          faculty: data.value.faculty,
+          rooms: data.value.rooms,
+          batches: data.value.batches,
+          sub_batches: data.value.sub_batches,
+          unmapped_subjects: data.value.unmapped_subjects,
+          timetable: data.value.timetable,
+          fixed_ce234p_schedule: data.value.fixed_ce234p_schedule,
+          fixed_physics_schedule: data.value.fixed_physics_schedule
+        }))
+      };
+      data.value.snapshots.unshift(snap);
+      saveStateToServer();
+      snapshotModal.value.newName = '';
+      showToast(`Snapshot "${name}" saved successfully!`, "success");
+    };
+
+    const restoreSnapshot = (snap) => {
+      if (confirm(`Restore snapshot "${snap.name}" from ${snap.dateStr}? This will replace current schedule and assignments.`)) {
+        const sData = JSON.parse(JSON.stringify(snap.snapshotData));
+        const existingSnapshots = data.value.snapshots || [];
+        data.value = sanitizeLoadedData(sData);
+        data.value.snapshots = existingSnapshots;
+        saveStateToServer();
+        snapshotModal.value.open = false;
+        showToast(`Workspace restored to "${snap.name}".`, "success");
+      }
+    };
+
+    const exportSpecificSnapshot = (snap) => {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(snap.snapshotData, null, 2));
+      const downloadAnchor = document.createElement('a');
+      const safeName = snap.name.replace(/[^a-zA-Z0-9_-]/g, '_');
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", `snapshot_${safeName}.json`);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+      showToast(`Exported "${snap.name}" JSON file.`, "info");
+    };
+
+    const deleteSnapshot = (snapId) => {
+      if (confirm("Delete this saved snapshot?")) {
+        data.value.snapshots = (data.value.snapshots || []).filter(s => s.id !== snapId);
+        saveStateToServer();
+        showToast("Snapshot deleted.", "info");
+      }
+    };
+
+    // Professional Multi-Sheet Excel Workbook Export via SheetJS
+    const exportMultiTabExcel = () => {
+      if (typeof XLSX === 'undefined') {
+        showToast("Excel export library is loading, please try again in a moment.", "warning");
+        return;
+      }
+
+      const wb = XLSX.utils.book_new();
+      const sem = data.value.config?.semester || 'Even Semester';
+      const ay = data.value.config?.academic_year || '2026-2027';
+
+      // 1. MASTER SCHEDULE SHEET
+      const masterRows = [
+        ["CHRIST (Deemed to be University) - Department of Civil Engineering"],
+        [`MASTER TIMETABLE - ${sem} (${ay})`],
+        [],
+        ["Day", "Period", "Time", "Batch / Class", "Course Code", "Course Name", "Type", "Faculty Code", "Faculty Name", "Room / Lab"]
+      ];
+
+      const daysList = data.value.config.days || [];
+      const sortedTt = [...(data.value.timetable || [])].sort((a, b) => {
+        if (a.day !== b.day) return a.day - b.day;
+        if (a.period !== b.period) return a.period - b.period;
+        return (a.batch_name || '').localeCompare(b.batch_name || '');
+      });
+
+      sortedTt.forEach(e => {
+        masterRows.push([
+          daysList[e.day] || `Day ${e.day + 1}`,
+          e.period_name || `Period ${e.period + 1}`,
+          e.period_time || '',
+          e.batch_name || '',
+          e.course_code || '',
+          e.course_name || '',
+          e.is_lab ? 'LAB' : 'Theory',
+          e.teacher_code || '',
+          e.teacher_name || '',
+          resolveEntryRoomName(e) || 'TBD'
+        ]);
+      });
+
+      const wsMaster = XLSX.utils.aoa_to_sheet(masterRows);
+      XLSX.utils.book_append_sheet(wb, wsMaster, "Master Timetable");
+
+      // 2. BATCH-WISE SCHEDULES SHEET
+      const batchRows = [
+        ["CHRIST (Deemed to be University) - Department of Civil Engineering"],
+        [`CLASS TIMETABLES (BATCH-WISE) - ${sem} (${ay})`],
+        []
+      ];
+
+      (activeSemesterBatches.value || []).forEach(b => {
+        batchRows.push([`BATCH / CLASS: ${b.name}`]);
+        const periodsHeader = ["Day", ...(data.value.config.periods || []).map(p => `${p.name} (${p.time})`)];
+        batchRows.push(periodsHeader);
+
+        (data.value.config.days || []).forEach((dName, dIdx) => {
+          const row = [dName];
+          (data.value.config.periods || []).forEach((p, pIdx) => {
+            if (p.is_break) {
+              row.push(p.break_name || "LUNCH");
+            } else {
+              const entries = getCellEntries({ id: b.id, type: 'batch', title: b.name }, dIdx, pIdx);
+              if (entries.length > 0) {
+                const text = entries.map(x => `${x.course_code} (${resolveEntryRoomName(x) || 'TBD'}) [${x.teacher_code || ''}]`).join(" / ");
+                row.push(text);
+              } else {
+                row.push("—");
+              }
+            }
+          });
+          batchRows.push(row);
+        });
+        batchRows.push([]);
+      });
+
+      const wsBatches = XLSX.utils.aoa_to_sheet(batchRows);
+      XLSX.utils.book_append_sheet(wb, wsBatches, "Batch Schedules");
+
+      // 3. FACULTY-WISE SCHEDULES SHEET
+      const facultyRows = [
+        ["CHRIST (Deemed to be University) - Department of Civil Engineering"],
+        [`FACULTY INDIVIDUAL SCHEDULES - ${sem} (${ay})`],
+        []
+      ];
+
+      (data.value.faculty || []).forEach(f => {
+        const load = getFacultyWorkload(f.id);
+        const rolesStr = (load.assignedRoles || []).map(r => `${r.name} (-${r.relief_hours}h)`).join(", ") || "None";
+        facultyRows.push([`FACULTY: ${f.name} (${f.code})`, `Designation: ${f.designation || 'Assistant Professor'}`, `Portfolios: ${rolesStr}`, `Load: ${load.teachingWorkloadHours}h / Target: ${load.netTeachingTarget}h (${load.statusBadge})`]);
+        const fPeriodsHeader = ["Day", ...(data.value.config.periods || []).map(p => `${p.name} (${p.time})`)];
+        facultyRows.push(fPeriodsHeader);
+
+        (data.value.config.days || []).forEach((dName, dIdx) => {
+          const row = [dName];
+          (data.value.config.periods || []).forEach((p, pIdx) => {
+            if (p.is_break) {
+              row.push(p.break_name || "LUNCH");
+            } else {
+              const entries = getCellEntries({ id: f.id, type: 'teacher', title: f.name }, dIdx, pIdx);
+              if (entries.length > 0) {
+                const text = entries.map(x => `${x.course_code} (${x.batch_name}) @ ${resolveEntryRoomName(x) || 'TBD'}`).join(" / ");
+                row.push(text);
+              } else {
+                row.push("—");
+              }
+            }
+          });
+          batchRows.push(row);
+        });
+        facultyRows.push([]);
+      });
+
+      const wsFaculty = XLSX.utils.aoa_to_sheet(facultyRows);
+      XLSX.utils.book_append_sheet(wb, wsFaculty, "Faculty Schedules");
+
+      // 4. VENUE OCCUPANCY MATRIX SHEET
+      const venueRows = [
+        ["CHRIST (Deemed to be University) - Department of Civil Engineering"],
+        [`VENUE & LAB OCCUPANCY MATRIX - ${sem} (${ay})`],
+        []
+      ];
+
+      (data.value.rooms || []).forEach(r => {
+        venueRows.push([`VENUE: ${r.name} (${r.type})`]);
+        const vPeriodsHeader = ["Day", ...(data.value.config.periods || []).map(p => `${p.name} (${p.time})`)];
+        venueRows.push(vPeriodsHeader);
+
+        (data.value.config.days || []).forEach((dName, dIdx) => {
+          const row = [dName];
+          (data.value.config.periods || []).forEach((p, pIdx) => {
+            if (p.is_break) {
+              row.push(p.break_name || "LUNCH");
+            } else {
+              const entries = getCellEntries({ id: r.id, type: 'room', title: r.name }, dIdx, pIdx);
+              if (entries.length > 0) {
+                const text = entries.map(x => `${x.course_code} (${x.batch_name}) [${x.teacher_code || ''}]`).join(" / ");
+                row.push(text);
+              } else {
+                row.push("FREE");
+              }
+            }
+          });
+          venueRows.push(row);
+        });
+        venueRows.push([]);
+      });
+
+      const wsVenues = XLSX.utils.aoa_to_sheet(venueRows);
+      XLSX.utils.book_append_sheet(wb, wsVenues, "Venue Occupancy");
+
+      // 5. FACULTY WORKLOAD AUDIT SHEET
+      const workloadRows = [
+        ["CHRIST (Deemed to be University) - Department of Civil Engineering"],
+        [`FACULTY WORKLOAD COMPLIANCE AUDIT - ${sem} (${ay})`],
+        [],
+        ["Faculty Member", "Code", "Designation", "Institutional Portfolios / Extra Positions", "Theory Hours", "Lab Contact Hours", "Lab Workload (2:1)", "Teaching Workload (hrs)", "Portfolio Relief (hrs)", "Base Target (hrs)", "Net Target (hrs)", "Total Workload (hrs)", "Balance (hrs)", "Compliance Status"]
+      ];
+
+      (data.value.faculty || []).forEach(f => {
+        const w = getFacultyWorkload(f.id);
+        const rolesStr = (w.assignedRoles || []).map(r => `${r.name} (-${r.relief_hours}h)`).join(", ") || "—";
+        workloadRows.push([
+          f.name,
+          f.code,
+          f.designation || 'Assistant Professor',
+          rolesStr,
+          w.theoryHours,
+          w.labContactHours,
+          w.labWorkloadHours,
+          w.teachingWorkloadHours,
+          w.reliefHours,
+          w.baseTargetHours,
+          w.netTeachingTarget,
+          w.totalWorkloadHours,
+          w.balance,
+          w.statusBadge
+        ]);
+      });
+
+      const wsWorkload = XLSX.utils.aoa_to_sheet(workloadRows);
+      XLSX.utils.book_append_sheet(wb, wsWorkload, "Workload Compliance");
+
+      const cleanSem = sem.replace(/\s+/g, '_');
+      const filename = `Christ_University_Timetable_${cleanSem}_${ay}.xlsx`;
+      XLSX.writeFile(wb, filename);
+      showToast(`Exported 5-sheet workbook: ${filename}`, "success");
+    };
+
     // Filters & Computeds
     const catalogSearchQuery = ref('');
     const cycleFilter = ref('ALL');
@@ -2437,15 +3492,61 @@ createApp({
       return list;
     });
 
-    // Faculty Filter
+    // Faculty Filter & Stats
     const facultySearchQuery = ref('');
+    const facultyDesignationFilter = ref('ALL');
+    const facultyComplianceFilter = ref('ALL');
+
     const filteredFaculty = computed(() => {
       let list = data.value.faculty || [];
+      if (facultyDesignationFilter.value !== 'ALL') {
+        const dFilter = facultyDesignationFilter.value.toLowerCase();
+        list = list.filter(f => (f.designation || '').toLowerCase().includes(dFilter));
+      }
+      if (facultyComplianceFilter.value !== 'ALL') {
+        list = list.filter(f => {
+          const w = getFacultyWorkload(f.id);
+          return w.status === facultyComplianceFilter.value;
+        });
+      }
       if (facultySearchQuery.value && facultySearchQuery.value.trim()) {
         const q = facultySearchQuery.value.toLowerCase().trim();
-        list = list.filter(f => f.name.toLowerCase().includes(q) || f.code.toLowerCase().includes(q) || (f.designation||'').toLowerCase().includes(q));
+        list = list.filter(f => {
+          const nameMatch = f.name.toLowerCase().includes(q);
+          const codeMatch = f.code.toLowerCase().includes(q);
+          const desigMatch = (f.designation || '').toLowerCase().includes(q);
+          const rolesMatch = (f.roles || []).some(r => (typeof r === 'string' ? r : r.name).toLowerCase().includes(q));
+          return nameMatch || codeMatch || desigMatch || rolesMatch;
+        });
       }
       return list;
+    });
+
+    const facultyStats = computed(() => {
+      const list = data.value.faculty || [];
+      let profs = 0, assoc = 0, asst = 0, balanced = 0, over = 0, under = 0, totalTeachingLoad = 0;
+      list.forEach(f => {
+        const desig = (f.designation || '').toLowerCase();
+        if (desig.includes('associate')) assoc++;
+        else if (desig.includes('professor') && !desig.includes('assistant')) profs++;
+        else asst++;
+
+        const w = getFacultyWorkload(f.id);
+        totalTeachingLoad += w.teachingWorkloadHours;
+        if (w.status === 'balanced') balanced++;
+        else if (w.status === 'over') over++;
+        else under++;
+      });
+      return {
+        total: list.length,
+        profs,
+        assoc,
+        asst,
+        balanced,
+        over,
+        under,
+        totalTeachingLoad: Number.isInteger(totalTeachingLoad) ? totalTeachingLoad : Number(totalTeachingLoad.toFixed(1))
+      };
     });
 
     // Venues Filter
@@ -2623,11 +3724,41 @@ createApp({
       });
     };
 
+    // Institutional Portfolios & Administrative Responsibilities (Workload Relief)
+    const INSTITUTIONAL_ROLES = [
+      { id: 'hod', name: 'Head of Department (HoD)', relief_hours: 6 },
+      { id: 'iqac', name: 'IQAC Coordinator', relief_hours: 4 },
+      { id: 'nba', name: 'NBA Coordinator', relief_hours: 4 },
+      { id: 'naac', name: 'NAAC / Accreditation Lead', relief_hours: 4 },
+      { id: 'student_coord', name: 'Student Coordinator / Cultural Lead', relief_hours: 2 },
+      { id: 'exam_coord', name: 'Examination Coordinator', relief_hours: 2 },
+      { id: 'class_coord', name: 'Class Coordinator / Proctor', relief_hours: 1 },
+      { id: 'lab_incharge', name: 'Research / Lab In-Charge', relief_hours: 2 }
+    ];
+
+    const DESIGNATION_PRESETS = [
+      { name: 'Professor', baseHours: 12 },
+      { name: 'Associate Professor', baseHours: 14 },
+      { name: 'Assistant Professor', baseHours: 16 },
+      { name: 'Visiting / Adjunct Faculty', baseHours: 8 }
+    ];
+
+    const getDefaultBaseHoursForDesignation = (desig) => {
+      if (!desig) return 16;
+      const lower = String(desig).toLowerCase();
+      if (lower.includes('associate')) return 14;
+      if (lower.includes('professor') && !lower.includes('assistant')) return 12;
+      if (lower.includes('visiting') || lower.includes('adjunct')) return 8;
+      return 16;
+    };
+
     const getFacultyWorkload = teacherId => {
       const isEven = (data.value.config?.semester || 'Even Semester').includes('Even');
       const targetSem = isEven ? 'Even' : 'Odd';
       let theoryHours = 0;
       let labContactHours = 0;
+
+      const f = (data.value.faculty || []).find(x => x.id === teacherId);
 
       (data.value.unmapped_subjects || []).forEach(s => {
         if ((s.semester_type || 'Even') !== targetSem) return;
@@ -2644,13 +3775,62 @@ createApp({
 
       // Laboratory 2hrs is considered as 1hr in the workload
       const labWorkloadHours = labContactHours / 2;
-      const totalWorkloadHours = theoryHours + labWorkloadHours;
+      const teachingWorkloadHours = theoryHours + labWorkloadHours;
+
+      // Base target calculation
+      const desig = f ? f.designation : 'Assistant Professor';
+      const baseTargetHours = f && f.target_hours ? Number(f.target_hours) : getDefaultBaseHoursForDesignation(desig);
+
+      // Institutional roles relief hours
+      let reliefHours = 0;
+      const assignedRoles = [];
+      if (f && Array.isArray(f.roles)) {
+        f.roles.forEach(r => {
+          const rName = typeof r === 'string' ? r : (r.name || '');
+          const rRelief = typeof r === 'object' && r.relief_hours !== undefined ? Number(r.relief_hours) : (INSTITUTIONAL_ROLES.find(x => x.name === rName)?.relief_hours || 2);
+          reliefHours += rRelief;
+          assignedRoles.push({ name: rName, relief_hours: rRelief });
+        });
+      } else if (f && f.designation && f.designation.includes('HoD')) {
+        reliefHours += 6;
+        assignedRoles.push({ name: 'Head of Department (HoD)', relief_hours: 6 });
+      }
+
+      const netTeachingTarget = Math.max(0, baseTargetHours - reliefHours);
+      const totalWorkloadHours = teachingWorkloadHours + reliefHours;
+      const balance = teachingWorkloadHours - netTeachingTarget;
+
+      let status = 'balanced';
+      let statusBadge = '✓ Target Met';
+      let statusColor = 'emerald';
+
+      if (balance > 0.05) {
+        status = 'over';
+        statusBadge = `Over by ${Number.isInteger(balance) ? balance : balance.toFixed(1)}h`;
+        statusColor = 'rose';
+      } else if (balance < -0.05) {
+        status = 'under';
+        statusBadge = `Under by ${Math.abs(Number.isInteger(balance) ? balance : Number(balance.toFixed(1)))}h`;
+        statusColor = 'amber';
+      }
+
+      const percentage = netTeachingTarget > 0 ? Math.min(100, Math.round((teachingWorkloadHours / netTeachingTarget) * 100)) : 100;
 
       return {
         theoryHours,
         labContactHours,
         labWorkloadHours: Number.isInteger(labWorkloadHours) ? labWorkloadHours : Number(labWorkloadHours.toFixed(1)),
+        teachingWorkloadHours: Number.isInteger(teachingWorkloadHours) ? teachingWorkloadHours : Number(teachingWorkloadHours.toFixed(1)),
+        baseTargetHours,
+        reliefHours,
+        netTeachingTarget,
         totalWorkloadHours: Number.isInteger(totalWorkloadHours) ? totalWorkloadHours : Number(totalWorkloadHours.toFixed(1)),
+        balance: Number.isInteger(balance) ? balance : Number(balance.toFixed(1)),
+        status,
+        statusBadge,
+        statusColor,
+        percentage,
+        assignedRoles,
         display: `${theoryHours} + ${Number.isInteger(labWorkloadHours) ? labWorkloadHours : Number(labWorkloadHours.toFixed(1))}`
       };
     };
@@ -2659,8 +3839,15 @@ createApp({
       return getFacultyWorkload(teacherId).totalWorkloadHours;
     };
 
-    // Faculty Modal CRUD
-    const facultyModal = ref({ open: false, isEdit: false, form: {} });
+    // Faculty Modal CRUD & Institutional Roles
+    const facultyModal = ref({
+      open: false,
+      isEdit: false,
+      form: {},
+      customRoleName: '',
+      customRoleRelief: 2
+    });
+
     const openAddTeacherModal = () => {
       facultyModal.value = {
         open: true,
@@ -2670,18 +3857,90 @@ createApp({
           name: '',
           code: '',
           designation: 'Assistant Professor',
+          target_hours: 16,
+          roles: [],
           email: '',
           unavailable_slots: []
-        }
+        },
+        customRoleName: '',
+        customRoleRelief: 2
       };
     };
+
     const editTeacher = f => {
+      const baseTarget = f.target_hours ? f.target_hours : getDefaultBaseHoursForDesignation(f.designation);
+      let rolesCopy = [];
+      if (Array.isArray(f.roles)) {
+        rolesCopy = f.roles.map(r => typeof r === 'string' ? { name: r, relief_hours: 2 } : { ...r });
+      } else if (f.designation && f.designation.includes('HoD')) {
+        rolesCopy.push({ name: 'Head of Department (HoD)', relief_hours: 6 });
+      }
       facultyModal.value = {
         open: true,
         isEdit: true,
-        form: { ...f }
+        form: {
+          ...f,
+          designation: f.designation || 'Assistant Professor',
+          target_hours: baseTarget,
+          roles: rolesCopy
+        },
+        customRoleName: '',
+        customRoleRelief: 2
       };
     };
+
+    const toggleFacultyRole = (roleItem) => {
+      if (!facultyModal.value.form.roles) facultyModal.value.form.roles = [];
+      const idx = facultyModal.value.form.roles.findIndex(r => (typeof r === 'string' ? r : r.name) === roleItem.name);
+      if (idx >= 0) {
+        facultyModal.value.form.roles.splice(idx, 1);
+      } else {
+        facultyModal.value.form.roles.push({ name: roleItem.name, relief_hours: roleItem.relief_hours });
+      }
+    };
+
+    const isFacultyRoleChecked = (roleName) => {
+      const roles = facultyModal.value.form?.roles || [];
+      return roles.some(r => (typeof r === 'string' ? r : r.name) === roleName);
+    };
+
+    const addCustomFacultyRole = () => {
+      const name = (facultyModal.value.customRoleName || '').trim();
+      const relief = Number(facultyModal.value.customRoleRelief) || 0;
+      if (!name) return;
+      if (!facultyModal.value.form.roles) facultyModal.value.form.roles = [];
+      facultyModal.value.form.roles.push({ name, relief_hours: relief });
+      facultyModal.value.customRoleName = '';
+      facultyModal.value.customRoleRelief = 2;
+    };
+
+    const removeFacultyRole = (idx) => {
+      if (facultyModal.value.form.roles) {
+        facultyModal.value.form.roles.splice(idx, 1);
+      }
+    };
+
+    const onDesignationChange = () => {
+      facultyModal.value.form.target_hours = getDefaultBaseHoursForDesignation(facultyModal.value.form.designation);
+    };
+
+    const getModalNetTarget = computed(() => {
+      const base = Number(facultyModal.value.form?.target_hours) || 16;
+      let relief = 0;
+      (facultyModal.value.form?.roles || []).forEach(r => {
+        relief += Number(r.relief_hours) || 0;
+      });
+      return Math.max(0, base - relief);
+    });
+
+    const getModalTotalRelief = computed(() => {
+      let relief = 0;
+      (facultyModal.value.form?.roles || []).forEach(r => {
+        relief += Number(r.relief_hours) || 0;
+      });
+      return relief;
+    });
+
     const saveFacultyModal = () => {
       if (!facultyModal.value.form.name) return;
       if (!facultyModal.value.form.code) {
@@ -3833,6 +5092,163 @@ createApp({
       );
     };
 
+    // Drag-and-Drop Real-Time Candidate Slot Heatmap
+    const getSlotHeatmap = (target, dayIdx, pIdx) => {
+      if (!draggedSession.value) return null;
+      const source = draggedSession.value.entry;
+      if (!source) return null;
+
+      // Same slot
+      if (source.day === dayIdx && source.period === pIdx) {
+        return { status: 'current', label: 'Current Slot', ringClass: 'ring-2 ring-slate-400 bg-slate-100/70', badgeClass: 'bg-slate-200 text-slate-700' };
+      }
+
+      const pObj = data.value.config.periods[pIdx];
+      if (pObj && pObj.is_break) {
+        return { status: 'blocked', label: 'Break', ringClass: 'ring-1 ring-amber-400 bg-amber-50/50', badgeClass: 'bg-amber-200 text-amber-800' };
+      }
+
+      if (isSlotClosed(dayIdx, pIdx)) {
+        return { status: 'blocked', label: 'Closed', ringClass: 'ring-1 ring-slate-300 bg-slate-100/60', badgeClass: 'bg-slate-200 text-slate-600' };
+      }
+
+      if (isTargetSlotUnavailable(target, dayIdx, pIdx)) {
+        return { status: 'clash', label: 'Blocked Slot', ringClass: 'ring-2 ring-rose-400 bg-rose-50/80', badgeClass: 'bg-rose-200 text-rose-800' };
+      }
+
+      // Check collision for source entry at target slot
+      const tt = data.value.timetable || [];
+      const sourceTeacherIds = source.teacher_ids && source.teacher_ids.length > 0 ? source.teacher_ids : (source.teacher_id ? [source.teacher_id] : []);
+
+      // Check if teacher is busy elsewhere at dayIdx, pIdx
+      const teacherConflict = tt.find(e => {
+        if (e.id === source.id) return false;
+        if (e.day !== dayIdx || e.period !== pIdx) return false;
+        const eTeacherIds = e.teacher_ids && e.teacher_ids.length > 0 ? e.teacher_ids : (e.teacher_id ? [e.teacher_id] : []);
+        return sourceTeacherIds.some(tid => eTeacherIds.includes(tid));
+      });
+
+      // Check if batch is busy elsewhere
+      const batchConflict = tt.find(e => {
+        if (e.id === source.id) return false;
+        if (e.day !== dayIdx || e.period !== pIdx) return false;
+        return e.batch_id === source.batch_id;
+      });
+
+      const cellEntries = getCellEntries(target, dayIdx, pIdx);
+      if (cellEntries.length > 0) {
+        // Swap candidate
+        if (teacherConflict || batchConflict) {
+          return { status: 'clash', label: '🚫 Double-Booking', ringClass: 'ring-2 ring-rose-500 bg-rose-50/90', badgeClass: 'bg-rose-100 text-rose-700' };
+        }
+        return { status: 'swap', label: '⚡ Swap Candidate', ringClass: 'ring-2 ring-indigo-500 bg-indigo-50/80', badgeClass: 'bg-indigo-100 text-indigo-700' };
+      }
+
+      // Empty cell
+      if (teacherConflict || batchConflict) {
+        return { status: 'clash', label: '🚫 Double-Booking', ringClass: 'ring-2 ring-rose-500 bg-rose-50/90', badgeClass: 'bg-rose-100 text-rose-700' };
+      }
+
+      return { status: 'ideal', label: '✨ Ideal Slot', ringClass: 'ring-2 ring-emerald-500 bg-emerald-50/80', badgeClass: 'bg-emerald-100 text-emerald-800 font-bold' };
+    };
+
+    // Timetable Activity & Change Audit History (with Reversible Undo)
+    const changeHistory = ref([]);
+    const historyModalOpen = ref(false);
+
+    const recordChange = (actionType, title, details, undoFn) => {
+      changeHistory.value.unshift({
+        id: 'hist_' + Date.now(),
+        timestamp: Date.now(),
+        timeStr: new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+        type: actionType,
+        title,
+        details,
+        undo: undoFn
+      });
+      if (changeHistory.value.length > 40) changeHistory.value.pop();
+    };
+
+    const undoLastAction = () => {
+      if (changeHistory.value.length === 0) {
+        showToast("No recent actions to undo.", "info");
+        return;
+      }
+      const last = changeHistory.value.shift();
+      if (last && typeof last.undo === 'function') {
+        last.undo();
+        saveStateToServer();
+        showToast(`Undid: ${last.title}`, "info");
+      }
+    };
+
+    // Responsive Student & Faculty Quick Daily View
+    const dailyViewRole = ref('batch');
+    const selectedDailyBatchId = ref('');
+    const selectedDailyTeacherId = ref('');
+    const selectedDailyDayIdx = ref(new Date().getDay() >= 1 && new Date().getDay() <= 6 ? new Date().getDay() - 1 : 0);
+
+    const dailyScheduleEntries = computed(() => {
+      const dayIdx = selectedDailyDayIdx.value;
+      const tt = data.value.timetable || [];
+      const periods = data.value.config.periods || [];
+
+      let targetId = dailyViewRole.value === 'batch' ? selectedDailyBatchId.value : selectedDailyTeacherId.value;
+      if (!targetId) {
+        if (dailyViewRole.value === 'batch') targetId = activeSemesterBatches.value[0]?.id || '';
+        else targetId = data.value.faculty[0]?.id || '';
+      }
+
+      return periods.map((p, pIdx) => {
+        if (p.is_break) {
+          return {
+            period: p,
+            periodIdx: pIdx,
+            isBreak: true,
+            breakName: p.break_name || 'LUNCH BREAK',
+            time: p.time,
+            entries: []
+          };
+        }
+
+        const entries = tt.filter(e => {
+          if (e.day !== dayIdx || e.period !== pIdx) return false;
+          if (dailyViewRole.value === 'batch') {
+            return e.batch_id === targetId || (e.batch_name && (activeSemesterBatches.value.find(b => b.id === targetId)?.name === e.batch_name));
+          } else {
+            if (e.teacher_id === targetId) return true;
+            if (e.teacher_ids && e.teacher_ids.includes(targetId)) return true;
+            return false;
+          }
+        });
+
+        return {
+          period: p,
+          periodIdx: pIdx,
+          isBreak: false,
+          time: p.time,
+          entries: entries
+        };
+      });
+    });
+
+    // Print Layout Modes
+    const printMode = ref('full');
+    const printFacultySlips = () => {
+      printMode.value = 'faculty_slips';
+      setTimeout(() => {
+        window.print();
+        printMode.value = 'full';
+      }, 100);
+    };
+    const printBatchNoticeboard = () => {
+      printMode.value = 'batch_noticeboard';
+      setTimeout(() => {
+        window.print();
+        printMode.value = 'full';
+      }, 100);
+    };
+
     const onSessionDragStart = (event, entry, target) => {
       draggedSession.value = { entry, target };
       if (event.dataTransfer) {
@@ -4079,6 +5495,41 @@ createApp({
       updateListMoveOrSwap(data.value.fixed_ce234p_schedule);
       updateListMoveOrSwap(data.value.fixed_physics_schedule);
 
+      // Capture state for reversible Undo in Activity History
+      const undoSourceDay = sourceEntry.day;
+      const undoSourcePeriod = sourceEntry.period;
+      const undoSourceDayName = sourceEntry.day_name;
+      const undoSourcePeriodName = sourceEntry.period_name;
+      const undoTargetDay = targetEntry ? targetEntry.day : null;
+      const undoTargetPeriod = targetEntry ? targetEntry.period : null;
+
+      recordChange(
+        isSwap ? 'SWAP' : 'MOVE',
+        isSwap ? `Swapped ${sourceEntry.course_code} & ${targetEntry.course_code}` : `Moved ${sourceEntry.course_code} (${sourceEntry.batch_name})`,
+        isSwap 
+          ? `${sourceEntry.course_code} moved to ${targetEntry.day_name} ${targetEntry.period_name}; ${targetEntry.course_code} moved to ${undoSourceDayName} ${undoSourcePeriodName}`
+          : `Moved to ${daysList[targetDay] || 'Day ' + (targetDay + 1)} ${periodsList[targetPeriod]?.name || 'Period ' + (targetPeriod + 1)}`,
+        () => {
+          const tt = data.value.timetable || [];
+          const srcItem = tt.find(e => e.id === sourceEntry.id);
+          if (srcItem) {
+            srcItem.day = undoSourceDay;
+            srcItem.period = undoSourcePeriod;
+            srcItem.day_name = undoSourceDayName;
+            srcItem.period_name = undoSourcePeriodName;
+          }
+          if (isSwap && targetEntry) {
+            const tgtItem = tt.find(e => e.id === targetEntry.id);
+            if (tgtItem) {
+              tgtItem.day = undoTargetDay;
+              tgtItem.period = undoTargetPeriod;
+              tgtItem.day_name = daysList[undoTargetDay] || `Day ${undoTargetDay + 1}`;
+              tgtItem.period_name = periodsList[undoTargetPeriod]?.name;
+            }
+          }
+        }
+      );
+
       moveModal.value.open = false;
       saveStateToServer();
 
@@ -4260,7 +5711,39 @@ createApp({
       backupFileInput,
       triggerImportBackup,
       importDataBackup,
-      propagateCourseFacultyUpdate
+      propagateCourseFacultyUpdate,
+      // Enhanced Features Exports
+      INSTITUTIONAL_ROLES,
+      DESIGNATION_PRESETS,
+      facultyDesignationFilter,
+      facultyComplianceFilter,
+      facultyStats,
+      toggleFacultyRole,
+      isFacultyRoleChecked,
+      addCustomFacultyRole,
+      removeFacultyRole,
+      onDesignationChange,
+      getModalNetTarget,
+      getModalTotalRelief,
+      snapshotModal,
+      openSnapshotModal,
+      createSnapshot,
+      restoreSnapshot,
+      exportSpecificSnapshot,
+      deleteSnapshot,
+      exportMultiTabExcel,
+      getSlotHeatmap,
+      changeHistory,
+      historyModalOpen,
+      undoLastAction,
+      dailyViewRole,
+      selectedDailyBatchId,
+      selectedDailyTeacherId,
+      selectedDailyDayIdx,
+      dailyScheduleEntries,
+      printMode,
+      printFacultySlips,
+      printBatchNoticeboard
     };
   }
 }).mount('#app');
