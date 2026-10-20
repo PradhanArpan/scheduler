@@ -131,6 +131,30 @@ def sync_fixed_schedule_teachers(data, sem_type=None):
         if s_sem == sem_key or not s.get("semester_type"):
             subject_lookup[(s.get("batch_id"), s.get("code"))] = s
             
+    # Purge any stale entries from fixed_ce234p_schedule & fixed_physics_schedule that disagree with subject fixed_slots
+    for s in data.get("unmapped_subjects", []):
+        if "fixed_slots" in s and s["fixed_slots"] is not None:
+            b_id = s.get("batch_id")
+            c_code = s.get("code")
+            c_id = s.get("id")
+            allowed_slots = {(fs.get("day"), fs.get("period")) for fs in s.get("fixed_slots", []) if fs.get("day") is not None and fs.get("period") is not None}
+            if "fixed_ce234p_schedule" in data:
+                data["fixed_ce234p_schedule"] = [
+                    f for f in data["fixed_ce234p_schedule"]
+                    if not (
+                        (f.get("batch_id") == b_id and (f.get("course_code") == c_code or f.get("course_id") == c_id))
+                        and (f.get("day"), f.get("period")) not in allowed_slots
+                    )
+                ]
+            if "fixed_physics_schedule" in data:
+                data["fixed_physics_schedule"] = [
+                    f for f in data["fixed_physics_schedule"]
+                    if not (
+                        (f.get("batch_id") == b_id and (f.get("course_code") == c_code or f.get("course_id") == c_id))
+                        and (f.get("day"), f.get("period")) not in allowed_slots
+                    )
+                ]
+
     # Update fixed_ce234p_schedule
     fixed_schedule = data.get("fixed_ce234p_schedule", [])
     for entry in fixed_schedule:
@@ -296,6 +320,7 @@ def generate():
         # Combined timetable includes fixed civil schedule and any course-level pinned sessions
         combined = list(scheduler.fixed_schedule) + list(result["schedule"])
         data["timetable"] = combined
+        data["fixed_ce234p_schedule"] = list(scheduler.fixed_schedule)
         save_data(data)
         result["schedule"] = combined
 

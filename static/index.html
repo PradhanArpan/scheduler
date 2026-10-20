@@ -3308,6 +3308,28 @@ createApp({
         });
       }
 
+      // Reconcile timetable & fixed schedules with subject-level specific hour constraints (fixed_slots)
+      if (json.unmapped_subjects) {
+        json.unmapped_subjects.forEach(s => {
+          if (s.fixed_slots && Array.isArray(s.fixed_slots)) {
+            const bId = s.batch_id;
+            const cCode = s.code;
+            const cId = s.id;
+            const allowed = new Set(s.fixed_slots.filter(x => x.day !== undefined && x.period !== undefined).map(x => `${x.day}_${x.period}`));
+            
+            const filterFn = e => {
+              const isMatch = (e.course_id === cId || (e.course_code === cCode && (!bId || !e.batch_id || e.batch_id === bId)));
+              if (!isMatch) return true;
+              return allowed.has(`${e.day}_${e.period}`);
+            };
+
+            if (json.timetable) json.timetable = json.timetable.filter(filterFn);
+            if (json.fixed_ce234p_schedule) json.fixed_ce234p_schedule = json.fixed_ce234p_schedule.filter(filterFn);
+            if (json.fixed_physics_schedule) json.fixed_physics_schedule = json.fixed_physics_schedule.filter(filterFn);
+          }
+        });
+      }
+
       return json;
     };
 
@@ -4652,6 +4674,7 @@ createApp({
         data.value.unmapped_subjects.push({ ...sForm });
       }
       propagateCourseFacultyUpdate(sForm);
+      reconcileCourseFixedSlotsAcrossTimetable(sForm);
       saveStateToServer();
       subjectModal.value.open = false;
       const clashes = activeClashes.value;
@@ -4917,6 +4940,43 @@ createApp({
       }
     };
 
+    // Purge removed / stale fixed entries from all active timetable stores
+    const purgeRemovedFixedSlot = (course, day, period) => {
+      if (!course) return;
+      const bId = course.batch_id;
+      const cCode = course.code;
+      const cId = course.id;
+      const filterFn = e => !((e.course_id === cId || (e.course_code === cCode && (!bId || !e.batch_id || e.batch_id === bId))) && e.day === day && e.period === period);
+      
+      if (data.value.timetable) {
+        data.value.timetable = data.value.timetable.filter(filterFn);
+      }
+      if (data.value.fixed_ce234p_schedule) {
+        data.value.fixed_ce234p_schedule = data.value.fixed_ce234p_schedule.filter(filterFn);
+      }
+      if (data.value.fixed_physics_schedule) {
+        data.value.fixed_physics_schedule = data.value.fixed_physics_schedule.filter(filterFn);
+      }
+    };
+
+    const reconcileCourseFixedSlotsAcrossTimetable = (course) => {
+      if (!course) return;
+      const bId = course.batch_id;
+      const cCode = course.code;
+      const cId = course.id;
+      const allowed = new Set((course.fixed_slots || []).filter(x => x.day !== undefined && x.period !== undefined).map(s => `${s.day}_${s.period}`));
+      
+      const filterFn = e => {
+        const isMatch = (e.course_id === cId || (e.course_code === cCode && (!bId || !e.batch_id || e.batch_id === bId)));
+        if (!isMatch) return true;
+        return allowed.has(`${e.day}_${e.period}`);
+      };
+
+      if (data.value.timetable) data.value.timetable = data.value.timetable.filter(filterFn);
+      if (data.value.fixed_ce234p_schedule) data.value.fixed_ce234p_schedule = data.value.fixed_ce234p_schedule.filter(filterFn);
+      if (data.value.fixed_physics_schedule) data.value.fixed_physics_schedule = data.value.fixed_physics_schedule.filter(filterFn);
+    };
+
     // Course Pinned / Fixed Slots Modal
     const syncPinnedSlotToTimetable = (course, day, period, room_id) => {
       if (!data.value.timetable) return;
@@ -4940,7 +5000,7 @@ createApp({
       data.value.timetable = data.value.timetable.filter(e => !(e.batch_id === bId && e.day === day && e.period === period));
 
       // Add the newly pinned entry
-      data.value.timetable.push({
+      const fixedEntry = {
         id: 'pinned_' + course.id + '_d' + day + '_p' + period,
         day: day,
         day_name: dayName,
@@ -4960,7 +5020,13 @@ createApp({
         room_name: rName,
         is_lab: !!course.is_lab,
         is_pinned: true
-      });
+      };
+      data.value.timetable.push(fixedEntry);
+
+      if (data.value.fixed_ce234p_schedule) {
+        data.value.fixed_ce234p_schedule = data.value.fixed_ce234p_schedule.filter(e => !(e.batch_id === bId && e.day === day && e.period === period));
+        data.value.fixed_ce234p_schedule.push({ ...fixedEntry, id: 'fix_' + bId + '_d' + day + '_p' + period });
+      }
     };
 
     const pinnedSlotsModal = ref({
@@ -4990,12 +5056,15 @@ createApp({
       const idx = slots.findIndex(s => s.day === day && s.period === period);
       if (idx >= 0) {
         slots.splice(idx, 1);
+        purgeRemovedFixedSlot(pinnedSlotsModal.value.course, day, period);
+        reconcileCourseFixedSlotsAcrossTimetable(pinnedSlotsModal.value.course);
         saveStateToServer();
         showToast(`Unlocked ${getDayName(day)} Period ${period + 1} for ${pinnedSlotsModal.value.course.code}`, 'info');
       } else {
         const room_id = pinnedSlotsModal.value.newSlot.room_id || pinnedSlotsModal.value.course.preferred_room_id || '';
         slots.push({ day, period, room_id });
         syncPinnedSlotToTimetable(pinnedSlotsModal.value.course, day, period, room_id);
+        reconcileCourseFixedSlotsAcrossTimetable(pinnedSlotsModal.value.course);
         saveStateToServer();
         showToast(`Locked ${getDayName(day)} Period ${period + 1} for ${pinnedSlotsModal.value.course.code}`, 'success');
       }
@@ -5012,6 +5081,7 @@ createApp({
       if (!exists) {
         pinnedSlotsModal.value.course.fixed_slots.push({ day, period, room_id });
         syncPinnedSlotToTimetable(pinnedSlotsModal.value.course, day, period, room_id);
+        reconcileCourseFixedSlotsAcrossTimetable(pinnedSlotsModal.value.course);
         saveStateToServer();
         showToast(`Pinned session on ${getDayName(day)} to ${pinnedSlotsModal.value.course.code}`, 'success');
       } else {
@@ -5020,7 +5090,12 @@ createApp({
     };
 
     const removePinnedSlot = idx => {
+      const removed = pinnedSlotsModal.value.course.fixed_slots[idx];
       pinnedSlotsModal.value.course.fixed_slots.splice(idx, 1);
+      if (removed) {
+        purgeRemovedFixedSlot(pinnedSlotsModal.value.course, removed.day, removed.period);
+      }
+      reconcileCourseFixedSlotsAcrossTimetable(pinnedSlotsModal.value.course);
       saveStateToServer();
       showToast("Pinned session removed.", "info");
     };
@@ -5092,6 +5167,7 @@ createApp({
       }
       c.fixed_slots.push({ day, period, room_id });
       syncPinnedSlotToTimetable(c, day, period, room_id);
+      reconcileCourseFixedSlotsAcrossTimetable(c);
       saveStateToServer();
       showToast(`Assigned ${c.code} (${getBatchName(c.batch_id)}) to ${getDayName(day)} Period ${period + 1}.`, "success");
     };
@@ -5102,6 +5178,8 @@ createApp({
         const idx = c.fixed_slots.findIndex(s => s.day === item.day && s.period === item.period);
         if (idx >= 0) {
           c.fixed_slots.splice(idx, 1);
+          purgeRemovedFixedSlot(c, item.day, item.period);
+          reconcileCourseFixedSlotsAcrossTimetable(c);
           saveStateToServer();
           showToast(`Removed specific hour for ${c.code}.`, "info");
         }

@@ -4,7 +4,7 @@ from copy import deepcopy
 class TimetableScheduler:
     def __init__(self, config, teachers, rooms, batches, courses, sub_batches=None, fixed_schedule=None):
         self.config = config
-        self.fixed_schedule = fixed_schedule or []
+        self.fixed_schedule = [dict(x) for x in (fixed_schedule or [])]
         self.days = config.get("days", ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"])
         self.num_days = len(self.days)
         
@@ -101,6 +101,23 @@ class TimetableScheduler:
         self.sub_batches = {sb["id"]: sb for sb in (sub_batches or [])}
         self.courses = courses
 
+        # Synchronize and reconcile self.fixed_schedule with course-level fixed_slots
+        # If a course defines fixed_slots, that course's explicit fixed_slots is authoritative.
+        # Any pre-existing fixed schedule entries for that course & batch that are NOT in fixed_slots must be purged!
+        for c in self.courses:
+            if "fixed_slots" in c and c["fixed_slots"] is not None:
+                b_id = c.get("batch_id")
+                c_code = c.get("code")
+                c_id = c.get("id")
+                allowed_slots = {(fs.get("day"), fs.get("period")) for fs in c.get("fixed_slots", []) if fs.get("day") is not None and fs.get("period") is not None}
+                self.fixed_schedule = [
+                    f for f in self.fixed_schedule
+                    if not (
+                        (f.get("batch_id") == b_id and (f.get("course_code") == c_code or f.get("course_id") == c_id))
+                        and (f.get("day"), f.get("period")) not in allowed_slots
+                    )
+                ]
+
         # Incorporate course-level pinned/fixed sessions into self.fixed_schedule
         for c in self.courses:
             for fs in c.get("fixed_slots", []):
@@ -147,7 +164,19 @@ class TimetableScheduler:
                         "is_lab": c.get("is_lab", False),
                         "is_pinned": True
                     }
-                    if not any(f.get("batch_id") == b_id and f.get("day") == day and f.get("period") == period for f in self.fixed_schedule):
+                    
+                    existing_entry = next((f for f in self.fixed_schedule if f.get("batch_id") == b_id and (f.get("course_code") == c.get("code") or f.get("course_id") == c["id"]) and f.get("day") == day and f.get("period") == period), None)
+                    if existing_entry:
+                        if r_id:
+                            existing_entry["room_id"] = r_id
+                            existing_entry["room_name"] = r_name
+                        if t_ids:
+                            existing_entry["teacher_id"] = t_ids[0]
+                            existing_entry["teacher_ids"] = t_ids
+                            existing_entry["teacher_name"] = t_name_str
+                            existing_entry["teacher_code"] = t_code_str
+                    else:
+                        self.fixed_schedule = [f for f in self.fixed_schedule if not (f.get("batch_id") == b_id and f.get("day") == day and f.get("period") == period)]
                         self.fixed_schedule.append(fixed_entry)
 
     def pre_check_feasibility(self):
