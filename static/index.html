@@ -3503,8 +3503,16 @@ createApp({
         });
       }
 
-      // 4. Timetable sessions preservation
-      if (Array.isArray(localData.timetable)) {
+      // 4. Timetable sessions & snapshots preservation
+      const localMod = localData._last_modified || 0;
+      const serverMod = serverData._last_modified || 0;
+      if (localMod > serverMod && Array.isArray(localData.timetable) && localData.timetable.length > 0) {
+        // User edits in local browser are newer than server: keep user's active timetable!
+        merged.timetable = JSON.parse(JSON.stringify(localData.timetable));
+        if (localData.fixed_ce234p_schedule) merged.fixed_ce234p_schedule = JSON.parse(JSON.stringify(localData.fixed_ce234p_schedule));
+        if (localData.fixed_physics_schedule) merged.fixed_physics_schedule = JSON.parse(JSON.stringify(localData.fixed_physics_schedule));
+      } else if (Array.isArray(localData.timetable)) {
+        // Server is newer or equal, but preserve any local user-added sessions for custom courses
         const currentTT = merged.timetable || [];
         const currentKeys = new Set(currentTT.map(e => `${e.batch_id}_${e.day}_${e.period}`));
         localData.timetable.forEach(le => {
@@ -3516,6 +3524,18 @@ createApp({
         });
         merged.timetable = currentTT;
       }
+
+      // Merge saved snapshots across local and server
+      const serverSnaps = merged.snapshots || [];
+      const localSnaps = localData.snapshots || [];
+      const seenSnapIds = new Set(serverSnaps.map(s => s.id));
+      localSnaps.forEach(ls => {
+        if (!seenSnapIds.has(ls.id)) {
+          serverSnaps.push(JSON.parse(JSON.stringify(ls)));
+          seenSnapIds.add(ls.id);
+        }
+      });
+      merged.snapshots = serverSnaps;
 
       merged._last_modified = Math.max(serverData._last_modified || 0, localData._last_modified || 0, Date.now());
       return merged;
@@ -3672,6 +3692,17 @@ createApp({
         return;
       }
       if (!data.value.snapshots) data.value.snapshots = [];
+      const snapData = {
+        config: data.value.config,
+        faculty: data.value.faculty,
+        rooms: data.value.rooms,
+        batches: data.value.batches,
+        sub_batches: data.value.sub_batches,
+        unmapped_subjects: data.value.unmapped_subjects,
+        timetable: data.value.timetable,
+        fixed_ce234p_schedule: data.value.fixed_ce234p_schedule,
+        fixed_physics_schedule: data.value.fixed_physics_schedule
+      };
       const snap = {
         id: 'snap_' + Date.now(),
         name: name,
@@ -3682,17 +3713,10 @@ createApp({
         timetableCount: (data.value.timetable || []).length,
         facultyCount: (data.value.faculty || []).length,
         batchCount: (data.value.batches || []).length,
-        snapshotData: JSON.parse(JSON.stringify({
-          config: data.value.config,
-          faculty: data.value.faculty,
-          rooms: data.value.rooms,
-          batches: data.value.batches,
-          sub_batches: data.value.sub_batches,
-          unmapped_subjects: data.value.unmapped_subjects,
-          timetable: data.value.timetable,
-          fixed_ce234p_schedule: data.value.fixed_ce234p_schedule,
-          fixed_physics_schedule: data.value.fixed_physics_schedule
-        }))
+        timetable: data.value.timetable,
+        courses: data.value.unmapped_subjects,
+        faculty: data.value.faculty,
+        snapshotData: JSON.parse(JSON.stringify(snapData))
       };
       data.value.snapshots.unshift(snap);
       saveStateToServer();
@@ -3701,21 +3725,47 @@ createApp({
     };
 
     const restoreSnapshot = (snap) => {
-      if (confirm(`Restore snapshot "${snap.name}" from ${snap.dateStr}? This will replace current schedule and assignments.`)) {
-        const sData = JSON.parse(JSON.stringify(snap.snapshotData));
+      const snapName = snap.name || 'Snapshot';
+      const snapDate = snap.dateStr || (snap.timestamp ? new Date(snap.timestamp).toLocaleString('en-GB') : '');
+      if (confirm(`Restore snapshot "${snapName}" from ${snapDate}? This will replace current schedule and assignments with this version.`)) {
+        const sData = snap.snapshotData || {
+          config: snap.config || data.value.config,
+          faculty: snap.faculty || data.value.faculty,
+          rooms: snap.rooms || data.value.rooms,
+          batches: snap.batches || data.value.batches,
+          sub_batches: snap.sub_batches || data.value.sub_batches,
+          unmapped_subjects: snap.courses || snap.unmapped_subjects || data.value.unmapped_subjects,
+          timetable: snap.timetable || [],
+          fixed_ce234p_schedule: snap.fixed_ce234p_schedule || [],
+          fixed_physics_schedule: snap.fixed_physics_schedule || []
+        };
         const existingSnapshots = data.value.snapshots || [];
-        data.value = sanitizeLoadedData(sData);
+        data.value = sanitizeLoadedData(JSON.parse(JSON.stringify(sData)));
         data.value.snapshots = existingSnapshots;
         saveStateToServer();
         snapshotModal.value.open = false;
-        showToast(`Workspace restored to "${snap.name}".`, "success");
+        showToast(`Workspace restored to "${snapName}".`, "success");
       }
     };
 
     const exportSpecificSnapshot = (snap) => {
-      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(snap.snapshotData, null, 2));
+      const exportObj = snap.snapshotData || {
+        name: snap.name,
+        timestamp: snap.timestamp,
+        dateStr: snap.dateStr,
+        config: snap.config || data.value.config,
+        faculty: snap.faculty || data.value.faculty,
+        rooms: snap.rooms || data.value.rooms,
+        batches: snap.batches || data.value.batches,
+        sub_batches: snap.sub_batches || data.value.sub_batches,
+        unmapped_subjects: snap.courses || snap.unmapped_subjects || data.value.unmapped_subjects,
+        timetable: snap.timetable || [],
+        fixed_ce234p_schedule: snap.fixed_ce234p_schedule || [],
+        fixed_physics_schedule: snap.fixed_physics_schedule || []
+      };
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportObj, null, 2));
       const downloadAnchor = document.createElement('a');
-      const safeName = snap.name.replace(/[^a-zA-Z0-9_-]/g, '_');
+      const safeName = (snap.name || 'snapshot').replace(/[^a-zA-Z0-9_-]/g, '_');
       downloadAnchor.setAttribute("href", dataStr);
       downloadAnchor.setAttribute("download", `snapshot_${safeName}.json`);
       document.body.appendChild(downloadAnchor);
