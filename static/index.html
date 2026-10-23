@@ -1541,8 +1541,22 @@
           </div>
         </div>
 
-        <!-- History & Undo Actions -->
+        <!-- History, Undo, and Freeze Actions -->
         <div class="flex items-center gap-2">
+          <!-- Global Timetable Freeze / Unfreeze System -->
+          <div class="flex items-center gap-1 bg-slate-100 p-1 rounded-lg border border-slate-200">
+            <button @click="freezeAllTimetableSlots" 
+                    title="Freeze and lock all timetable slots to preserve this finalized schedule"
+                    class="px-2.5 py-1.5 bg-sky-700 hover:bg-sky-800 text-white rounded-md text-xs font-bold transition flex items-center gap-1 shadow-2xs">
+              <span>❄️ Freeze All</span>
+            </button>
+            <button @click="unfreezeAllTimetableSlots" 
+                    title="Unlock all timetable slots so you can freely drag, move, or swap sessions"
+                    class="px-2.5 py-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 rounded-md text-xs font-semibold transition flex items-center gap-1 shadow-2xs">
+              <span>🔓 Unfreeze All</span>
+            </button>
+          </div>
+
           <button @click="historyModalOpen = true" 
                   title="View activity history log of all moves and swaps"
                   class="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold border border-slate-300 transition flex items-center gap-1.5 shadow-2xs">
@@ -1804,18 +1818,30 @@
                     <!-- Active teaching slot -->
                     <div v-else class="space-y-1 h-full flex flex-col justify-start">
                       <div v-for="entry in getCellEntries(target, dayIdx, pIdx)" :key="entry.id"
-                            :draggable="true"
+                            :draggable="!entry.is_frozen"
                             @dragstart="onSessionDragStart($event, entry, target)"
                             @dragend="onSessionDragEnd($event)"
                             :class="[
                               getCourseColorClasses(entry.course_code, entry.is_lab),
                               draggedSession?.entry?.id === entry.id ? 'opacity-40 scale-95 ring-2 ring-indigo-400' : 'hover:shadow-sm',
-                              isEntryClashing(entry) ? 'ring-2 ring-rose-500 border-rose-400 bg-rose-50 text-rose-950 font-semibold' : ''
+                              isEntryClashing(entry) ? 'ring-2 ring-rose-500 border-rose-400 bg-rose-50 text-rose-950 font-semibold' : '',
+                              entry.is_frozen ? 'cursor-default ring-1 ring-amber-400/50' : 'cursor-grab active:cursor-grabbing'
                             ]"
-                            class="p-1 rounded border shadow-2xs text-left text-[10px] leading-tight overflow-hidden transition cursor-grab active:cursor-grabbing select-none group relative"
-                            :title="isEntryClashing(entry) ? getEntryClashReason(entry) : 'Drag to move or swap this session'">
+                            class="p-1 rounded border shadow-2xs text-left text-[10px] leading-tight overflow-hidden transition select-none group relative"
+                            :title="isEntryClashing(entry) ? getEntryClashReason(entry) : (entry.is_frozen ? 'Slot is FROZEN (Locked). Click the lock icon to unfreeze before moving/swapping.' : 'Drag to move or swap this session')">
                         <div class="flex items-center justify-between gap-0.5">
-                          <span class="font-mono font-bold">{{ entry.course_code }}</span>
+                          <div class="flex items-center gap-1 min-w-0">
+                            <!-- Individual Slot Freeze / Unfreeze Toggle Button -->
+                            <button @click.stop="toggleSlotFreeze(entry)"
+                                    type="button"
+                                    :title="entry.is_frozen ? 'Slot is FROZEN. Click to UNLOCK for moving or swapping.' : 'Slot is UNLOCKED. Click to FREEZE and lock this slot.'"
+                                    class="px-1 py-0.2 rounded text-[9px] transition font-bold leading-none shrink-0"
+                                    :class="entry.is_frozen ? 'bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300' : 'bg-slate-100 hover:bg-emerald-100 text-slate-500 hover:text-emerald-800 border border-slate-200'">
+                              <span v-if="entry.is_frozen">🔒</span>
+                              <span v-else>🔓</span>
+                            </button>
+                            <span class="font-mono font-bold truncate">{{ entry.course_code }}</span>
+                          </div>
                           <span v-if="isEntryClashing(entry)" class="px-1 py-0.2 rounded text-[8px] font-black uppercase bg-rose-600 text-white animate-pulse" :title="getEntryClashReason(entry)">
                             ⚠️ Clash
                           </span>
@@ -3109,14 +3135,35 @@
               <div v-else>
                 <div v-for="entry in getCellEntries({ type: 'teacher', teacher: f }, dIdx, pIdx)" :key="entry.id" class="space-y-0.5">
                   <div class="font-bold font-mono text-[9px] text-indigo-900">{{ entry.course_code }}</div>
-                  <div class="text-[8px] font-semibold text-slate-700 truncate">{{ entry.batch_name }}</div>
-                  <div class="text-[7.5px] text-slate-500 font-mono">{{ resolveEntryRoomName(entry) }}</div>
+                  <div class="text-[8px] font-semibold text-slate-700 truncate">{{ entry.course_name }}</div>
+                  <div class="text-[8px] text-slate-800 font-bold truncate">{{ entry.batch_name }}</div>
                 </div>
               </div>
             </td>
           </tr>
         </tbody>
       </table>
+
+      <!-- Teaching Assignments Reference Table below faculty timetable -->
+      <div v-if="getFacultyAssignmentsLegend(f).length > 0" class="mt-3 mb-3">
+        <h4 class="text-[10px] font-bold uppercase tracking-wider text-slate-800 mb-1">Teaching Assignments &amp; Subject Reference</h4>
+        <table class="w-full table-fixed border-collapse text-left text-[9px]">
+          <thead>
+            <tr class="bg-slate-100 border border-slate-700 font-bold text-slate-900">
+              <th class="p-1 border border-slate-700 w-36">Class / Batch</th>
+              <th class="p-1 border border-slate-700 w-28">Subject Code</th>
+              <th class="p-1 border border-slate-700">Subject Name</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(item, idx) in getFacultyAssignmentsLegend(f)" :key="idx" class="border border-slate-700">
+              <td class="p-1 border border-slate-700 font-bold">{{ item.batch }}</td>
+              <td class="p-1 border border-slate-700 font-mono font-bold">{{ item.code }}</td>
+              <td class="p-1 border border-slate-700">{{ item.name }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
 
       <!-- Signatures Footer -->
       <div class="grid grid-cols-3 gap-8 pt-8 mt-4 text-center text-[10px] border-t border-slate-300">
@@ -3169,14 +3216,34 @@
                 <div v-for="entry in getCellEntries({ type: 'batch', batch: b }, dIdx, pIdx)" :key="entry.id" class="space-y-0.5">
                   <div class="font-bold font-mono text-[10px] text-slate-900">{{ entry.course_code }}</div>
                   <div class="text-[9px] font-semibold text-slate-800 truncate">{{ entry.course_name }}</div>
-                  <div class="text-[8.5px] text-slate-600 truncate">{{ entry.teacher_name }}</div>
-                  <div class="text-[8px] text-slate-500 font-mono">{{ resolveEntryRoomName(entry) }}</div>
+                  <div class="text-[8.5px] text-slate-700 font-bold truncate">{{ entry.teacher_name }}</div>
                 </div>
               </div>
             </td>
           </tr>
         </tbody>
       </table>
+
+      <!-- Course & Faculty Reference Table below class timetable -->
+      <div v-if="getBatchCoursesLegend(b).length > 0" class="mt-4 mb-4">
+        <h3 class="text-[11px] font-bold uppercase tracking-wider text-slate-800 mb-1">Course &amp; Faculty Reference List</h3>
+        <table class="w-full table-fixed border-collapse text-left text-[10px]">
+          <thead>
+            <tr class="bg-slate-100 border border-slate-700 font-bold text-slate-900">
+              <th class="p-1.5 border border-slate-700 w-28">Course Code</th>
+              <th class="p-1.5 border border-slate-700">Subject Name</th>
+              <th class="p-1.5 border border-slate-700 w-64">Faculty In-Charge</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(item, idx) in getBatchCoursesLegend(b)" :key="idx" class="border border-slate-700">
+              <td class="p-1.5 border border-slate-700 font-mono font-bold">{{ item.code }}</td>
+              <td class="p-1.5 border border-slate-700">{{ item.name }}</td>
+              <td class="p-1.5 border border-slate-700 font-medium">{{ item.faculty }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
 
       <!-- Signatures Footer -->
       <div class="grid grid-cols-3 gap-8 pt-10 mt-6 text-center text-xs border-t border-slate-300">
@@ -6099,8 +6166,13 @@ createApp({
     };
 
     const onSessionDragStart = (event, entry, target) => {
+      if (entry && entry.is_frozen) {
+        if (event && event.preventDefault) event.preventDefault();
+        showToast('❄️ This slot is frozen (locked). Click the 🔒 lock icon on this card to unfreeze it before moving or swapping.', 'warning');
+        return;
+      }
       draggedSession.value = { entry, target };
-      if (event.dataTransfer) {
+      if (event && event.dataTransfer) {
         event.dataTransfer.effectAllowed = 'move';
         event.dataTransfer.setData('text/plain', JSON.stringify({ entryId: entry.id, targetId: target.id }));
       }
@@ -6109,6 +6181,90 @@ createApp({
     const onSessionDragEnd = () => {
       draggedSession.value = null;
       dragOverTarget.value = null;
+    };
+
+    const freezeAllTimetableSlots = () => {
+      if (!data.value || !data.value.timetable) return;
+      data.value.timetable.forEach(entry => {
+        entry.is_frozen = true;
+        entry.is_pinned = true;
+      });
+      saveStateToServer();
+      showToast('❄️ All timetable slots are now FROZEN and locked against accidental shifts.', 'success');
+    };
+
+    const unfreezeAllTimetableSlots = () => {
+      if (!data.value || !data.value.timetable) return;
+      data.value.timetable.forEach(entry => {
+        entry.is_frozen = false;
+      });
+      saveStateToServer();
+      showToast('🔓 All timetable slots are now UNLOCKED. You can freely drag, move, or swap sessions.', 'info');
+    };
+
+    const toggleSlotFreeze = (entry) => {
+      if (!entry) return;
+      entry.is_frozen = !entry.is_frozen;
+      if (entry.is_frozen) {
+        entry.is_pinned = true;
+        showToast(`🔒 Slot for ${entry.course_code} (${entry.batch_name}) FROZEN.`, 'info');
+      } else {
+        showToast(`🔓 Slot for ${entry.course_code} (${entry.batch_name}) UNLOCKED for adjustment.`, 'info');
+      }
+      saveStateToServer();
+    };
+
+    const getBatchCoursesLegend = (batch) => {
+      if (!data.value || !data.value.timetable || !batch) return [];
+      const entries = data.value.timetable.filter(e => e.batch_id === batch.id || (e.batch_name && e.batch_name.includes(batch.name)));
+      const map = new Map();
+      entries.forEach(e => {
+        if (!e.course_code) return;
+        const key = e.course_code;
+        if (!map.has(key)) {
+          map.set(key, {
+            code: e.course_code,
+            name: e.course_name || e.course_code,
+            facultyList: new Set()
+          });
+        }
+        const t = e.teacher_name || e.teacher_code;
+        if (t) {
+          if (e.sub_batch_name) {
+            map.get(key).facultyList.add(`${t} (${e.sub_batch_name})`);
+          } else {
+            map.get(key).facultyList.add(t);
+          }
+        }
+      });
+      return Array.from(map.values()).map(item => ({
+        code: item.code,
+        name: item.name,
+        faculty: Array.from(item.facultyList).sort().join(', ') || '—'
+      })).sort((a, b) => a.code.localeCompare(b.code));
+    };
+
+    const getFacultyAssignmentsLegend = (facultyMember) => {
+      if (!data.value || !data.value.timetable || !facultyMember) return [];
+      const fId = facultyMember.id;
+      const entries = data.value.timetable.filter(e => e.teacher_id === fId || (e.teacher_ids && e.teacher_ids.includes(fId)));
+      const map = new Map();
+      entries.forEach(e => {
+        if (!e.course_code) return;
+        let bName = e.batch_name || '—';
+        if (e.sub_batch_name && !bName.includes(e.sub_batch_name)) {
+          bName = `${bName} (${e.sub_batch_name})`;
+        }
+        const key = `${bName}_${e.course_code}`;
+        if (!map.has(key)) {
+          map.set(key, {
+            batch: bName,
+            code: e.course_code,
+            name: e.course_name || e.course_code
+          });
+        }
+      });
+      return Array.from(map.values()).sort((a, b) => a.batch.localeCompare(b.batch) || a.code.localeCompare(b.code));
     };
 
     const onSlotDragOver = (event, target, dayIdx, pIdx) => {
@@ -6613,7 +6769,12 @@ createApp({
       dailyScheduleEntries,
       printMode,
       printFacultySlips,
-      printBatchNoticeboard
+      printBatchNoticeboard,
+      freezeAllTimetableSlots,
+      unfreezeAllTimetableSlots,
+      toggleSlotFreeze,
+      getBatchCoursesLegend,
+      getFacultyAssignmentsLegend
     };
   }
 }).mount('#app');

@@ -542,8 +542,8 @@ def generate_class_pdf(data, sem_type=None):
         'TableHead',
         parent=styles['Normal'],
         fontName='Times-Bold',
-        fontSize=9,
-        leading=11,
+        fontSize=8.5,
+        leading=10.5,
         alignment=1,
         textColor=colors.HexColor('#0F172A')
     )
@@ -551,17 +551,26 @@ def generate_class_pdf(data, sem_type=None):
         'CellCode',
         parent=styles['Normal'],
         fontName='Times-Bold',
-        fontSize=9,
-        leading=11,
+        fontSize=8.5,
+        leading=10,
         alignment=1,
         textColor=colors.HexColor('#0F172A')
     )
-    p_cell_sub = ParagraphStyle(
-        'CellSub',
+    p_cell_name = ParagraphStyle(
+        'CellName',
         parent=styles['Normal'],
         fontName='Times-Roman',
-        fontSize=7.5,
-        leading=9.5,
+        fontSize=6.5,
+        leading=8,
+        alignment=1,
+        textColor=colors.HexColor('#1E293B')
+    )
+    p_cell_fac = ParagraphStyle(
+        'CellFac',
+        parent=styles['Normal'],
+        fontName='Times-Bold',
+        fontSize=7,
+        leading=8.5,
         alignment=1,
         textColor=colors.HexColor('#334155')
     )
@@ -569,17 +578,53 @@ def generate_class_pdf(data, sem_type=None):
         'CellClosed',
         parent=styles['Normal'],
         fontName='Times-Bold',
-        fontSize=9,
-        leading=11,
+        fontSize=8.5,
+        leading=10,
         alignment=1,
         textColor=colors.HexColor('#64748B')
+    )
+    p_cell_break = ParagraphStyle(
+        'CellBreak',
+        parent=styles['Normal'],
+        fontName='Times-Bold',
+        fontSize=8,
+        leading=9.5,
+        alignment=1,
+        textColor=colors.HexColor('#854D0E')
+    )
+    p_ref_head = ParagraphStyle(
+        'RefHead',
+        parent=styles['Normal'],
+        fontName='Times-Bold',
+        fontSize=8,
+        leading=10,
+        alignment=0,
+        textColor=colors.HexColor('#0F172A')
+    )
+    p_ref_cell = ParagraphStyle(
+        'RefCell',
+        parent=styles['Normal'],
+        fontName='Times-Roman',
+        fontSize=7.5,
+        leading=9.5,
+        alignment=0,
+        textColor=colors.HexColor('#1E293B')
+    )
+    p_ref_bold = ParagraphStyle(
+        'RefCellBold',
+        parent=styles['Normal'],
+        fontName='Times-Bold',
+        fontSize=7.5,
+        leading=9.5,
+        alignment=0,
+        textColor=colors.HexColor('#0F172A')
     )
 
     days = data.get("config", {}).get("days", ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"])
     timetable = data.get("timetable", [])
     batches = [b for b in data.get("batches", []) if b.get("semester_type") == target_sem]
 
-    col_widths = [64, 104, 104, 104, 104, 30, 104, 104] # total 718 pt
+    col_widths = [62, 102, 102, 102, 102, 50, 102, 102] # total 724 pt
     elements = []
 
     for b_idx, b in enumerate(batches):
@@ -589,16 +634,16 @@ def generate_class_pdf(data, sem_type=None):
         elements.append(Paragraph("CHRIST (DEEMED TO BE UNIVERSITY)", p_univ))
         elements.append(Paragraph("School of Engineering and Technology &bull; Department of Civil Engineering", p_dept))
         elements.append(Paragraph(f"Class Timetable: <strong>{b_name}</strong> &bull; {sem_type} (2026-2027)", p_batch))
-        elements.append(Spacer(1, 10))
+        elements.append(Spacer(1, 8))
 
         # Table data
         header_row = [
-            Paragraph("DAY/TIME", p_th_head),
+            Paragraph("DAY / TIME", p_th_head),
             Paragraph("09:00 - 10:00", p_th_head),
             Paragraph("10:00 - 11:00", p_th_head),
             Paragraph("11:00 - 12:00", p_th_head),
             Paragraph("12:00 - 13:00", p_th_head),
-            Paragraph("Break", p_th_head),
+            Paragraph("<b>BREAK</b><br/><font size=6.5>13:00-14:00</font>", p_th_head),
             Paragraph("14:00 - 15:00", p_th_head),
             Paragraph("15:00 - 16:00", p_th_head)
         ]
@@ -610,6 +655,10 @@ def generate_class_pdf(data, sem_type=None):
             ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#F1F5F9')),
             ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
             ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('TOPPADDING', (0, 0), (-1, -1), 2),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
+            ('LEFTPADDING', (0, 0), (-1, -1), 2),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 2),
         ]
 
         row_index = 1
@@ -620,12 +669,10 @@ def generate_class_pdf(data, sem_type=None):
             row_cells = [Paragraph(day_name, p_th_head)]
             table_styles.append(('BACKGROUND', (0, row_index), (0, row_index), colors.HexColor('#F8FAFC')))
 
-            # Break cell at col 5
-            row_cells_temp = {}
-
             # Periods mapping to table col index:
             # 0 -> 1, 1 -> 2, 2 -> 3, 3 -> 4, break -> 5, 5 -> 6, 6 -> 7
             p_to_col = {0: 1, 1: 2, 2: 3, 3: 4, 5: 6, 6: 7}
+            row_cells_temp = {}
             handled_periods = set()
 
             for p_num, c_col in sorted(p_to_col.items()):
@@ -640,23 +687,25 @@ def generate_class_pdf(data, sem_type=None):
 
                 e = p_map.get(p_num)
                 if not e:
-                    row_cells_temp[c_col] = Paragraph("", p_cell_sub)
+                    row_cells_temp[c_col] = Paragraph("", p_cell_name)
                     handled_periods.add(p_num)
                     continue
 
                 code = e.get("course_code", "")
-                t_name = e.get("teacher_code") or e.get("teacher_name", "")
+                c_name = e.get("course_name", "") or code
+                t_name = e.get("teacher_name", "") or e.get("teacher_code", "")
                 sb_name = e.get("sub_batch_name")
                 is_lab = e.get("is_lab", False)
 
-                cell_p = [Paragraph(f"<b>{code}</b>", p_cell_code)]
-                if t_name:
-                    cell_p.append(Paragraph(t_name, p_cell_sub))
+                code_display = f"<b>{code}</b>"
                 if sb_name:
-                    cell_p.append(Paragraph(f"[{sb_name}]", p_cell_sub))
-                r_name = e.get("room_name", "")
-                if r_name:
-                    cell_p.append(Paragraph(f"[{r_name}]", p_cell_sub))
+                    code_display += f" [{sb_name}]"
+
+                cell_p = [
+                    Paragraph(code_display, p_cell_code),
+                    Paragraph(c_name, p_cell_name),
+                    Paragraph(t_name, p_cell_fac)
+                ]
 
                 row_cells_temp[c_col] = cell_p
                 table_styles.append(('BACKGROUND', (c_col, row_index), (c_col, row_index), get_subject_reportlab_color(code)))
@@ -667,27 +716,121 @@ def generate_class_pdf(data, sem_type=None):
                 if is_lab and next_p in p_map and next_p in [1, 3, 6]:
                     if p_map[next_p].get("course_code") == code:
                         table_styles.append(('SPAN', (c_col, row_index), (next_c, row_index)))
-                        row_cells_temp[next_c] = Paragraph("", p_cell_sub)
+                        row_cells_temp[next_c] = Paragraph("", p_cell_name)
                         handled_periods.add(next_p)
 
                 handled_periods.add(p_num)
 
             # Assemble row in exact column order (0 to 7)
-            row_cells.append(row_cells_temp.get(1, Paragraph("", p_cell_sub)))
-            row_cells.append(row_cells_temp.get(2, Paragraph("", p_cell_sub)))
-            row_cells.append(row_cells_temp.get(3, Paragraph("", p_cell_sub)))
-            row_cells.append(row_cells_temp.get(4, Paragraph("", p_cell_sub)))
-            row_cells.append(Paragraph("<b>Break</b>", ParagraphStyle('Brk', fontName='Times-Bold', fontSize=8, alignment=1, textColor=colors.HexColor('#854D0E'))))
+            row_cells.append(row_cells_temp.get(1, Paragraph("", p_cell_name)))
+            row_cells.append(row_cells_temp.get(2, Paragraph("", p_cell_name)))
+            row_cells.append(row_cells_temp.get(3, Paragraph("", p_cell_name)))
+            row_cells.append(row_cells_temp.get(4, Paragraph("", p_cell_name)))
+            row_cells.append(Paragraph("<b>BREAK</b>", p_cell_break))
             table_styles.append(('BACKGROUND', (5, row_index), (5, row_index), colors.HexColor('#FEF9C3')))
-            row_cells.append(row_cells_temp.get(6, Paragraph("", p_cell_sub)))
-            row_cells.append(row_cells_temp.get(7, Paragraph("", p_cell_sub)))
+            row_cells.append(row_cells_temp.get(6, Paragraph("", p_cell_name)))
+            row_cells.append(row_cells_temp.get(7, Paragraph("", p_cell_name)))
 
             table_data.append(row_cells)
             row_index += 1
 
-        t = Table(table_data, colWidths=col_widths, rowHeights=[22] + [48]*len(days))
+        t = Table(table_data, colWidths=col_widths, rowHeights=[22] + [42]*len(days))
         t.setStyle(TableStyle(table_styles))
         elements.append(t)
+
+        # Course Code, Subject Name, Faculty In-Charge Reference Table below timetable
+        batch_legend = {}
+        batch_entries = [e for e in timetable if (e.get("batch_id") == b_id or (e.get("batch_name") and b_name in e.get("batch_name")))]
+        for e in batch_entries:
+            code = e.get("course_code")
+            if not code:
+                continue
+            c_name = e.get("course_name") or code
+            t_name = e.get("teacher_name") or e.get("teacher_code") or ""
+            sb_name = e.get("sub_batch_name")
+            key = (code, c_name)
+            if key not in batch_legend:
+                batch_legend[key] = set()
+            if t_name:
+                if sb_name:
+                    batch_legend[key].add(f"{t_name} ({sb_name})")
+                else:
+                    batch_legend[key].add(t_name)
+
+        if batch_legend:
+            items = sorted(batch_legend.items())
+            if len(items) <= 6:
+                ref_data = [
+                    [
+                        Paragraph("Course Code", p_ref_head),
+                        Paragraph("Subject Name", p_ref_head),
+                        Paragraph("Faculty In-Charge", p_ref_head)
+                    ]
+                ]
+                for (c_code, c_name), fac_set in items:
+                    fac_str = ", ".join(sorted(fac_set)) if fac_set else "—"
+                    ref_data.append([
+                        Paragraph(c_code, p_ref_bold),
+                        Paragraph(c_name, p_ref_cell),
+                        Paragraph(fac_str, p_ref_cell)
+                    ])
+
+                ref_table = Table(ref_data, colWidths=[90, 384, 250])
+            else:
+                # 2-column side-by-side layout for large course sets to prevent multi-page spill
+                half = (len(items) + 1) // 2
+                left_items = items[:half]
+                right_items = items[half:]
+                ref_data = [
+                    [
+                        Paragraph("Code", p_ref_head),
+                        Paragraph("Subject Name", p_ref_head),
+                        Paragraph("Faculty", p_ref_head),
+                        Paragraph("Code", p_ref_head),
+                        Paragraph("Subject Name", p_ref_head),
+                        Paragraph("Faculty", p_ref_head)
+                    ]
+                ]
+                for i in range(half):
+                    (l_code, l_name), l_fac = left_items[i]
+                    l_str = ", ".join(sorted(l_fac)) if l_fac else "—"
+                    if i < len(right_items):
+                        (r_code, r_name), r_fac = right_items[i]
+                        r_str = ", ".join(sorted(r_fac)) if r_fac else "—"
+                        ref_data.append([
+                            Paragraph(l_code, p_ref_bold),
+                            Paragraph(l_name, p_ref_cell),
+                            Paragraph(l_str, p_ref_cell),
+                            Paragraph(r_code, p_ref_bold),
+                            Paragraph(r_name, p_ref_cell),
+                            Paragraph(r_str, p_ref_cell)
+                        ])
+                    else:
+                        ref_data.append([
+                            Paragraph(l_code, p_ref_bold),
+                            Paragraph(l_name, p_ref_cell),
+                            Paragraph(l_str, p_ref_cell),
+                            Paragraph("", p_ref_cell),
+                            Paragraph("", p_ref_cell),
+                            Paragraph("", p_ref_cell)
+                        ])
+                ref_table = Table(ref_data, colWidths=[65, 177, 120, 65, 177, 120])
+
+            ref_table.setStyle(TableStyle([
+                ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#CBD5E1')),
+                ('BOX', (0, 0), (-1, -1), 0.8, colors.HexColor('#94A3B8')),
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#F1F5F9')),
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                ('TOPPADDING', (0, 0), (-1, -1), 1.8),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 1.8),
+                ('LEFTPADDING', (0, 0), (-1, -1), 3),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 3),
+            ]))
+
+            elements.append(Spacer(1, 6))
+            elements.append(Paragraph("<b>Course &amp; Faculty Reference List:</b>", ParagraphStyle('RefTitle', fontName='Times-Bold', fontSize=8, leading=10, textColor=colors.HexColor('#1E293B'))))
+            elements.append(Spacer(1, 2))
+            elements.append(ref_table)
 
         if b_idx < len(batches) - 1:
             elements.append(PageBreak())
@@ -751,26 +894,35 @@ def generate_faculty_pdf(data, sem_type=None):
         'TableHead',
         parent=styles['Normal'],
         fontName='Times-Bold',
-        fontSize=9,
-        leading=11,
+        fontSize=8.5,
+        leading=10.5,
         alignment=1,
         textColor=colors.HexColor('#0F172A')
     )
     p_cell_code = ParagraphStyle(
-        'CellCode',
+        'CellCodeFac',
         parent=styles['Normal'],
         fontName='Times-Bold',
-        fontSize=9,
-        leading=11,
+        fontSize=8.5,
+        leading=10,
         alignment=1,
         textColor=colors.HexColor('#0F172A')
     )
-    p_cell_sub = ParagraphStyle(
-        'CellSub',
+    p_cell_name = ParagraphStyle(
+        'CellNameFac',
         parent=styles['Normal'],
         fontName='Times-Roman',
-        fontSize=8,
-        leading=10,
+        fontSize=6.5,
+        leading=8,
+        alignment=1,
+        textColor=colors.HexColor('#1E293B')
+    )
+    p_cell_batch = ParagraphStyle(
+        'CellBatchFac',
+        parent=styles['Normal'],
+        fontName='Times-Bold',
+        fontSize=7,
+        leading=8.5,
         alignment=1,
         textColor=colors.HexColor('#334155')
     )
@@ -778,18 +930,53 @@ def generate_faculty_pdf(data, sem_type=None):
         'CellClosed',
         parent=styles['Normal'],
         fontName='Times-Bold',
-        fontSize=9,
-        leading=11,
+        fontSize=8.5,
+        leading=10,
         alignment=1,
         textColor=colors.HexColor('#64748B')
+    )
+    p_cell_break = ParagraphStyle(
+        'CellBreakFac',
+        parent=styles['Normal'],
+        fontName='Times-Bold',
+        fontSize=8,
+        leading=9.5,
+        alignment=1,
+        textColor=colors.HexColor('#854D0E')
+    )
+    p_ref_head = ParagraphStyle(
+        'RefHeadFac',
+        parent=styles['Normal'],
+        fontName='Times-Bold',
+        fontSize=8,
+        leading=10,
+        alignment=0,
+        textColor=colors.HexColor('#0F172A')
+    )
+    p_ref_cell = ParagraphStyle(
+        'RefCellFac',
+        parent=styles['Normal'],
+        fontName='Times-Roman',
+        fontSize=7.5,
+        leading=9.5,
+        alignment=0,
+        textColor=colors.HexColor('#1E293B')
+    )
+    p_ref_bold = ParagraphStyle(
+        'RefCellBoldFac',
+        parent=styles['Normal'],
+        fontName='Times-Bold',
+        fontSize=7.5,
+        leading=9.5,
+        alignment=0,
+        textColor=colors.HexColor('#0F172A')
     )
 
     days = data.get("config", {}).get("days", ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"])
     timetable = data.get("timetable", [])
     faculty = data.get("faculty", [])
 
-    # We can place 1 faculty timetable with workload breakdown per page or 2 per page
-    col_widths = [64, 88, 88, 88, 88, 28, 88, 88, 120] # total 740 pt
+    col_widths = [60, 84, 84, 84, 84, 48, 84, 84, 120] # total 732 pt
     elements = []
 
     for f_idx, f in enumerate(faculty):
@@ -820,15 +1007,15 @@ def generate_faculty_pdf(data, sem_type=None):
         elements.append(Paragraph("CHRIST (DEEMED TO BE UNIVERSITY)", p_univ))
         elements.append(Paragraph("School of Engineering and Technology &bull; Department of Civil Engineering", p_dept))
         elements.append(Paragraph(f"Faculty Timetable: <strong>{f_name} ({f_code})</strong> &bull; {f_desig}", p_fac))
-        elements.append(Spacer(1, 10))
+        elements.append(Spacer(1, 8))
 
         header_row = [
-            Paragraph("DAY/TIME", p_th_head),
+            Paragraph("DAY / TIME", p_th_head),
             Paragraph("09:00 - 10:00", p_th_head),
             Paragraph("10:00 - 11:00", p_th_head),
             Paragraph("11:00 - 12:00", p_th_head),
             Paragraph("12:00 - 13:00", p_th_head),
-            Paragraph("Break", p_th_head),
+            Paragraph("<b>BREAK</b><br/><font size=6.5>13:00-14:00</font>", p_th_head),
             Paragraph("14:00 - 15:00", p_th_head),
             Paragraph("15:00 - 16:00", p_th_head),
             Paragraph("Workload Summary", p_th_head)
@@ -841,6 +1028,10 @@ def generate_faculty_pdf(data, sem_type=None):
             ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#F1F5F9')),
             ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
             ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('TOPPADDING', (0, 0), (-1, -1), 2),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
+            ('LEFTPADDING', (0, 0), (-1, -1), 2),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 2),
         ]
 
         summary_lines = [
@@ -876,18 +1067,26 @@ def generate_faculty_pdf(data, sem_type=None):
 
                 e = p_map.get(p_num)
                 if not e:
-                    row_cells_temp[c_col] = Paragraph("", p_cell_sub)
+                    row_cells_temp[c_col] = Paragraph("", p_cell_name)
                     handled_periods.add(p_num)
                     continue
 
                 b_name_s = e.get("batch_name", "")
                 code = e.get("course_code", "")
+                c_name = e.get("course_name", "") or code
+                sb_name = e.get("sub_batch_name")
                 is_lab = e.get("is_lab", False)
 
-                cell_p = [Paragraph(f"<b>{b_name_s}</b>", p_cell_code), Paragraph(code, p_cell_sub)]
-                r_name = e.get("room_name", "")
-                if r_name:
-                    cell_p.append(Paragraph(f"[{r_name}]", p_cell_sub))
+                batch_display = b_name_s
+                if sb_name and sb_name not in batch_display:
+                    batch_display += f" [{sb_name}]"
+
+                cell_p = [
+                    Paragraph(f"<b>{code}</b>", p_cell_code),
+                    Paragraph(c_name, p_cell_name),
+                    Paragraph(batch_display, p_cell_batch)
+                ]
+
                 row_cells_temp[c_col] = cell_p
                 table_styles.append(('BACKGROUND', (c_col, row_index), (c_col, row_index), get_subject_reportlab_color(code)))
 
@@ -896,31 +1095,78 @@ def generate_faculty_pdf(data, sem_type=None):
                 if is_lab and next_p in p_map and next_p in [1, 3, 6]:
                     if p_map[next_p].get("course_code") == code:
                         table_styles.append(('SPAN', (c_col, row_index), (next_c, row_index)))
-                        row_cells_temp[next_c] = Paragraph("", p_cell_sub)
+                        row_cells_temp[next_c] = Paragraph("", p_cell_name)
                         handled_periods.add(next_p)
 
                 handled_periods.add(p_num)
 
-            row_cells.append(row_cells_temp.get(1, Paragraph("", p_cell_sub)))
-            row_cells.append(row_cells_temp.get(2, Paragraph("", p_cell_sub)))
-            row_cells.append(row_cells_temp.get(3, Paragraph("", p_cell_sub)))
-            row_cells.append(row_cells_temp.get(4, Paragraph("", p_cell_sub)))
-            row_cells.append(Paragraph("<b>Break</b>", ParagraphStyle('Brk2', fontName='Times-Bold', fontSize=8, alignment=1, textColor=colors.HexColor('#854D0E'))))
+            row_cells.append(row_cells_temp.get(1, Paragraph("", p_cell_name)))
+            row_cells.append(row_cells_temp.get(2, Paragraph("", p_cell_name)))
+            row_cells.append(row_cells_temp.get(3, Paragraph("", p_cell_name)))
+            row_cells.append(row_cells_temp.get(4, Paragraph("", p_cell_name)))
+            row_cells.append(Paragraph("<b>BREAK</b>", p_cell_break))
             table_styles.append(('BACKGROUND', (5, row_index), (5, row_index), colors.HexColor('#FEF9C3')))
-            row_cells.append(row_cells_temp.get(6, Paragraph("", p_cell_sub)))
-            row_cells.append(row_cells_temp.get(7, Paragraph("", p_cell_sub)))
+            row_cells.append(row_cells_temp.get(6, Paragraph("", p_cell_name)))
+            row_cells.append(row_cells_temp.get(7, Paragraph("", p_cell_name)))
 
             # Summary item on col 8
             s_text = summary_lines[day_idx] if day_idx < len(summary_lines) else ""
-            row_cells.append(Paragraph(s_text, ParagraphStyle('SumItem', fontName='Times-Roman', fontSize=8.5, leading=11, alignment=0, textColor=colors.HexColor('#0F172A'))))
+            row_cells.append(Paragraph(s_text, ParagraphStyle('SumItem', fontName='Times-Roman', fontSize=8, leading=10.5, alignment=0, textColor=colors.HexColor('#0F172A'))))
             table_styles.append(('BACKGROUND', (8, row_index), (8, row_index), colors.HexColor('#F8FAFC')))
 
             table_data.append(row_cells)
             row_index += 1
 
-        t = Table(table_data, colWidths=col_widths, rowHeights=[22] + [48]*len(days))
+        t = Table(table_data, colWidths=col_widths, rowHeights=[22] + [42]*len(days))
         t.setStyle(TableStyle(table_styles))
         elements.append(t)
+
+        # Class / Batch, Subject Code, Subject Name Reference Table below timetable
+        fac_legend = {}
+        fac_entries = [e for e in timetable if (e.get("teacher_id") == f_id or f_id in (e.get("teacher_ids") or []))]
+        for e in fac_entries:
+            code = e.get("course_code")
+            if not code:
+                continue
+            c_name = e.get("course_name") or code
+            b_name_s = e.get("batch_name", "")
+            sb_name = e.get("sub_batch_name")
+            if sb_name and sb_name not in b_name_s:
+                b_name_s += f" ({sb_name})"
+            key = (b_name_s, code, c_name)
+            fac_legend[key] = True
+
+        if fac_legend:
+            ref_data = [
+                [
+                    Paragraph("Class / Batch", p_ref_head),
+                    Paragraph("Subject Code", p_ref_head),
+                    Paragraph("Subject Name", p_ref_head)
+                ]
+            ]
+            for (b_name_s, c_code, c_name) in sorted(fac_legend.keys()):
+                ref_data.append([
+                    Paragraph(b_name_s, p_ref_bold),
+                    Paragraph(c_code, p_ref_bold),
+                    Paragraph(c_name, p_ref_cell)
+                ])
+
+            ref_table = Table(ref_data, colWidths=[150, 110, 472])
+            ref_table.setStyle(TableStyle([
+                ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#CBD5E1')),
+                ('BOX', (0, 0), (-1, -1), 0.8, colors.HexColor('#94A3B8')),
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#F1F5F9')),
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                ('TOPPADDING', (0, 0), (-1, -1), 2.5),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 2.5),
+                ('LEFTPADDING', (0, 0), (-1, -1), 4),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 4),
+            ]))
+
+            elements.append(Spacer(1, 8))
+            elements.append(Paragraph("<b>Teaching Assignments &amp; Subject Reference:</b>", ParagraphStyle('RefTitleFac', fontName='Times-Bold', fontSize=8, leading=10, textColor=colors.HexColor('#1E293B'))))
+            elements.append(Spacer(1, 3))
+            elements.append(ref_table)
 
         if f_idx < len(faculty) - 1:
             elements.append(PageBreak())

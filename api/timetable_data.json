@@ -9704,7 +9704,8 @@
       "room_id": "r_d___block_2",
       "room_name": "D - Block 2",
       "is_lab": false,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_phy_g_d0_p0_ce236p_lab",
@@ -9727,7 +9728,8 @@
       "room_id": "r_g___block_2",
       "room_name": "G - Block 2",
       "is_lab": true,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_2mtst_d0_p0_mtce241e01",
@@ -9750,7 +9752,8 @@
       "room_id": "r_room_006",
       "room_name": "Room 006",
       "is_lab": false,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_4btci_d0_p0_ce432p",
@@ -9773,7 +9776,8 @@
       "room_id": "r_room_007",
       "room_name": "Room 007",
       "is_lab": false,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_6btci_d0_p0_oec",
@@ -9794,7 +9798,8 @@
       "room_id": "r_room_008",
       "room_name": "Room 008",
       "is_lab": false,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_phy_g_d0_p1_ce236p_lab",
@@ -9817,7 +9822,8 @@
       "room_id": "r_g___block_2",
       "room_name": "G - Block 2",
       "is_lab": true,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_2mtst_d0_p1_mtce232",
@@ -9840,7 +9846,8 @@
       "room_id": "r_room_006",
       "room_name": "Room 006",
       "is_lab": false,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_4btci_d0_p1_ce434p",
@@ -9863,7 +9870,8 @@
       "room_id": "r_room_007",
       "room_name": "Room 007",
       "is_lab": false,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_6btci_d0_p1_oec",
@@ -9884,7 +9892,8 @@
       "room_id": "r_room_008",
       "room_name": "Room 008",
       "is_lab": false,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_2mtst_d0_p2_mtce251",
@@ -9907,7 +9916,8 @@
       "room_id": "r_room_006",
       "room_name": "Room 006",
       "is_lab": true,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_4btci_d0_p2_ce433p",
@@ -9930,7 +9940,8 @@
       "room_id": "r_room_007",
       "room_name": "Room 007",
       "is_lab": false,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_6btci_d0_p2_ce632",
@@ -9953,7 +9964,8 @@
       "room_id": "r_room_008",
       "room_name": "Room 008",
       "is_lab": false,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_phy_b_d0_p3_ce236p",
@@ -9976,7 +9988,8 @@
       "room_id": "r_b___block_2",
       "room_name": "B - Block 2",
       "is_lab": false,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_phy_g_d0_p3_ce236p",
@@ -9999,7 +10012,8 @@
       "room_id": "r_g___block_2",
       "room_name": "G - Block 2",
       "is_lab": false,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_2mtst_d0_p3_mtce251",
@@ -10022,7 +10036,8 @@
       "room_id": "r_room_006",
       "room_name": "Room 006",
       "is_lab": true,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_4btci_d0_p3_ce431",
@@ -10045,7 +10060,8 @@
       "room_id": "r_room_007",
       "room_name": "Room 007",
       "is_lab": false,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_6btci_d0_p3_ce631",
@@ -10068,7 +10084,8 @@
       "room_id": "r_room_008",
       "room_name": "Room 008",
       "is_lab": false,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_phy_c_d0_p5_ce236p_lab",
@@ -10091,7 +10108,8 @@
       "room_id": "r_c___block_2",
       "room_name": "C - Block 2",
       "is_lab": true,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_phy_f_d0_p5_ce236p",
@@ -10114,7 +10132,8 @@
       "room_id": "r_f___block_2",
       "room_name": "F - Block 2",
       "is_lab": false,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_2barc_a_d0_p5_arc232",
@@ -10137,7 +10156,8 @@
       "room_id": "r_tbd",
       "room_name": "TBD",
       "is_lab": false,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_2barc_b_d0_p5_arc232",
@@ -10160,7 +10180,8 @@
       "room_id": "r_tbd",
       "room_name": "TBD",
       "is_lab": false,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_2mtst_d0_p5_mtac224",
@@ -10183,7 +10204,8 @@
       "room_id": "r_room_006",
       "room_name": "Room 006",
       "is_lab": false,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_4btci_d0_p5_ce451",
@@ -10207,7 +10229,8 @@
       "room_id": "r_room_007",
       "room_name": "Room 007",
       "is_lab": true,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_6barc_a_d0_p5_arc632",
@@ -10230,7 +10253,8 @@
       "room_id": "r_tbd",
       "room_name": "TBD",
       "is_lab": false,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_6barc_b_d0_p5_arc632",
@@ -10253,7 +10277,8 @@
       "room_id": "r_tbd",
       "room_name": "TBD",
       "is_lab": false,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_6btci_d0_p5_oec",
@@ -10274,7 +10299,8 @@
       "room_id": "r_room_008",
       "room_name": "Room 008",
       "is_lab": false,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_8btci_d0_p5_ce881",
@@ -10295,7 +10321,8 @@
       "room_id": "r_room_009",
       "room_name": "Room 009",
       "is_lab": true,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_phy_c_d0_p6_ce236p_lab",
@@ -10318,7 +10345,8 @@
       "room_id": "r_c___block_2",
       "room_name": "C - Block 2",
       "is_lab": true,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_phy_h_d0_p6_ce236p",
@@ -10341,7 +10369,8 @@
       "room_id": "r_h___block_2",
       "room_name": "H - Block 2",
       "is_lab": false,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_4btci_d0_p6_ce451",
@@ -10365,7 +10394,8 @@
       "room_id": "r_room_007",
       "room_name": "Room 007",
       "is_lab": true,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_6btci_d0_p6_oec",
@@ -10386,7 +10416,8 @@
       "room_id": "r_room_008",
       "room_name": "Room 008",
       "is_lab": false,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_8btci_d0_p6_ce881",
@@ -10407,7 +10438,8 @@
       "room_id": "r_room_009",
       "room_name": "Room 009",
       "is_lab": true,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_2mtst_d1_p0_mtce231",
@@ -10430,7 +10462,8 @@
       "room_id": "r_room_006",
       "room_name": "Room 006",
       "is_lab": false,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_4btci_d1_p0_ce434p_lab",
@@ -10454,7 +10487,8 @@
       "room_id": "r_room_007",
       "room_name": "Room 007",
       "is_lab": true,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_6btci_d1_p0_ce632",
@@ -10477,7 +10511,8 @@
       "room_id": "r_room_008",
       "room_name": "Room 008",
       "is_lab": false,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_phy_a_d1_p1_ce236p",
@@ -10500,7 +10535,8 @@
       "room_id": "r_a___block_2",
       "room_name": "A - Block 2",
       "is_lab": false,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_2mtst_d1_p1_mtce242e03",
@@ -10523,7 +10559,8 @@
       "room_id": "r_room_006",
       "room_name": "Room 006",
       "is_lab": false,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_4btci_d1_p1_ce434p_lab",
@@ -10547,7 +10584,8 @@
       "room_id": "r_room_007",
       "room_name": "Room 007",
       "is_lab": true,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_6btci_d1_p1_ce633",
@@ -10570,7 +10608,8 @@
       "room_id": "r_room_008",
       "room_name": "Room 008",
       "is_lab": false,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_2mtst_d1_p2_hed",
@@ -10591,7 +10630,8 @@
       "room_id": "r_room_006",
       "room_name": "Room 006",
       "is_lab": false,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_4barc_a_d1_p2_arc432",
@@ -10614,7 +10654,8 @@
       "room_id": "r_tbd",
       "room_name": "TBD",
       "is_lab": false,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_4barc_b_d1_p2_arc432",
@@ -10637,7 +10678,8 @@
       "room_id": "r_tbd",
       "room_name": "TBD",
       "is_lab": false,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_4btci_d1_p2_hed",
@@ -10658,7 +10700,8 @@
       "room_id": "r_room_007",
       "room_name": "Room 007",
       "is_lab": false,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_phy_f_d1_p5_ce236p",
@@ -10681,7 +10724,8 @@
       "room_id": "r_f___block_2",
       "room_name": "F - Block 2",
       "is_lab": false,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_phy_h_d1_p5_ce236p_lab",
@@ -10704,7 +10748,8 @@
       "room_id": "r_h___block_2",
       "room_name": "H - Block 2",
       "is_lab": true,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_4btci_d1_p5_ce432p",
@@ -10727,7 +10772,8 @@
       "room_id": "r_room_007",
       "room_name": "Room 007",
       "is_lab": false,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_6btci_d1_p5_ce651",
@@ -10751,7 +10797,8 @@
       "room_id": "r_room_008",
       "room_name": "Room 008",
       "is_lab": true,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_phy_c_d1_p6_ce236p",
@@ -10774,7 +10821,8 @@
       "room_id": "r_c___block_2",
       "room_name": "C - Block 2",
       "is_lab": false,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_phy_e_d1_p6_ce236p",
@@ -10797,7 +10845,8 @@
       "room_id": "r_e___block_2",
       "room_name": "E - Block 2",
       "is_lab": false,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_phy_h_d1_p6_ce236p_lab",
@@ -10820,7 +10869,8 @@
       "room_id": "r_h___block_2",
       "room_name": "H - Block 2",
       "is_lab": true,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_4btci_d1_p6_ce433p",
@@ -10843,7 +10893,8 @@
       "room_id": "r_room_007",
       "room_name": "Room 007",
       "is_lab": false,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_6btci_d1_p6_ce651",
@@ -10867,7 +10918,8 @@
       "room_id": "r_room_008",
       "room_name": "Room 008",
       "is_lab": true,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_phy_e_d2_p0_ce236p",
@@ -10890,7 +10942,8 @@
       "room_id": "r_e___block_2",
       "room_name": "E - Block 2",
       "is_lab": false,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_2mtst_d2_p0_mtce242e03",
@@ -10913,7 +10966,8 @@
       "room_id": "r_room_006",
       "room_name": "Room 006",
       "is_lab": false,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_4barc_a_d2_p0_arc432",
@@ -10936,7 +10990,8 @@
       "room_id": "r_tbd",
       "room_name": "TBD",
       "is_lab": false,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_4barc_b_d2_p0_arc432",
@@ -10959,7 +11014,8 @@
       "room_id": "r_tbd",
       "room_name": "TBD",
       "is_lab": false,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_4btci_d2_p0_ce452",
@@ -10983,7 +11039,8 @@
       "room_id": "r_room_007",
       "room_name": "Room 007",
       "is_lab": true,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_6btci_d2_p0_ce634",
@@ -11006,7 +11063,8 @@
       "room_id": "r_room_008",
       "room_name": "Room 008",
       "is_lab": false,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_4btci_d2_p1_ce452",
@@ -11030,7 +11088,8 @@
       "room_id": "r_room_007",
       "room_name": "Room 007",
       "is_lab": true,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_6btci_d2_p1_btge",
@@ -11051,7 +11110,8 @@
       "room_id": "r_room_008",
       "room_name": "Room 008",
       "is_lab": false,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_phy_a_d2_p2_ce236p_lab",
@@ -11074,7 +11134,8 @@
       "room_id": "r_a___block_2",
       "room_name": "A - Block 2",
       "is_lab": true,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_2mtst_d2_p2_mtce232",
@@ -11097,7 +11158,8 @@
       "room_id": "r_room_006",
       "room_name": "Room 006",
       "is_lab": false,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_4btci_d2_p2_minor",
@@ -11118,7 +11180,8 @@
       "room_id": "r_room_007",
       "room_name": "Room 007",
       "is_lab": false,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_phy_a_d2_p3_ce236p_lab",
@@ -11141,7 +11204,8 @@
       "room_id": "r_a___block_2",
       "room_name": "A - Block 2",
       "is_lab": true,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_2barc_a_d2_p3_arc232",
@@ -11164,7 +11228,8 @@
       "room_id": "r_tbd",
       "room_name": "TBD",
       "is_lab": false,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_2barc_b_d2_p3_arc232",
@@ -11187,7 +11252,8 @@
       "room_id": "r_tbd",
       "room_name": "TBD",
       "is_lab": false,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_2mtst_d2_p3_mtce231",
@@ -11210,7 +11276,8 @@
       "room_id": "r_room_006",
       "room_name": "Room 006",
       "is_lab": false,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_4btci_d2_p3_minor",
@@ -11231,7 +11298,8 @@
       "room_id": "r_room_007",
       "room_name": "Room 007",
       "is_lab": false,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_6btci_d2_p3_ce633",
@@ -11254,7 +11322,8 @@
       "room_id": "r_room_008",
       "room_name": "Room 008",
       "is_lab": false,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_4btci_d2_p5_minor",
@@ -11275,7 +11344,8 @@
       "room_id": "r_room_007",
       "room_name": "Room 007",
       "is_lab": false,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_6btci_d2_p5_ce652",
@@ -11298,7 +11368,8 @@
       "room_id": "r_room_008",
       "room_name": "Room 008",
       "is_lab": true,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_phy_a_d2_p6_ce236p",
@@ -11321,7 +11392,8 @@
       "room_id": "r_a___block_2",
       "room_name": "A - Block 2",
       "is_lab": false,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_phy_b_d2_p6_ce236p",
@@ -11344,7 +11416,8 @@
       "room_id": "r_b___block_2",
       "room_name": "B - Block 2",
       "is_lab": false,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_phy_d_d2_p6_ce236p",
@@ -11367,7 +11440,8 @@
       "room_id": "r_d___block_2",
       "room_name": "D - Block 2",
       "is_lab": false,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_4btci_d2_p6_minor",
@@ -11388,7 +11462,8 @@
       "room_id": "r_room_007",
       "room_name": "Room 007",
       "is_lab": false,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_6btci_d2_p6_ce652",
@@ -11411,7 +11486,8 @@
       "room_id": "r_room_008",
       "room_name": "Room 008",
       "is_lab": true,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_phy_d_d3_p0_ce236p",
@@ -11434,7 +11510,8 @@
       "room_id": "r_d___block_2",
       "room_name": "D - Block 2",
       "is_lab": false,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_2mtst_d3_p0_mtce242e03",
@@ -11457,7 +11534,8 @@
       "room_id": "r_room_006",
       "room_name": "Room 006",
       "is_lab": false,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_4btci_d3_p0_ce432p_lab",
@@ -11481,7 +11559,8 @@
       "room_id": "r_room_007",
       "room_name": "Room 007",
       "is_lab": true,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_6btci_d3_p0_ce631",
@@ -11504,7 +11583,8 @@
       "room_id": "r_room_008",
       "room_name": "Room 008",
       "is_lab": false,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_phy_f_d3_p1_ce236p",
@@ -11527,7 +11607,8 @@
       "room_id": "r_f___block_2",
       "room_name": "F - Block 2",
       "is_lab": false,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_4btci_d3_p1_ce432p_lab",
@@ -11551,7 +11632,8 @@
       "room_id": "r_room_007",
       "room_name": "Room 007",
       "is_lab": true,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_phy_d_d3_p2_ce236p_lab",
@@ -11574,7 +11656,8 @@
       "room_id": "r_d___block_2",
       "room_name": "D - Block 2",
       "is_lab": true,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_phy_e_d3_p2_ce236p",
@@ -11597,7 +11680,8 @@
       "room_id": "r_e___block_2",
       "room_name": "E - Block 2",
       "is_lab": false,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_phy_h_d3_p2_ce236p",
@@ -11620,7 +11704,8 @@
       "room_id": "r_h___block_2",
       "room_name": "H - Block 2",
       "is_lab": false,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_2mtst_d3_p2_mtce252",
@@ -11643,7 +11728,8 @@
       "room_id": "r_room_006",
       "room_name": "Room 006",
       "is_lab": true,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_8btci_d3_p2_ce881",
@@ -11664,7 +11750,8 @@
       "room_id": "r_room_009",
       "room_name": "Room 009",
       "is_lab": true,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_phy_d_d3_p3_ce236p_lab",
@@ -11687,7 +11774,8 @@
       "room_id": "r_d___block_2",
       "room_name": "D - Block 2",
       "is_lab": true,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_2mtst_d3_p3_mtce252",
@@ -11710,7 +11798,8 @@
       "room_id": "r_room_006",
       "room_name": "Room 006",
       "is_lab": true,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_4barc_a_d3_p3_arc432",
@@ -11733,7 +11822,8 @@
       "room_id": "r_tbd",
       "room_name": "TBD",
       "is_lab": false,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_4barc_b_d3_p3_arc432",
@@ -11756,7 +11846,8 @@
       "room_id": "r_tbd",
       "room_name": "TBD",
       "is_lab": false,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_4btci_d3_p3_ce431",
@@ -11779,7 +11870,8 @@
       "room_id": "r_room_007",
       "room_name": "Room 007",
       "is_lab": false,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_6barc_a_d3_p3_arc632",
@@ -11802,7 +11894,8 @@
       "room_id": "r_tbd",
       "room_name": "TBD",
       "is_lab": false,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_6barc_b_d3_p3_arc632",
@@ -11825,7 +11918,8 @@
       "room_id": "r_tbd",
       "room_name": "TBD",
       "is_lab": false,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_6btci_d3_p3_ce633",
@@ -11848,7 +11942,8 @@
       "room_id": "r_room_008",
       "room_name": "Room 008",
       "is_lab": false,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_8btci_d3_p3_ce881",
@@ -11869,7 +11964,8 @@
       "room_id": "r_room_009",
       "room_name": "Room 009",
       "is_lab": true,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_phy_c_d3_p5_ce236p",
@@ -11892,7 +11988,8 @@
       "room_id": "r_c___block_2",
       "room_name": "C - Block 2",
       "is_lab": false,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_phy_f_d3_p5_ce236p_lab",
@@ -11915,7 +12012,8 @@
       "room_id": "r_f___block_2",
       "room_name": "F - Block 2",
       "is_lab": true,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_phy_g_d3_p5_ce236p",
@@ -11938,7 +12036,8 @@
       "room_id": "r_g___block_2",
       "room_name": "G - Block 2",
       "is_lab": false,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_2barc_a_d3_p5_arc232",
@@ -11961,7 +12060,8 @@
       "room_id": "r_tbd",
       "room_name": "TBD",
       "is_lab": false,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_2barc_b_d3_p5_arc232",
@@ -11984,7 +12084,8 @@
       "room_id": "r_tbd",
       "room_name": "TBD",
       "is_lab": false,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_2mtst_d3_p5_mtce241e01",
@@ -12007,7 +12108,8 @@
       "room_id": "r_room_006",
       "room_name": "Room 006",
       "is_lab": false,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_4btci_d3_p5_oec471",
@@ -12028,7 +12130,8 @@
       "room_id": "r_room_007",
       "room_name": "Room 007",
       "is_lab": false,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_6btci_d3_p5_ce681",
@@ -12051,7 +12154,8 @@
       "room_id": "r_room_008",
       "room_name": "Room 008",
       "is_lab": true,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_phy_f_d3_p6_ce236p_lab",
@@ -12074,7 +12178,8 @@
       "room_id": "r_f___block_2",
       "room_name": "F - Block 2",
       "is_lab": true,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_4btci_d3_p6_oec471",
@@ -12095,7 +12200,8 @@
       "room_id": "r_room_007",
       "room_name": "Room 007",
       "is_lab": false,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_6btci_d3_p6_ce681",
@@ -12118,7 +12224,8 @@
       "room_id": "r_room_008",
       "room_name": "Room 008",
       "is_lab": true,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_phy_b_d4_p0_ce236p",
@@ -12141,7 +12248,8 @@
       "room_id": "r_b___block_2",
       "room_name": "B - Block 2",
       "is_lab": false,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_2mtst_d4_p0_mtce232",
@@ -12164,7 +12272,8 @@
       "room_id": "r_room_006",
       "room_name": "Room 006",
       "is_lab": false,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_4btci_d4_p0_ce434p",
@@ -12187,7 +12296,8 @@
       "room_id": "r_room_007",
       "room_name": "Room 007",
       "is_lab": false,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_6btci_d4_p0_btge",
@@ -12208,7 +12318,8 @@
       "room_id": "r_room_008",
       "room_name": "Room 008",
       "is_lab": false,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_phy_a_d4_p1_ce236p",
@@ -12231,7 +12342,8 @@
       "room_id": "r_a___block_2",
       "room_name": "A - Block 2",
       "is_lab": false,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_phy_c_d4_p1_ce236p",
@@ -12254,7 +12366,8 @@
       "room_id": "r_c___block_2",
       "room_name": "C - Block 2",
       "is_lab": false,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_2mtst_d4_p1_mtce231",
@@ -12277,7 +12390,8 @@
       "room_id": "r_room_006",
       "room_name": "Room 006",
       "is_lab": false,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_4btci_d4_p1_ceoe461",
@@ -12298,7 +12412,8 @@
       "room_id": "r_room_007",
       "room_name": "Room 007",
       "is_lab": false,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_6btci_d4_p1_ce631",
@@ -12321,7 +12436,8 @@
       "room_id": "r_room_008",
       "room_name": "Room 008",
       "is_lab": false,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_phy_b_d4_p2_ce236p_lab",
@@ -12344,7 +12460,8 @@
       "room_id": "r_b___block_2",
       "room_name": "B - Block 2",
       "is_lab": true,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_phy_g_d4_p2_ce236p",
@@ -12367,7 +12484,8 @@
       "room_id": "r_g___block_2",
       "room_name": "G - Block 2",
       "is_lab": false,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_phy_h_d4_p2_ce236p",
@@ -12390,7 +12508,8 @@
       "room_id": "r_h___block_2",
       "room_name": "H - Block 2",
       "is_lab": false,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_2mtst_d4_p2_mtac224",
@@ -12413,7 +12532,8 @@
       "room_id": "r_room_006",
       "room_name": "Room 006",
       "is_lab": false,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_4btci_d4_p2_ceoe461",
@@ -12434,7 +12554,8 @@
       "room_id": "r_room_007",
       "room_name": "Room 007",
       "is_lab": false,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_6btci_d4_p2_ce632",
@@ -12457,7 +12578,8 @@
       "room_id": "r_room_008",
       "room_name": "Room 008",
       "is_lab": false,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_phy_b_d4_p3_ce236p_lab",
@@ -12480,7 +12602,8 @@
       "room_id": "r_b___block_2",
       "room_name": "B - Block 2",
       "is_lab": true,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_2mtst_d4_p3_mtce241e01",
@@ -12503,7 +12626,8 @@
       "room_id": "r_room_006",
       "room_name": "Room 006",
       "is_lab": false,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_4btci_d4_p3_ceoe461",
@@ -12524,7 +12648,8 @@
       "room_id": "r_room_007",
       "room_name": "Room 007",
       "is_lab": false,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_6barc_a_d4_p3_arc632",
@@ -12547,7 +12672,8 @@
       "room_id": "r_tbd",
       "room_name": "TBD",
       "is_lab": false,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_6barc_b_d4_p3_arc632",
@@ -12570,7 +12696,8 @@
       "room_id": "r_tbd",
       "room_name": "TBD",
       "is_lab": false,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_phy_e_d4_p5_ce236p_lab",
@@ -12593,7 +12720,8 @@
       "room_id": "r_e___block_2",
       "room_name": "E - Block 2",
       "is_lab": true,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_4btci_d4_p5_ce433p_lab",
@@ -12617,7 +12745,8 @@
       "room_id": "r_room_007",
       "room_name": "Room 007",
       "is_lab": true,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_6btci_d4_p5_oec671",
@@ -12638,7 +12767,8 @@
       "room_id": "r_room_008",
       "room_name": "Room 008",
       "is_lab": false,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_8btci_d4_p5_ce881",
@@ -12659,7 +12789,8 @@
       "room_id": "r_room_009",
       "room_name": "Room 009",
       "is_lab": true,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_phy_e_d4_p6_ce236p_lab",
@@ -12682,7 +12813,8 @@
       "room_id": "r_e___block_2",
       "room_name": "E - Block 2",
       "is_lab": true,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_4btci_d4_p6_ce433p_lab",
@@ -12706,7 +12838,8 @@
       "room_id": "r_room_007",
       "room_name": "Room 007",
       "is_lab": true,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_6btci_d4_p6_oec671",
@@ -12727,7 +12860,8 @@
       "room_id": "r_room_008",
       "room_name": "Room 008",
       "is_lab": false,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_8btci_d4_p6_ce881",
@@ -12748,7 +12882,8 @@
       "room_id": "r_room_009",
       "room_name": "Room 009",
       "is_lab": true,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_phy_a_d5_p0_ce236p",
@@ -12771,7 +12906,8 @@
       "room_id": "r_a___block_2",
       "room_name": "A - Block 2",
       "is_lab": false,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_phy_e_d5_p0_ce236p",
@@ -12794,7 +12930,8 @@
       "room_id": "r_e___block_2",
       "room_name": "E - Block 2",
       "is_lab": false,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_phy_f_d5_p0_ce236p",
@@ -12817,7 +12954,8 @@
       "room_id": "r_f___block_2",
       "room_name": "F - Block 2",
       "is_lab": false,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_2mtst_d5_p0_mtce252",
@@ -12840,7 +12978,8 @@
       "room_id": "r_room_006",
       "room_name": "Room 006",
       "is_lab": true,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_4btci_d5_p0_ce434p",
@@ -12863,7 +13002,8 @@
       "room_id": "r_room_007",
       "room_name": "Room 007",
       "is_lab": false,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_phy_b_d5_p1_ce236p",
@@ -12886,7 +13026,8 @@
       "room_id": "r_b___block_2",
       "room_name": "B - Block 2",
       "is_lab": false,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_phy_d_d5_p1_ce236p",
@@ -12909,7 +13050,8 @@
       "room_id": "r_d___block_2",
       "room_name": "D - Block 2",
       "is_lab": false,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_2mtst_d5_p1_mtce252",
@@ -12932,7 +13074,8 @@
       "room_id": "r_room_006",
       "room_name": "Room 006",
       "is_lab": true,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_4btci_d5_p1_ce432p",
@@ -12955,7 +13098,8 @@
       "room_id": "r_room_007",
       "room_name": "Room 007",
       "is_lab": false,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_phy_g_d5_p2_ce236p",
@@ -12978,7 +13122,8 @@
       "room_id": "r_g___block_2",
       "room_name": "G - Block 2",
       "is_lab": false,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_2mtst_d5_p2_mtce251",
@@ -13001,7 +13146,8 @@
       "room_id": "r_room_006",
       "room_name": "Room 006",
       "is_lab": true,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_4btci_d5_p2_ce433p",
@@ -13024,7 +13170,8 @@
       "room_id": "r_room_007",
       "room_name": "Room 007",
       "is_lab": false,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_6btci_d5_p2_ce634",
@@ -13047,7 +13194,8 @@
       "room_id": "r_room_008",
       "room_name": "Room 008",
       "is_lab": false,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_8btci_d5_p2_ce881",
@@ -13068,7 +13216,8 @@
       "room_id": "r_room_009",
       "room_name": "Room 009",
       "is_lab": true,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_phy_c_d5_p3_ce236p",
@@ -13091,7 +13240,8 @@
       "room_id": "r_c___block_2",
       "room_name": "C - Block 2",
       "is_lab": false,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_phy_h_d5_p3_ce236p",
@@ -13114,7 +13264,8 @@
       "room_id": "r_h___block_2",
       "room_name": "H - Block 2",
       "is_lab": false,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_2mtst_d5_p3_mtce251",
@@ -13137,7 +13288,8 @@
       "room_id": "r_room_006",
       "room_name": "Room 006",
       "is_lab": true,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_4btci_d5_p3_ce431",
@@ -13160,7 +13312,8 @@
       "room_id": "r_room_007",
       "room_name": "Room 007",
       "is_lab": false,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     },
     {
       "id": "tt_b_8btci_d5_p3_ce881",
@@ -13181,7 +13334,8 @@
       "room_id": "r_room_009",
       "room_name": "Room 009",
       "is_lab": true,
-      "is_pinned": true
+      "is_pinned": true,
+      "is_frozen": true
     }
   ],
   "unmapped_subjects": [
